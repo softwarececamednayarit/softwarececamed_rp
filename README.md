@@ -6,7 +6,7 @@ Este proyecto es una herramienta que automatiza la generación de reportes estad
 
 ## Tecnologías Utilizadas
 
-* **Frontend:** [React, Vite, HTML5/CSS3]
+* **Frontend:** [React Vite, HTML5/CSS3]
 * **Backend:** [Node.js]
 * **Base de Datos:** [Firebase]
 * **Otros:** [Git, Google Sheets]
@@ -45,6 +45,6 @@ Asegúrate de tener instalado lo siguiente:
     npm start 
     ```
 
-## 📝 Licencia
+## Licencia
 
 Este proyecto está bajo la Licencia **[Software Cecamed]**.
