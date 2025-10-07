@@ -29,10 +29,8 @@ Asegúrate de tener instalado lo siguiente:
     ```
 2.  **Instalar dependencias:**
     ```bash
-    # Si es un proyecto JavaScript/Node.js
+    # Siendo un proyecto JavaScript/Node.js
     npm install
-    # Si es un proyecto Python
-    pip install -r requirements.txt
     ```
 3.  **Configurar variables de entorno:**
     Crea un archivo llamado `.env` en la raíz del proyecto y añade tus credenciales.
