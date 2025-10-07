@@ -33,7 +33,7 @@ Asegúrate de tener instalado lo siguiente:
     npm install
     ```
 3.  **Configurar variables de entorno:**
-    Crea un archivo llamado `.env` en la raíz del proyecto y añade tus credenciales.
+    Crea un archivo llamado `.env` en la raíz del proyecto y añadir las credenciales.
     ```
     # Ejemplo de archivo .env
     DB_HOST=localhost
@@ -43,8 +43,6 @@ Asegúrate de tener instalado lo siguiente:
 4.  **Ejecutar la aplicación:**
     ```bash
     npm start 
-    # o
-    python app.py
     ```
 
 ## 📝 Licencia
