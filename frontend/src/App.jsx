@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 import About from './pages/About.jsx'
 import Header from './components/Header.jsx'
+import Atendidos from './pages/Atendidos.jsx'
 
 function App() {
   return (
@@ -10,7 +11,7 @@ function App() {
         <Header />
         <main className="container mx-auto p-4">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Atendidos />} />
             <Route path="/about" element={<About />} />
           </Routes>
         </main>
