@@ -27,7 +27,8 @@ export const DetailModal = ({ item, onClose }) => {
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div style={{ zIndex: 100 }} className="fixed inset-0 flex items-center justify-center p-4"
+>
       {/* Overlay con desenfoque */}
       <div 
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
