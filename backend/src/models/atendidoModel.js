@@ -1,44 +1,71 @@
 const db = require('../../config/firebase');
 
 class AtendidoModel {
-  // Traer todos los registros ordenados por fecha de recepción (descendente)
+  // 1. Obtener todos (Ya lo tenías bien, agregamos un try/catch robusto)
   static async getAll() {
     try {
       const snapshot = await db.collection('atendidos')
         .orderBy('fecha_recepcion', 'desc')
         .get();
       
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
-      throw new Error('Error al obtener datos de Firestore: ' + error.message);
+      throw new Error('Error en AtendidoModel.getAll: ' + error.message);
     }
   }
 
+  // 2. Filtrado con Ordenamiento (Vital para gráficas de tiempo)
   static async getFiltered({ fechaInicio, fechaFin, tipo }) {
-    let query = db.collection('atendidos');
+    try {
+      let query = db.collection('atendidos');
 
-    // Filtro por rango de fechas (basado en el campo de tu Sheets)
-    if (fechaInicio && fechaFin) {
-      query = query.where('fecha_recepcion', '>=', fechaInicio)
-                  .where('fecha_recepcion', '<=', fechaFin);
+      if (fechaInicio && fechaFin) {
+        query = query.where('fecha_recepcion', '>=', fechaInicio)
+                     .where('fecha_recepcion', '<=', fechaFin);
+      }
+
+      if (tipo) {
+        query = query.where('tipo', '==', tipo);
+      }
+
+      // IMPORTANTE: Siempre ordenar para que el Frontend no tenga que hacerlo
+      // Nota: Si usas filtros de rango y orderBy en campos distintos, 
+      // Firebase te pedirá crear un "Índice Compuesto" (te dará el link en consola).
+      query = query.orderBy('fecha_recepcion', 'desc');
+
+      const snapshot = await query.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.getFiltered: ' + error.message);
     }
-
-    // Filtro por tipo de trámite
-    if (tipo) {
-      query = query.where('tipo', '==', tipo);
-    }
-
-    const snapshot = await query.get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
-  // Buscar por un campo específico (ej: CURP o Nombre)
-  static async findByField(field, value) {
-    const snapshot = await db.collection('atendidos').where(field, '==', value).get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // 3. Búsqueda por ID Único (Necesario para la página de "Detalles")
+  static async getById(id) {
+    try {
+      const doc = await db.collection('atendidos').doc(id).get();
+      if (!doc.exists) return null;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.getById: ' + error.message);
+    }
+  }
+
+  // 4. Búsqueda por Nombre (Simulación de búsqueda parcial)
+  // Como Firestore no tiene "LIKE %text%", traemos por rango de texto
+  static async searchByName(nombreBusqueda) {
+    try {
+      const str = nombreBusqueda.toUpperCase();
+      const snapshot = await db.collection('atendidos')
+        .where('nombre', '>=', str)
+        .where('nombre', '<=', str + '\uf8ff')
+        .limit(20) // Limitar para no saturar
+        .get();
+      
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.searchByName: ' + error.message);
+    }
   }
 }
 
