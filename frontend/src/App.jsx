@@ -1,120 +1,72 @@
-import { useEffect, useState } from 'react';
-import { AtendidosService } from './services/atendidosService';
-import { StatCard } from './components/StatCard';
-import { DataTable } from './components/DataTable';
-import { SearchFilters } from './components/SearchFilters';
-import { DetailModal } from './components/DetailModal';
-import { normalizeText } from './utils/formatters'; // <-- Importamos la utilidad
-import { Users, MessageSquare, AlertCircle, Compass, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
 
-function App() {
-  const [atendidos, setAtendidos] = useState([]);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ nombre: '', tipo: '' });
+// Importar componentes existentes
+import { Sidebar } from './components/Sidebar';
+import Atendidos from './pages/Atendidos';
+import { LogOut } from 'lucide-react';
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+// Creamos un componente interno para manejar la lógica de "mostrar/ocultar"
+// (Necesitamos este componente separado para poder usar el hook 'useAuth')
+const AppContent = () => {
+  const { user, loading, logout } = useAuth();
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const res = await AtendidosService.getAll();
-      setAtendidos(res.data || []);
-    } catch (err) {
-      console.error("Error al obtener datos:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // A. Pantalla de carga (mientras revisa si hay token guardado)
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-400 font-bold">
+        Cargando sistema...
+      </div>
+    );
+  }
 
-  // --- LÓGICA DE FILTRADO ---
-  const dataFiltrada = atendidos.filter(item => {
-    const busquedaNombre = normalizeText(filters.nombre);
-    const nombreCompleto = normalizeText(`${item.nombre} ${item.apellido_paterno} ${item.apellido_materno}`);
-    
-    const filtroTipo = normalizeText(filters.tipo);
-    const itemTipo = normalizeText(item.tipo);
+  // B. Si NO hay usuario logueado -> Muestra el Login
+  if (!user) {
+    return <Login />;
+  }
 
-    const coincideNombre = nombreCompleto.includes(busquedaNombre);
-    
-    // Si seleccionas "Asesoría", incluye "Inmediata" automáticamente
-    const coincideTipo = filters.tipo === "" || 
-      (filtroTipo === "asesoria" ? itemTipo.includes("asesoria") : itemTipo === filtroTipo);
-
-    return coincideNombre && coincideTipo;
-  });
-
-  const countByKeyword = (keyword) => 
-    atendidos.filter(a => normalizeText(a.tipo).includes(normalizeText(keyword))).length;
-
+  // C. Si SÍ hay usuario -> Muestra tu App normal (Dashboard)
   return (
     <div className="flex min-h-screen bg-slate-100/50 font-sans text-slate-900">
-      <aside className="hidden lg:flex w-72 bg-slate-900 flex-col p-8 text-white sticky top-0 h-screen">
-        <div className="mb-12">
-          <div className="text-2xl font-black tracking-tighter text-white">
-            CECA<span className="text-indigo-400">MED</span>
-          </div>
-          <p className="text-slate-500 text-xs font-bold uppercase mt-1 tracking-widest">Panel de Control</p>
+      
+      {/* Contenedor del Sidebar + Botón de Salir */}
+      <div className="hidden lg:flex flex-col sticky top-0 h-screen bg-slate-900">
+        <Sidebar />
+        
+        {/* Botón para Cerrar Sesión (Agregado al final del sidebar) */}
+        <div className="p-4 border-t border-slate-800">
+          <button 
+            onClick={logout}
+            className="flex items-center gap-3 w-full px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all text-sm font-bold"
+          >
+            <LogOut size={18} /> Cerrar Sesión
+          </button>
         </div>
-        <nav className="space-y-2">
-          <a href="#" className="flex items-center space-x-3 bg-indigo-600 text-white p-3.5 rounded-2xl shadow-lg shadow-indigo-900/20">
-            <Users size={20} /> 
-            <span className="font-semibold">Atendidos</span>
-          </a>
-        </nav>
-      </aside>
+      </div>
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-screen-2xl mx-auto px-6 md:px-12 py-10 md:py-16 space-y-12">
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-1">
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Panel de Atendidos</h1>
-              <p className="text-slate-500 text-lg font-medium">
-                {dataFiltrada.length} registros encontrados.
-              </p>
-            </div>
-            <button onClick={fetchData} disabled={loading} className="flex items-center justify-center gap-2 bg-white border border-slate-200 px-6 py-3 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50">
-              <RefreshCw size={20} className={loading ? 'animate-spin text-indigo-500' : ''} />
-              Actualizar Datos
-            </button>
-          </header>
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Botón de salir flotante para móviles (opcional) */}
+        <button 
+          onClick={logout} 
+          className="lg:hidden absolute top-4 right-4 p-2 bg-white rounded-full shadow-md text-slate-700 z-50"
+        >
+          <LogOut size={20} />
+        </button>
 
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <StatCard title="Total" count={atendidos.length} icon={<Users size={24} />} colorClass="bg-slate-900 shadow-xl shadow-slate-200" />
-            <StatCard title="Asesorías" count={countByKeyword('ASESORIA')} icon={<MessageSquare size={24} />} colorClass="bg-blue-600 shadow-xl shadow-blue-100" />
-            <StatCard title="Quejas / Gestión" count={countByKeyword('QUEJA') + countByKeyword('GESTION')} icon={<AlertCircle size={24} />} colorClass="bg-rose-600 shadow-xl shadow-rose-100" />
-            <StatCard title="Orientaciones" count={countByKeyword('ORIENTACION')} icon={<Compass size={24} />} colorClass="bg-amber-500 shadow-xl shadow-amber-100" />
-          </section>
-
-          <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
-            <div className="p-8 md:p-10 space-y-8">
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 border-b border-slate-100 pb-8">
-                <h3 className="text-xl font-bold text-slate-800">Listado de Seguimiento</h3>
-                <SearchFilters 
-                  onSearchChange={(val) => setFilters(f => ({...f, nombre: val}))} 
-                  onFilterChange={(val) => setFilters(f => ({...f, tipo: val}))}
-                />
-              </div>
-
-              {loading ? (
-                <div className="py-20 flex flex-col items-center justify-center bg-slate-50/30 rounded-3xl border-2 border-dashed border-slate-100">
-                  <RefreshCw size={48} className="animate-spin text-indigo-500 mb-4" />
-                  <span className="text-slate-500 font-bold text-lg">Sincronizando...</span>
-                </div>
-              ) : (
-                <DataTable data={dataFiltrada} onDetailClick={setSelectedItem} />
-              )}
-            </div>
-          </section>
-        </div>
+        <Atendidos />
       </main>
-
-      {selectedItem && (
-        <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
-      )}
     </div>
+  );
+};
+
+// Componente Principal
+function App() {
+  return (
+    // 2. ENVOLVER TODO EN EL PROVIDER
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

@@ -50,7 +50,7 @@ export const DataTable = ({ data, onDetailClick }) => (
               {/* Autoridad: Texto más suave */}
               <td className="px-8 py-6 whitespace-nowrap">
                 <p className="text-sm text-slate-500 font-medium max-w-48 truncate">
-                  {item.autoridad_responsable || '---'}
+                  {item.institucion || item.autoridad_responsable || '---'}
                 </p>
               </td>
 

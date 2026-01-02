@@ -10,9 +10,11 @@ app.use(express.json()); // Permite recibir datos en formato JSON
 
 // --- Importar Rutas (Las crearemos a continuación) ---
 const atendidosRoutes = require('./routes/atendidoRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 // --- Definir Rutas ---
 app.use('/api/atendidos', atendidosRoutes);
+app.use('/api/auth', authRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
