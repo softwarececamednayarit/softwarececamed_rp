@@ -91,3 +91,41 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// FORZAR CAMBIO DE CONTRASEÑA
+exports.forceResetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    // Validación simple
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: 'Se requiere email y newPassword' });
+    }
+
+    // 1. Buscar al usuario por email
+    const userQuery = await db.collection('usuarios').where('email', '==', email).get();
+
+    if (userQuery.empty) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Obtenemos la referencia al documento (ID)
+    const userDoc = userQuery.docs[0];
+    
+    // 2. Hashear la NUEVA contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // 3. Actualizar solo el campo password en Firestore
+    await db.collection('usuarios').doc(userDoc.id).update({
+      password: hashedPassword
+    });
+
+    res.json({ 
+      message: `Contraseña actualizada exitosamente para: ${email}` 
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
