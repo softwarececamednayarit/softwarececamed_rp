@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-// 1. IMPORTAR EL SERVICIO
 import { changePasswordRequest } from '../services/authService'; 
 import { Mail, Shield, Key, Clock, Fingerprint, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
