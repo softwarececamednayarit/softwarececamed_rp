@@ -12,7 +12,7 @@ const sitios = [
   {
     titulo: "Portal del Estado (SIREMED)",
     descripcion: "Sistema de Registro de Quejas Médicas y Gestión (Plataforma Estatal).",
-    url: "https://comisionestatal.conamed.gob.mx/app/siremed/index.php",
+    url: "https://comisionestatal.conamed.gob.mx/app/siremed/index.php?paginaDestino=login.php&paginaAlto=700px&paginaAncho=1400px",
     icon: <Building2 size={24} className="text-white" />,
     color: "bg-slate-700" // Gris serio institucional
   },

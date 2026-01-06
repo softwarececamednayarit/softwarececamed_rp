@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { changePasswordRequest } from '../services/authService'; 
-import { Mail, Shield, Key, Clock, Fingerprint, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Shield, Key, Clock, Fingerprint, X, Loader2, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 const Perfil = () => {
   const { user } = useAuth();
   
-  // Estados
+  // --- ESTADOS ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [status, setStatus] = useState({ loading: false, error: '', success: '' });
 
-  // Helpers
+  // Nuevo estado para controlar la visibilidad de cada campo individualmente
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+
+  // --- HELPERS ---
   const getInitials = (name) => {
     if (!name) return "US";
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
@@ -20,6 +27,14 @@ const Perfil = () => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (status.error) setStatus({ ...status, error: '' });
+  };
+
+  // Función para alternar visibilidad (ojo)
+  const toggleVisibility = (field) => {
+    setShowPassword(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
   };
 
   // --- LÓGICA DE ENVÍO ---
@@ -37,7 +52,6 @@ const Perfil = () => {
     }
 
     try {
-      // Usamos el servicio externo
       await changePasswordRequest(
         user.email,
         formData.currentPassword,
@@ -46,9 +60,11 @@ const Perfil = () => {
 
       setStatus({ loading: false, error: '', success: '¡Contraseña actualizada correctamente!' });
       
+      // Resetear todo después de 2 segundos
       setTimeout(() => {
         setIsModalOpen(false);
         setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setShowPassword({ current: false, new: false, confirm: false }); // Resetear ojos también
         setStatus({ loading: false, error: '', success: '' });
       }, 2000);
 
@@ -61,6 +77,7 @@ const Perfil = () => {
     <div className="flex-1 overflow-y-auto bg-slate-50/50 relative">
       <div className="max-w-4xl mx-auto px-6 md:px-12 py-10 space-y-8">
         
+        {/* Encabezado */}
         <div className="space-y-1">
           <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
             Mi Perfil
@@ -70,6 +87,7 @@ const Perfil = () => {
           </p>
         </div>
 
+        {/* Tarjeta de Perfil */}
         <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative">
           <div className="h-32 bg-slate-900 w-full relative overflow-hidden">
              <div className="absolute top-0 right-0 opacity-10 translate-x-10 -translate-y-10">
@@ -141,6 +159,7 @@ const Perfil = () => {
         </div>
       </div>
 
+      {/* --- MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8 relative animate-in zoom-in-95 duration-200">
@@ -169,43 +188,74 @@ const Perfil = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* CAMPO: Contraseña Actual */}
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase ml-1 block mb-1">Contraseña Actual</label>
-                <input 
-                  type="password" 
-                  name="currentPassword"
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
-                  placeholder="••••••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword.current ? "text" : "password"} 
+                    name="currentPassword"
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
+                    placeholder="••••••••••••"
+                    required
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => toggleVisibility('current')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword.current ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
+              {/* CAMPO: Nueva Contraseña */}
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase ml-1 block mb-1">Nueva Contraseña</label>
-                <input 
-                  type="password" 
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
-                  placeholder="••••••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword.new ? "text" : "password"} 
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
+                    placeholder="••••••••••••"
+                    required
+                  />
+                   <button 
+                    type="button"
+                    onClick={() => toggleVisibility('new')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword.new ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
+              {/* CAMPO: Confirmar Nueva */}
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase ml-1 block mb-1">Confirmar Nueva</label>
-                <input 
-                  type="password" 
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
-                  placeholder="••••••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword.confirm ? "text" : "password"} 
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium"
+                    placeholder="••••••••••••"
+                    required
+                  />
+                   <button 
+                    type="button"
+                    onClick={() => toggleVisibility('confirm')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2 flex gap-3">

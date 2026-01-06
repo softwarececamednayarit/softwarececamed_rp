@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 // 1. IMPORTAMOS EL SERVICIO
 import { loginRequest } from '../services/authService';
-import { Fingerprint, Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+// Agregamos Eye y EyeOff
+import { Fingerprint, Lock, Mail, ArrowRight, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 
 const Login = () => {
@@ -10,6 +11,9 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Estado para mostrar/ocultar contraseña
+  const [showPassword, setShowPassword] = useState(false);
   
   const { login } = useAuth();
 
@@ -19,16 +23,12 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // 2. USAMOS EL SERVICIO EN LUGAR DEL FETCH DIRECTO
+      // 2. USAMOS EL SERVICIO
       const data = await loginRequest(email, password);
-
-      // Si no lanza error, el login fue exitoso
       login(data.token, data.user); 
       
     } catch (error) {
-      // 3. CAPTURAMOS EL ERROR DEL SERVICIO
       console.error("Error de autenticación", error);
-      // error.message viene del throw new Error(...) del servicio
       setError(error.message || 'No se pudo conectar con el servidor.');
     } finally {
       setLoading(false);
@@ -41,7 +41,6 @@ const Login = () => {
         
         {/* Header con el Logo Oficial */}
         <div className="bg-slate-900 p-8 pt-10 text-center relative overflow-hidden">
-          
           <div className="absolute top-0 right-0 opacity-5 translate-x-1/3 -translate-y-1/3 pointer-events-none">
             <Fingerprint size={200} color="white" />
           </div>
@@ -95,13 +94,23 @@ const Login = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
                 <input 
-                  type="password" 
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium placeholder:text-slate-300"
+                  // Lógica para cambiar entre password y text
+                  type={showPassword ? "text" : "password"} 
+                  className="w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 font-medium placeholder:text-slate-300"
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                
+                {/* Botón del Ojo */}
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
