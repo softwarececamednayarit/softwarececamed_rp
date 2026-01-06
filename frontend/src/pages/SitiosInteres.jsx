@@ -25,7 +25,7 @@ const sitios = [
   },
   {
     titulo: "Encuesta de Inicio de Atención",
-    descripcion: "Formulario para evaluar la calidad del servicio brindado a los usuarios.",
+    descripcion: "Formulario para evaluar el área de atención que requiere el usuario.",
     url: "https://forms.gle/2L7mqJUaGWJV3wtf8",
     icon: <ClipboardList size={24} className="text-white" />,
     color: "bg-purple-500" // Morado estilo Google Forms

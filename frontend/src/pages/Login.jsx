@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+// 1. IMPORTAMOS EL SERVICIO
+import { loginRequest } from '../services/authService';
 import { Fingerprint, Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-
-// 1. IMPORTAR LA IMAGEN DEL LOGO
-// Ajusta la ruta si tu carpeta se llama diferente (ej. 'img' en vez de 'images')
 import logoCecamed from '../assets/images/logoCecamed.png';
 
 const Login = () => {
@@ -20,22 +19,17 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      // 2. USAMOS EL SERVICIO EN LUGAR DEL FETCH DIRECTO
+      const data = await loginRequest(email, password);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        login(data.token, data.user); 
-      } else {
-        setError(data.message || 'Error al iniciar sesión');
-      }
+      // Si no lanza error, el login fue exitoso
+      login(data.token, data.user); 
+      
     } catch (error) {
-      console.error("Error de conexión", error);
-      setError('No se pudo conectar con el servidor.');
+      // 3. CAPTURAMOS EL ERROR DEL SERVICIO
+      console.error("Error de autenticación", error);
+      // error.message viene del throw new Error(...) del servicio
+      setError(error.message || 'No se pudo conectar con el servidor.');
     } finally {
       setLoading(false);
     }
@@ -48,26 +42,19 @@ const Login = () => {
         {/* Header con el Logo Oficial */}
         <div className="bg-slate-900 p-8 pt-10 text-center relative overflow-hidden">
           
-          {/* Decoración de fondo (Huella sutil) */}
           <div className="absolute top-0 right-0 opacity-5 translate-x-1/3 -translate-y-1/3 pointer-events-none">
             <Fingerprint size={200} color="white" />
           </div>
 
           <div className="relative z-10 flex flex-col items-center">
-            
-            {/* 2. AQUÍ VA EL LOGO REEMPLAZANDO AL ICONO ANTERIOR */}
             <div className="bg-white p-3 rounded-full mb-5 shadow-xl shadow-slate-900/20">
               <img 
                 src={logoCecamed} 
                 alt="Logo CECAMED Nayarit"
-                // Ajustamos el tamaño un poco si es necesario
                 className="w-28 h-28 object-contain"
               />
             </div>
 
-            {/* Título y Subtítulo */}
-            {/* Ya no ponemos "CECAMED" grande en texto porque el logo ya lo trae, 
-                así que ponemos un mensaje de bienvenida */}
             <h1 className="text-xl font-black text-white tracking-tight">
               Sistema de Gestión
             </h1>
@@ -81,7 +68,6 @@ const Login = () => {
         <div className="p-10 pt-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             
-            {/* Mensaje de Error */}
             {error && (
               <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm font-medium flex items-center gap-3 border border-rose-100 animate-in fade-in slide-in-from-top-2">
                 <AlertCircle size={18} />
@@ -89,7 +75,6 @@ const Login = () => {
               </div>
             )}
 
-            {/* Input Email */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase ml-1">Correo Institucional</label>
               <div className="relative">
@@ -105,7 +90,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Input Password */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase ml-1">Contraseña</label>
               <div className="relative">
@@ -121,7 +105,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Botón Submit */}
             <button 
               type="submit" 
               disabled={loading}

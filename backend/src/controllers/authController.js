@@ -93,39 +93,84 @@ exports.login = async (req, res) => {
 };
 
 // FORZAR CAMBIO DE CONTRASEÑA
-exports.forceResetPassword = async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
+// exports.forceResetPassword = async (req, res) => {
+//   try {
+//     const { email, newPassword } = req.body;
 
-    // Validación simple
-    if (!email || !newPassword) {
-      return res.status(400).json({ message: 'Se requiere email y newPassword' });
+//     // Validación simple
+//     if (!email || !newPassword) {
+//       return res.status(400).json({ message: 'Se requiere email y newPassword' });
+//     }
+
+//     // 1. Buscar al usuario por email
+//     const userQuery = await db.collection('usuarios').where('email', '==', email).get();
+
+//     if (userQuery.empty) {
+//       return res.status(404).json({ message: 'Usuario no encontrado' });
+//     }
+
+//     // Obtenemos la referencia al documento (ID)
+//     const userDoc = userQuery.docs[0];
+    
+//     // 2. Hashear la NUEVA contraseña
+//     const salt = await bcrypt.genSalt(10);
+//     const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+//     // 3. Actualizar solo el campo password en Firestore
+//     await db.collection('usuarios').doc(userDoc.id).update({
+//       password: hashedPassword
+//     });
+
+//     res.json({ 
+//       message: `Contraseña actualizada exitosamente para: ${email}` 
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// CAMBIO DE CONTRASEÑA SEGURO (Requiere contraseña anterior)
+exports.changePassword = async (req, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body;
+
+    // 1. Validar que vengan todos los datos
+    if (!email || !currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Faltan datos (email, contraseña actual o nueva)' });
     }
 
-    // 1. Buscar al usuario por email
+    // 2. Buscar al usuario en Firestore
     const userQuery = await db.collection('usuarios').where('email', '==', email).get();
 
     if (userQuery.empty) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    // Obtenemos la referencia al documento (ID)
     const userDoc = userQuery.docs[0];
-    
-    // 2. Hashear la NUEVA contraseña
+    const userData = userDoc.data();
+
+    // 3. VERIFICAR LA CONTRASEÑA ACTUAL (Paso Clave de Seguridad)
+    // Comparamos la contraseña escrita (currentPassword) con el hash en la DB
+    const isMatch = await bcrypt.compare(currentPassword, userData.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'La contraseña actual es incorrecta' });
+    }
+
+    // 4. Hashear la NUEVA contraseña
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const newHashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // 3. Actualizar solo el campo password en Firestore
+    // 5. Actualizar en Firestore
     await db.collection('usuarios').doc(userDoc.id).update({
-      password: hashedPassword
+      password: newHashedPassword
     });
 
-    res.json({ 
-      message: `Contraseña actualizada exitosamente para: ${email}` 
-    });
+    res.json({ message: 'Contraseña actualizada correctamente' });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Error al actualizar la contraseña' });
   }
 };

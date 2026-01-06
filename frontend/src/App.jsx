@@ -1,18 +1,17 @@
-import React, { useState } from 'react'; // <-- Importar useState
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 
 // Importar componentes
 import { Sidebar } from './components/Sidebar';
 import Atendidos from './pages/Atendidos';
-import SitiosInteres from './pages/SitiosInteres'; // <-- Importar la nueva página
+import SitiosInteres from './pages/SitiosInteres';
+import Perfil from './pages/Perfil'; // <--- 1. FALTABA IMPORTAR ESTO
 import { LogOut } from 'lucide-react';
 
 const AppContent = () => {
   const { user, loading, logout } = useAuth();
   
-  // ESTADO PARA CONTROLAR LA NAVEGACIÓN
-  // Puede ser 'atendidos' o 'sitios'
   const [currentView, setCurrentView] = useState('atendidos');
 
   if (loading) {
@@ -31,7 +30,6 @@ const AppContent = () => {
       {/* Sidebar Fijo */}
       <div className="hidden lg:flex flex-col sticky top-0 h-screen bg-slate-900 w-72 shrink-0">
         
-        {/* Pasamos la función y el estado al Sidebar */}
         <Sidebar 
           currentView={currentView} 
           onNavigate={setCurrentView} 
@@ -56,6 +54,9 @@ const AppContent = () => {
         {/* RENDERIZADO CONDICIONAL DE PÁGINAS */}
         {currentView === 'atendidos' && <Atendidos />}
         {currentView === 'sitios' && <SitiosInteres />}
+        
+        {/* 2. FALTABA ESTA LÍNEA PARA MOSTRAR EL PERFIL */}
+        {currentView === 'perfil' && <Perfil />}
 
       </main>
     </div>
