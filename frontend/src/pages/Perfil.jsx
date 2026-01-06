@@ -62,13 +62,15 @@ const Perfil = () => {
     <div className="flex-1 overflow-y-auto bg-slate-50/50 relative">
       <div className="max-w-4xl mx-auto px-6 md:px-12 py-10 space-y-8">
         
-        {/* Encabezado */}
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Mi Perfil</h1>
-          <p className="text-slate-500 font-medium">Información de la cuenta y credenciales.</p>
+        <div className="space-y-1">
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+            Mi Perfil
+          </h1>
+          <p className="text-slate-500 text-lg font-medium">
+            Información de la cuenta y credenciales.
+          </p>
         </div>
 
-        {/* Tarjeta Principal */}
         <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative">
           <div className="h-32 bg-slate-900 w-full relative overflow-hidden">
              <div className="absolute top-0 right-0 opacity-10 translate-x-10 -translate-y-10">
@@ -118,7 +120,6 @@ const Perfil = () => {
               <div className="space-y-6">
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Seguridad</h3>
                 
-                {/* --- 1. AQUI FALTABA EL ONCLICK --- */}
                 <div 
                   onClick={() => setIsModalOpen(true)}
                   className="p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 hover:bg-slate-100 transition-all group cursor-pointer active:scale-95"
@@ -141,7 +142,6 @@ const Perfil = () => {
         </div>
       </div>
 
-      {/* --- 2. AQUI FALTABA EL MODAL ENTERO --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8 relative animate-in zoom-in-95 duration-200">
@@ -158,7 +158,6 @@ const Perfil = () => {
               <p className="text-slate-500 text-sm">Ingrese su contraseña actual para validar.</p>
             </div>
 
-            {/* Mensajes de Estado */}
             {status.error && (
               <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-2 border border-rose-100">
                 <AlertCircle size={16} /> {status.error}
