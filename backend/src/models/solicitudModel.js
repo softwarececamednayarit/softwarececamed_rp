@@ -1,17 +1,18 @@
 const db = require('../../config/firebase');
+const admin = require('firebase-admin'); // Necesario para borrar campos (FieldValue.delete)
 
-// Nombres de colecciones como constantes para evitar errores de dedo
 const COL_PENDIENTES = 'solicitudes_pendientes';
-const COL_HISTORIAL = 'citas_historial';
 
 class SolicitudModel {
 
   /**
-   * Obtiene todas las solicitudes pendientes ordenadas por fecha
+   * Obtiene solicitudes filtrando por una lista de estados.
+   * Ejemplo: statusArray = ['pendiente', 'no_contesto']
    */
-  static async obtenerTodas() {
+  static async obtenerPorStatus(statusArray) {
     try {
       const snapshot = await db.collection(COL_PENDIENTES)
+        .where('status', 'in', statusArray)
         .orderBy('fecha_recepcion', 'desc')
         .get();
 
@@ -22,12 +23,12 @@ class SolicitudModel {
         ...doc.data()
       }));
     } catch (error) {
-      throw new Error(`Error obteniendo solicitudes: ${error.message}`);
+      throw new Error(`Error en DB (obtenerPorStatus): ${error.message}`);
     }
   }
 
   /**
-   * Busca una solicitud por su ID
+   * Busca una solicitud por ID
    */
   static async obtenerPorId(id) {
     const doc = await db.collection(COL_PENDIENTES).doc(id).get();
@@ -36,44 +37,62 @@ class SolicitudModel {
   }
 
   /**
-   * Actualiza los datos de seguimiento (status, notas, intentos)
+   * Actualización genérica (usada para seguimiento de llamadas)
    */
-  static async actualizarSeguimiento(id, datosActualizados) {
+  static async actualizar(id, datos) {
     try {
       await db.collection(COL_PENDIENTES).doc(id).update({
-        ...datosActualizados,
+        ...datos,
         fecha_ultima_gestion: new Date()
       });
-      return true;
     } catch (error) {
-      throw new Error(`Error actualizando seguimiento: ${error.message}`);
+      throw new Error(`Error actualizando solicitud: ${error.message}`);
     }
   }
 
   /**
-   * Mueve los datos a la colección de historial (cuando ya se agendó)
+   * Finaliza el proceso: Cambia status a 'agendado'
    */
-  static async crearEntradaHistorial(datos) {
+  static async marcarComoAgendado(id, datosExtra) {
     try {
-      const docRef = await db.collection(COL_HISTORIAL).add({
-        ...datos,
-        fecha_archivado: new Date()
+      await db.collection(COL_PENDIENTES).doc(id).update({
+        status: 'agendado',
+        ...datosExtra, // tipo_asignado, cita_programada, notas
+        fecha_agendado: new Date()
       });
-      return docRef.id;
     } catch (error) {
-      throw new Error(`Error creando historial: ${error.message}`);
+      throw new Error(`Error agendando solicitud: ${error.message}`);
     }
   }
 
   /**
-   * Elimina permanentemente una solicitud de pendientes
+   * Soft Delete: Marca como descartado y guarda motivo
    */
-  static async eliminar(id) {
+  static async softDelete(id, motivo) {
     try {
-      await db.collection(COL_PENDIENTES).doc(id).delete();
-      return true;
+      await db.collection(COL_PENDIENTES).doc(id).update({
+        status: 'descartado',
+        fecha_descarte: new Date(),
+        motivo_descarte: motivo || 'Sin especificar'
+      });
     } catch (error) {
-      throw new Error(`Error eliminando solicitud: ${error.message}`);
+      throw new Error(`Error descartando solicitud: ${error.message}`);
+    }
+  }
+
+  /**
+   * Restaurar: Quita el descarte y devuelve a pendiente
+   */
+  static async restaurar(id) {
+    try {
+      await db.collection(COL_PENDIENTES).doc(id).update({
+        status: 'pendiente',
+        // Borramos físicamente los campos de descarte para limpiar el registro
+        motivo_descarte: admin.firestore.FieldValue.delete(),
+        fecha_descarte: admin.firestore.FieldValue.delete()
+      });
+    } catch (error) {
+      throw new Error(`Error restaurando solicitud: ${error.message}`);
     }
   }
 }

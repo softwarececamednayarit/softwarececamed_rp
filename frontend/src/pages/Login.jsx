@@ -75,7 +75,7 @@ const Login = () => {
             )}
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase ml-1">Correo Institucional</label>
+              <label className="text-xs font-bold text-slate-500 uppercase ml-1">Correo Electronico</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-3.5 text-slate-400" size={18} />
                 <input 

@@ -45,6 +45,15 @@ export const Sidebar = ({ currentView, onNavigate }) => {
           <span>Atendidos</span>
         </button>
 
+        {/* Botón Recepción */}
+        <button
+          onClick={() => onNavigate('recepcion')}
+          className={getLinkClass('recepcion')}
+        >
+          <BookOpen size={20} />
+          <span>Recepción</span>
+        </button>
+
         {/* Botón Sitios de Interés */}
         <button 
           onClick={() => onNavigate('sitios')} 

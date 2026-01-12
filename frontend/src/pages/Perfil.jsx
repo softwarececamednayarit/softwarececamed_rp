@@ -121,7 +121,7 @@ const Perfil = () => {
                 <div className="flex items-start gap-4">
                   <div className="p-3 bg-slate-50 rounded-xl text-slate-400"><Mail size={20} /></div>
                   <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase">Correo Institucional</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Correo Electronico</p>
                     <p className="text-slate-900 font-medium">{user?.email}</p>
                   </div>
                 </div>

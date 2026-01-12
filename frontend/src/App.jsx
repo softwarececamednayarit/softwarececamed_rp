@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import { Sidebar } from './components/Sidebar';
 import Atendidos from './pages/Atendidos';
 import SitiosInteres from './pages/SitiosInteres';
+import Recepcion from './pages/Recepcion';
 import Perfil from './pages/Perfil'; // <--- 1. FALTABA IMPORTAR ESTO
 import { LogOut } from 'lucide-react';
 
@@ -54,6 +55,7 @@ const AppContent = () => {
         {/* RENDERIZADO CONDICIONAL DE PÁGINAS */}
         {currentView === 'atendidos' && <Atendidos />}
         {currentView === 'sitios' && <SitiosInteres />}
+        {currentView === 'recepcion' && <Recepcion />}
         
         {/* 2. FALTABA ESTA LÍNEA PARA MOSTRAR EL PERFIL */}
         {currentView === 'perfil' && <Perfil />}

@@ -1,22 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const solicitudesController = require('../controllers/solicitudesController');
+// Asegúrate que el nombre del archivo coincida (solicitudesController vs solicitudController)
+const solicitudesController = require('../controllers/solicitudController'); 
 
-// 1. GET: La "Bandeja de Entrada"
-// Obtiene todas las solicitudes que no han sido finalizadas.
-router.get('/', solicitudesController.obtenerPendientes);
+// 1. GET (Lista)
+router.get('/', solicitudesController.obtenerPorStatus);
 
-// 2. PATCH: Registrar intento de llamada (Bitácora rápida)
-// Se usa cuando: "Llamé y no contestó" o "Llamé y me colgó".
-// Actualiza el contador de intentos y el status de la llamada.
+// 2. PATCH SEGUIMIENTO (ESTA ES LA QUE FALTABA) 🚨
+// Sin esta línea, el botón "Guardar Intento" no funciona.
 router.patch('/:id/seguimiento', solicitudesController.actualizarSeguimiento);
 
-// 3. POST: Agendar / Finalizar (La acción principal)
-// Se usa cuando: "Ya hablé con él, viene el lunes".
-// Envía los datos a la Hoja de Cálculo "Agenda" y saca la solicitud de pendientes.
+// 3. POST AGENDAR
 router.post('/:id/agendar', solicitudesController.agendarCita);
 
-// 4. DELETE: Descartar (Basura/Spam)
-router.delete('/:id', solicitudesController.eliminarSolicitud);
+// 4. PATCH DESCARTAR
+router.patch('/:id/descartar', solicitudesController.descartarSolicitud);
+
+// 5. PATCH RECUPERAR
+router.patch('/:id/recuperar', solicitudesController.recuperarSolicitud);
 
 module.exports = router;
