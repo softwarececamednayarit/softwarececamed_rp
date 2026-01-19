@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/atendidos';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = `${BASE_URL}/api/atendidos`;
 
 export const AtendidosService = {
   // Obtener lista (Ahora soporta filtros y búsqueda por nombre en params)
