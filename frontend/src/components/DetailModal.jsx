@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   X, User, Calendar, Tag, Building2, MessageSquare, Fingerprint,
   Phone, Mail, MapPin, FileText, Activity, List,
-  Globe, IdCard, AlertTriangle, Stethoscope, Clock, CheckCircle
+  Globe, IdCard, AlertTriangle, Stethoscope, Clock, CheckCircle,
+  Copy // <--- 1. IMPORTAMOS EL ICONO COPY
 } from 'lucide-react';
 import { formatDate, formatName, getStatusColor } from '../utils/formatters';
 
@@ -45,6 +46,21 @@ export const DetailModal = ({ item, onClose }) => {
   };
 
   const activeTags = getAllTags();
+
+  // --- 2. NUEVA FUNCIÓN PARA COPIAR DATOS (SIMPLIFICADA) ---
+  const handleCopyForPlatform = () => {
+    // El usuario solicitó copiar TODO el objeto sin filtrar/mapear campos específicos.
+    // Esto es útil si el script receptor (Tampermonkey) es inteligente o si quieres tener toda la data disponible.
+    
+    const dataExport = { ...item }; // Hacemos una copia simple del objeto
+
+    // Copiamos todo el objeto JSON crudo al portapapeles
+    navigator.clipboard.writeText(JSON.stringify(dataExport))
+      .then(() => {
+        alert("📋 Expediente completo copiado al portapapeles.\n\nAhora ve a la plataforma externa y presiona el botón de 'Pegar Datos'.");
+      })
+      .catch(err => console.error("Error al copiar:", err));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -92,14 +108,13 @@ export const DetailModal = ({ item, onClose }) => {
         {/* --- CUERPO SCROLLABLE --- */}
         <div className="p-6 md:p-10 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50/50">
           
-          {/* SECCIÓN 1: DATOS DEL CIUDADANO (COMPLETA) */}
+          {/* SECCIÓN 1: DATOS DEL CIUDADANO */}
           <section>
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <User size={14} /> Información del Solicitante
             </h3>
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              {/* Nombre y Demográficos */}
               <div className="md:col-span-3 lg:col-span-1 space-y-1">
                 <span className="text-[10px] uppercase text-slate-400 font-bold">Nombre Completo</span>
                 <p className="text-lg font-bold text-slate-900 leading-tight">
@@ -107,12 +122,11 @@ export const DetailModal = ({ item, onClose }) => {
                 </p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {item.sexo && <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600">{item.sexo}</span>}
-                  {(item.edad || item.edad_o_nacimiento) && <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600">{item.edad || item.edad_o_nacimiento} años</span>}
+                  {(item.edad || item.edad_o_nacimiento) && <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600">{item.edad || item.edad_o_nacimiento}</span>}
                   {item.nacionalidad && <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-bold flex items-center gap-1"><Globe size={10}/> {item.nacionalidad}</span>}
                 </div>
               </div>
 
-              {/* Identificación y Grupo Vulnerable */}
               <div className="space-y-4">
                 {item.identificacion_tipo && (
                    <div>
@@ -128,7 +142,6 @@ export const DetailModal = ({ item, onClose }) => {
                 )}
               </div>
 
-              {/* Contacto */}
               <div className="space-y-3 border-l border-slate-100 pl-4 md:pl-6">
                 <div>
                    <span className="text-[10px] uppercase text-slate-400 font-bold flex items-center gap-1"><Phone size={10}/> Teléfono</span>
@@ -148,17 +161,14 @@ export const DetailModal = ({ item, onClose }) => {
             </div>
           </section>
 
-          {/* SECCIÓN 2: DETALLES DEL TRÁMITE (LAS 35 COLUMNAS) */}
+          {/* SECCIÓN 2: DETALLES DEL TRÁMITE */}
           <section>
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Activity size={14} /> Detalles del Caso
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* Columna Izquierda: Lo Administrativo */}
               <div className="space-y-6">
-                
-                {/* Fechas y Recepción */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                    <div className="flex justify-between">
                      <div>
@@ -171,7 +181,6 @@ export const DetailModal = ({ item, onClose }) => {
                      </div>
                    </div>
                    
-                   {/* Tiempos de Proceso */}
                    {(item.fecha_inicio_proceso || item.fecha_conclusion) && (
                      <div className="pt-3 border-t border-slate-100 flex gap-4">
                         {item.fecha_inicio_proceso && (
@@ -188,7 +197,6 @@ export const DetailModal = ({ item, onClose }) => {
                    )}
                 </div>
 
-                {/* Institución y Autoridad */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                    <div>
                      <span className="text-[10px] uppercase text-slate-400 font-bold flex items-center gap-1"><Building2 size={10}/> Institución / Autoridad</span>
@@ -197,7 +205,6 @@ export const DetailModal = ({ item, onClose }) => {
                      </p>
                    </div>
                    
-                   {/* Detalles Médicos (Si existen) */}
                    {(item.unidad_medica || item.medico_nombre || item.especialidad_medica) && (
                      <div className="bg-slate-50 p-3 rounded-xl space-y-2 mt-2">
                        {item.unidad_medica && <p className="text-xs text-slate-600"><span className="font-bold">Unidad:</span> {item.unidad_medica}</p>}
@@ -217,9 +224,7 @@ export const DetailModal = ({ item, onClose }) => {
                 </div>
               </div>
 
-              {/* Columna Derecha: El Problema */}
               <div className="space-y-6">
-                 {/* Motivos y Clasificación */}
                  <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                     <div>
                       <span className="text-[10px] uppercase text-slate-400 font-bold">Motivo Principal</span>
@@ -234,7 +239,6 @@ export const DetailModal = ({ item, onClose }) => {
                       </div>
                     )}
 
-                    {/* AQUÍ SE MUESTRAN LOS ARRAYS CORREGIDOS */}
                     {activeTags.length > 0 && (
                       <div className="pt-3 border-t border-slate-100">
                          <span className="text-[10px] uppercase text-slate-400 font-bold mb-2 block flex items-center gap-1"><Tag size={10}/> Clasificación Temática</span>
@@ -249,7 +253,6 @@ export const DetailModal = ({ item, onClose }) => {
                     )}
                  </div>
 
-                 {/* Pretensiones */}
                  {item.pretensiones && (
                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                       <span className="text-[10px] uppercase text-slate-400 font-bold">Pretensiones del Usuario</span>
@@ -264,8 +267,6 @@ export const DetailModal = ({ item, onClose }) => {
 
           {/* SECCIÓN 3: NARRATIVA Y SEGUIMIENTO */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Descripción de Hechos */}
             <div className="space-y-2">
                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                  <FileText size={14} /> Descripción de Hechos / Queja
@@ -277,7 +278,6 @@ export const DetailModal = ({ item, onClose }) => {
                </div>
             </div>
 
-            {/* Seguimiento / Observaciones */}
             {(item.seguimiento_bitacora || item.observaciones) && (
               <div className="space-y-2">
                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -296,15 +296,28 @@ export const DetailModal = ({ item, onClose }) => {
 
         {/* --- FOOTER --- */}
         <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
-          <div className="text-[10px] text-slate-400 font-medium hidden sm:block">
-            Gestión CECA<span className="text-indigo-500">MED</span> • Documento Confidencial
-          </div>
+          
           <button 
-            onClick={onClose}
-            className="w-full sm:w-auto px-10 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-200"
+            onClick={handleCopyForPlatform}
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-2xl font-bold text-xs transition-colors border border-indigo-100 shadow-sm"
+            title="Copiar datos para pegar en SIREMED/Plataforma Estatal"
           >
-            Cerrar Expediente
+            <Copy size={16} /> 
+            <span className="hidden sm:inline">Copiar para Plataforma</span>
+            <span className="sm:hidden">Copiar</span>
           </button>
+
+          <div className="flex items-center gap-4">
+            <div className="text-[10px] text-slate-400 font-medium hidden md:block text-right">
+              Gestión CECA<span className="text-indigo-500">MED</span> <br/>Documento Confidencial
+            </div>
+            <button 
+              onClick={onClose}
+              className="px-10 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-200"
+            >
+              Cerrar Expediente
+            </button>
+          </div>
         </div>
 
       </div>
