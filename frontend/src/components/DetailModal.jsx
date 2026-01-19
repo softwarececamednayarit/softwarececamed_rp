@@ -57,7 +57,7 @@ export const DetailModal = ({ item, onClose }) => {
     // Copiamos todo el objeto JSON crudo al portapapeles
     navigator.clipboard.writeText(JSON.stringify(dataExport))
       .then(() => {
-        alert("📋 Expediente completo copiado al portapapeles.\n\nAhora ve a la plataforma externa y presiona el botón de 'Pegar Datos'.");
+        alert("📋 Expediente completo copiado al portapapeles.\n\nAhora ve a la plataforma externa y captura los datos.");
       })
       .catch(err => console.error("Error al copiar:", err));
   };
