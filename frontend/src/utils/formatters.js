@@ -25,10 +25,15 @@ export const formatDate = (dateString) => {
   }
 };
 
-// 3. Formateador de Nombres (Capital Case)
+// 3. Formateador de Nombres (Simple y compatible con acentos)
 export const formatName = (name) => {
   if (!name) return '';
-  return name.toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
+  
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 // 4. Lógica de Colores (Badges)
