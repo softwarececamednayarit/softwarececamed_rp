@@ -18,7 +18,8 @@ export const formatDate = (dateString) => {
     return new Intl.DateTimeFormat('es-MX', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'UTC' // <--- ESTO EVITA QUE CAMBIE EL DÍA
     }).format(date);
   } catch (e) {
     return dateString;

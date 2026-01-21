@@ -29,29 +29,42 @@ exports.obtenerPorStatus = async (req, res) => {
 };
 
 // 2. REGISTRAR SEGUIMIENTO (Llamada)
+// 2. REGISTRAR SEGUIMIENTO (Llamada)
 exports.actualizarSeguimiento = async (req, res) => {
   const { id } = req.params;
-  const { status_llamada, notas_nuevas } = req.body;
+  // Recibimos también al 'usuario' que hace la acción
+  const { status_llamada, notas_nuevas, usuario } = req.body;
 
   try {
     const actual = await SolicitudModel.obtenerPorId(id);
-    if(!actual) return res.status(404).json({error: "No encontrado"});
+    if (!actual) return res.status(404).json({ error: "No encontrado" });
 
-    const intentos = (actual.intentos_llamada || 0) + 1;
+    // 1. Preparamos el nuevo objeto de intento
+    const nuevoIntento = {
+      fecha: new Date().toISOString(), // Fecha exacta automática
+      usuario: usuario || 'Desconocido', // El usuario que mandas del front
+      status: status_llamada,
+      notas: notas_nuevas || ''
+    };
+
+    // 2. Obtenemos el historial actual. 
+    // NOTA: Si tu DB es SQL y guardas esto en un campo de texto, usa: JSON.parse(actual.historial_intentos || '[]')
+    // Si es Mongo o Postgres con JSONB, úsalo directo:
+    let historial = actual.intentos || []; 
     
-    // CORRECCIÓN: Manejo seguro de strings para evitar "undefined"
-    const notaNuevaLimpia = notas_nuevas ? `\n- ${notas_nuevas}` : '';
-    const historialNotas = (actual.notas_seguimiento || '') + notaNuevaLimpia;
-    
+    // 3. Agregamos el nuevo intento al principio (para que el más reciente salga arriba) o al final
+    historial.unshift(nuevoIntento); 
+
+    // 4. Actualizamos
     await SolicitudModel.actualizar(id, {
       status_llamada: status_llamada,
-      intentos_llamada: intentos,
-      notas_seguimiento: historialNotas
+      intentos_llamada: (actual.intentos_llamada || 0) + 1,
+      intentos: historial // <--- Guardamos el ARRAY completo, no un string
     });
 
-    res.json({ success: true });
+    res.json({ success: true, nuevoIntento });
   } catch (error) {
-    console.error("Error seguimiento:", error); // Importante para ver el error real
+    console.error("Error seguimiento:", error);
     res.status(500).json({ error: error.message });
   }
 };

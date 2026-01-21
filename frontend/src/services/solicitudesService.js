@@ -11,14 +11,17 @@ const getPorStatus = async (status = 'pendiente') => {
   return response.data;
 };
 
-// 2. REGISTRAR LLAMADA (Sin cambios)
-const registrarIntentoLlamada = async (id, status, notas) => {
+// 2. REGISTRAR LLAMADA
+const registrarIntentoLlamada = async (id, status, notas, usuario) => {
   const response = await axios.patch(`${API_URL}/${id}/seguimiento`, {
-    status_llamada: status, // <--- Aquí usamos la variable, NO el texto fijo
-    notas_nuevas: notas
+    status_llamada: status,
+    notas_nuevas: notas,
+    usuario: usuario
   });
   return response.data;
 };
+
+// ... exportarlo ...
 
 // 3. AGENDAR (Ahora enviamos datos_completos para Excel)
 const agendarCita = async (id, datosCita) => {
