@@ -6,7 +6,7 @@ import {
   Copy, Save, Loader2, FileEdit, Layout, Pencil, Ban
 } from 'lucide-react';
 import { formatDate, formatName, getStatusColor } from '../utils/formatters';
-import { AtendidosService } from '../services/AtendidosService'; 
+import { AtendidosService } from '../services/atendidosService'; 
 
 export const DetailModal = ({ item, onClose }) => {
   if (!item) return null;
