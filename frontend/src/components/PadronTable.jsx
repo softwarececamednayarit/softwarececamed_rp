@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Save, X, Edit2, Loader2, AlertCircle, FileSpreadsheet, Eye 
 } from 'lucide-react';
-import { AtendidosService } from '../services/AtendidosService';
+import { AtendidosService } from '../services/atendidosService';
 import { DetailModal } from './DetailModal';
 import { formatDate, getStatusColor } from '../utils/formatters';
 
@@ -143,7 +143,7 @@ export const PadronTable = () => {
           {loading ? (
             <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-emerald-600" size={32} /></div>
           ) : (
-            <table className="w-full text-left border-collapse min-w-[1400px]">
+            <table className="w-full text-left border-collapse" style={{ minWidth: '1400px' }}>
               <thead className="text-slate-500 text-[10px] uppercase font-bold tracking-wider sticky top-0 z-20">
                 <tr className="bg-slate-100 shadow-sm">
                   <th className="p-4 w-60 bg-slate-100 sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Ciudadano (Datos Base)</th>
@@ -262,7 +262,9 @@ export const PadronTable = () => {
                           </td>
                           <td className="p-4 align-top">
                              <div>{row.estado_civil || '-'}</div>
-                             <div className="text-slate-400 text-[10px] truncate max-w-[100px]" title={row.cargo_ocupacion}>{row.cargo_ocupacion}</div>
+                             <div className="text-slate-400 truncate" style={{ fontSize: '10px', maxWidth: '100px' }} title={row.cargo_ocupacion}>
+                                {row.cargo_ocupacion}
+                              </div>
                           </td>
                           <td className="p-4 align-top">
                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.tipo_beneficiario === 'Directo' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'}`}>
