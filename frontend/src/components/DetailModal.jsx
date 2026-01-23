@@ -3,16 +3,19 @@ import {
   X, User, Calendar, Tag, Building2, MessageSquare, Fingerprint,
   Phone, Mail, MapPin, FileText, Activity, List,
   Globe, IdCard, AlertTriangle, Stethoscope, Clock, CheckCircle,
-  Copy, Save, Loader2, FileEdit, Layout, Pencil, Ban
+  Copy, Save, Loader2, FileEdit, Layout, Pencil, Ban, Briefcase
 } from 'lucide-react';
 import { formatDate, formatName, getStatusColor } from '../utils/formatters';
-import { AtendidosService } from '../services/atendidosService'; 
+import { AtendidosService } from '../services/AtendidosService'; 
 
-export const DetailModal = ({ item, onClose }) => {
+export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   if (!item) return null;
 
   // --- ESTADOS ---
-  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'padron'
+  
+  // 1. CORRECCIÓN: Inicializamos con la prop 'initialTab'
+  const [activeTab, setActiveTab] = useState(initialTab); 
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -29,7 +32,7 @@ export const DetailModal = ({ item, onClose }) => {
     parentesco: '',
     estado_civil: '',
     cargo_ocupacion: '',
-    actividad_apoyo: '',
+    actividad_apoyo: '', // <--- YA ESTABA AQUÍ
     municipio: '',
     localidad: ''
   });
@@ -52,7 +55,7 @@ export const DetailModal = ({ item, onClose }) => {
             parentesco: response.data.parentesco || '',
             estado_civil: response.data.estado_civil || '',
             cargo_ocupacion: response.data.cargo_ocupacion || '',
-            actividad_apoyo: response.data.actividad_apoyo || '',
+            actividad_apoyo: response.data.actividad_apoyo || '', // <--- CARGAMOS EL DATO
             municipio: response.data.municipio || '',
             localidad: response.data.localidad || ''
           });
@@ -81,7 +84,7 @@ export const DetailModal = ({ item, onClose }) => {
       alert("✅ Información de Padrón actualizada correctamente.");
       
       setFullData(prev => ({ ...prev, ...padronForm }));
-      setIsEditingPadron(false); // Salir del modo edición al guardar
+      setIsEditingPadron(false); 
     } catch (error) {
       console.error(error);
       alert("❌ Error al guardar la información.");
@@ -90,10 +93,9 @@ export const DetailModal = ({ item, onClose }) => {
     }
   };
 
-  // Usamos fullData si ya cargó, si no usamos item (data ligera) para mostrar algo mientras carga
   const displayData = fullData || item;
 
-  // Helper para renderizar campos vacíos de forma visual en modo lectura
+  // Helper para renderizar campos vacíos
   const RenderField = ({ label, value, icon: Icon }) => (
     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
         <span className="text-[10px] uppercase text-slate-400 font-bold mb-1 block flex items-center gap-1">
@@ -107,7 +109,7 @@ export const DetailModal = ({ item, onClose }) => {
     </div>
   );
 
-  // --- HELPERS EXISTENTES ---
+  // --- HELPERS DE TAGS ---
   const getAllTags = () => {
     const rawArrays = [
       displayData.categorias_asesoria,
@@ -212,7 +214,7 @@ export const DetailModal = ({ item, onClose }) => {
           {activeTab === 'general' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
               
-              {/* SECCIÓN 1: DATOS DEL CIUDADANO */}
+              {/* DATOS DEL CIUDADANO */}
               <section>
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <User size={14} /> Información del Solicitante
@@ -224,15 +226,12 @@ export const DetailModal = ({ item, onClose }) => {
                     <p className="text-lg font-bold text-slate-900 leading-tight">
                       {formatName(`${displayData.nombre} ${displayData.apellido_paterno} ${displayData.apellido_materno || ''}`)}
                     </p>
-                    
-                    {/* CURP */}
                     <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-100 inline-block">
                         <span className="text-[10px] uppercase text-indigo-400 font-bold block">CURP</span>
                         <p className="text-sm font-mono font-bold text-indigo-900 tracking-wide">
                             {displayData.curp || 'NO REGISTRADA'}
                         </p>
                     </div>
-
                     <div className="flex flex-wrap gap-2 mt-2">
                       {displayData.sexo && <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600">{displayData.sexo}</span>}
                       {(displayData.edad || displayData.edad_o_nacimiento) && <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600">{displayData.edad || displayData.edad_o_nacimiento}</span>}
@@ -274,13 +273,12 @@ export const DetailModal = ({ item, onClose }) => {
                 </div>
               </section>
 
-              {/* SECCIÓN 2: DETALLES DEL TRÁMITE */}
+              {/* DETALLES DEL CASO */}
               <section>
                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                    <Activity size={14} /> Detalles del Caso
                  </h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
                     <div className="space-y-6">
                         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                            <div className="flex justify-between">
@@ -317,7 +315,6 @@ export const DetailModal = ({ item, onClose }) => {
                                {displayData.institucion || displayData.autoridad_responsable || 'No especificada'}
                              </p>
                            </div>
-                           
                            {(displayData.unidad_medica || displayData.medico_nombre || displayData.especialidad_medica) && (
                              <div className="bg-slate-50 p-3 rounded-xl space-y-2 mt-2">
                                {displayData.unidad_medica && <p className="text-xs text-slate-600"><span className="font-bold">Unidad:</span> {displayData.unidad_medica}</p>}
@@ -344,28 +341,15 @@ export const DetailModal = ({ item, onClose }) => {
                                <p className="text-sm font-bold text-slate-800">{displayData.motivo_principal || 'Sin especificar'}</p>
                                {displayData.submotivo && <p className="text-xs text-slate-500 mt-1">↳ {displayData.submotivo}</p>}
                             </div>
-
-                            {displayData.criterio_medico && (
-                              <div>
-                                <span className="text-[10px] uppercase text-slate-400 font-bold">Criterio Médico</span>
-                                <p className="text-xs text-slate-600 mt-1">{displayData.criterio_medico}</p>
-                              </div>
-                            )}
-
                             {activeTags.length > 0 && (
                                <div className="pt-3 border-t border-slate-100">
                                   <span className="text-[10px] uppercase text-slate-400 font-bold mb-2 block flex items-center gap-1"><Tag size={10}/> Clasificación Temática</span>
                                   <div className="flex flex-wrap gap-2">
-                                    {activeTags.map((tag, i) => (
-                                      <span key={i} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200">
-                                        {tag}
-                                      </span>
-                                    ))}
+                                    {activeTags.map((tag, i) => <span key={i} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200">{tag}</span>)}
                                   </div>
                                </div>
                             )}
                          </div>
-
                          {displayData.pretensiones && (
                            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                               <span className="text-[10px] uppercase text-slate-400 font-bold">Pretensiones del Usuario</span>
@@ -378,7 +362,7 @@ export const DetailModal = ({ item, onClose }) => {
                  </div>
               </section>
 
-              {/* SECCIÓN 3: NARRATIVA Y SEGUIMIENTO */}
+              {/* NARRATIVA Y SEGUIMIENTO */}
               <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -390,7 +374,6 @@ export const DetailModal = ({ item, onClose }) => {
                      </div>
                    </div>
                 </div>
-
                 {(displayData.seguimiento_bitacora || displayData.observaciones) && (
                   <div className="space-y-2">
                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -404,7 +387,6 @@ export const DetailModal = ({ item, onClose }) => {
                   </div>
                 )}
               </section>
-
             </div>
           )}
 
@@ -413,7 +395,7 @@ export const DetailModal = ({ item, onClose }) => {
             <div className="animate-in fade-in slide-in-from-right-4 duration-300 h-full">
               
               {!isEditingPadron ? (
-                // --- MODO LECTURA (READ ONLY) ---
+                // --- MODO LECTURA ---
                 <div className="space-y-6">
                     <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex justify-between items-center">
                         <div className="flex items-center gap-3">
@@ -425,7 +407,6 @@ export const DetailModal = ({ item, onClose }) => {
                                 <p className="text-xs text-emerald-700">Resumen de información complementaria.</p>
                             </div>
                         </div>
-                        {/* Botón flotante superior para editar rápido */}
                         <button 
                             onClick={() => setIsEditingPadron(true)}
                             className="text-xs font-bold text-emerald-700 bg-white border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
@@ -455,11 +436,14 @@ export const DetailModal = ({ item, onClose }) => {
                         <div className="md:col-span-2 pb-2 border-b border-slate-100 mt-2">
                              <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest">Gestión / Apoyo</h5>
                         </div>
+                        {/* 2. AGREGADO EN VISTA LECTURA */}
+                        <RenderField label="Actividad / Apoyo" value={displayData.actividad_apoyo} icon={Briefcase} />
+                        
                         <RenderField label="Tipo de Apoyo" value={displayData.tipo_apoyo} />
                         <RenderField label="Monto" value={displayData.monto_apoyo ? `$${displayData.monto_apoyo}` : null} />
                         
                         <div className="md:col-span-2">
-                             <span className="text-[10px] uppercase text-slate-400 font-bold mb-1 block">Criterio / Actividad</span>
+                             <span className="text-[10px] uppercase text-slate-400 font-bold mb-1 block">Criterio / Actividad (Detalle)</span>
                              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-700">
                                  {displayData.criterio_seleccion || <span className="text-slate-400 italic">No especificado</span>}
                              </div>
@@ -468,7 +452,7 @@ export const DetailModal = ({ item, onClose }) => {
                 </div>
 
               ) : (
-                // --- MODO EDICIÓN (FORMULARIO) ---
+                // --- MODO EDICIÓN ---
                 <div className="space-y-6">
                     <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
                         <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600 shrink-0">
@@ -489,103 +473,75 @@ export const DetailModal = ({ item, onClose }) => {
                                 <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Ubicación del Beneficiario</h5>
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-700 ml-1">Municipio</label>
-                              <select
-                                  name="municipio"
-                                  value={padronForm.municipio}
+                                <label className="text-xs font-bold text-slate-700 ml-1">Municipio</label>
+                                <input type="text" name="municipio" value={padronForm.municipio} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Localidad</label>
+                                <input type="text" name="localidad" value={padronForm.localidad} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            </div>
+
+                            <div className="md:col-span-2 mt-2">
+                                <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Datos Socioeconómicos</h5>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Estado Civil</label>
+                                <select name="estado_civil" value={padronForm.estado_civil} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                    <option value="">Seleccione...</option>
+                                    <option value="Soltero(a)">Soltero/a</option>
+                                    <option value="Casado(a)">Casado/a</option>
+                                    <option value="Unión Libre">Unión Libre</option>
+                                    <option value="Viudo(a)">Viudo/a</option>
+                                    <option value="Divorciado(a)">Divorciado/a</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Ocupación / Cargo</label>
+                                <input type="text" name="cargo_ocupacion" value={padronForm.cargo_ocupacion} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Tipo Beneficiario</label>
+                                <input type="text" name="tipo_beneficiario" value={padronForm.tipo_beneficiario} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Parentesco</label>
+                                <input type="text" name="parentesco" value={padronForm.parentesco} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            </div>
+
+                            <div className="md:col-span-2 mt-2">
+                                <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Detalle Apoyo</h5>
+                            </div>
+                            
+                            {/* 3. NUEVO SELECT DE ACTIVIDAD/APOYO */}
+                            <div className="space-y-1">
+                               <label className="text-xs font-bold text-slate-700 ml-1">Actividad / Apoyo</label>
+                               <select 
+                                  name="actividad_apoyo"
+                                  value={padronForm.actividad_apoyo}
                                   onChange={handleInputChange}
                                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                              >
+                               >
                                   <option value="">Seleccione...</option>
-                                  {[
-                                      "Acaponeta","Ahuacatlán","Amatlán de Cañas","Bahía de Banderas",
-                                      "Compostela","Del Nayar","Huajicori","Ixtlán del Río",
-                                      "Jala","La Yesca","Rosamorada","Ruiz","San Blas",
-                                      "San Pedro Lagunillas","Santa María del Oro",
-                                      "Santiago Ixcuintla","Tecuala","Tepic","Tuxpan","Xalisco"
-                                  ].map(m => (
-                                      <option key={m} value={m}>{m}</option>
-                                  ))}
-                              </select>
-                          </div>
+                                  <option value="Orientación">Orientación</option>
+                                  <option value="Gestión">Gestión</option>
+                                  <option value="Asesoría">Asesoría</option>
+                                  <option value="Queja">Queja</option>
+                                  <option value="Dictamen">Dictamen</option>
+                               </select>
+                            </div>
 
-                          <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-700 ml-1">Estado Civil</label>
-                              <select
-                                  name="estado_civil"
-                                  value={padronForm.estado_civil || "Soltero(a)"}
-                                  onChange={handleInputChange}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                              >
-                                  <option value="Soltero(a)">Soltero(a)</option>
-                                  <option value="Casado(a)">Casado(a)</option>
-                                  <option value="Unión libre">Unión libre</option>
-                                  <option value="Viudo(a)">Viudo(a)</option>
-                                  <option value="Divorciado(a)">Divorciado(a)</option>
-                                  <option value="Separado(a)">Separado(a)</option>
-                                  <option value="No Aplica">No Aplica</option>
-                              </select>
-                          </div>
-
-                          <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-700 ml-1">Tipo Beneficiario</label>
-                              <select
-                                  name="tipo_beneficiario"
-                                  value={padronForm.tipo_beneficiario || "Directo"}
-                                  onChange={handleInputChange}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                              >
-                                  <option value="Directo">Directo</option>
-                                  <option value="Indirecto">Indirecto</option>
-                              </select>
-                          </div>
-
-                          <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-700 ml-1">Parentesco</label>
-                              <select
-                                  name="parentesco"
-                                  value={padronForm.parentesco || "Beneficiario"}
-                                  onChange={handleInputChange}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                              >
-                                  {[
-                                      "Beneficiario","Cónyuge o Compañero(a)","Padre o Madre","Hijo(a)",
-                                      "Abuelo(a)","Hermano(a)","Nieto(a)","Suegro(a)",
-                                      "Sobrino(a)","Yerno o Nuera","Hijastro(a) / Entendado(a)",
-                                      "No Tiene Parentesco","Otro Parentesco","No Respondió"
-                                  ].map(p => (
-                                      <option key={p} value={p}>{p}</option>
-                                  ))}
-                              </select>
-                          </div>
-
-                          <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-700 ml-1">Tipo Apoyo</label>
-                              <select
-                                  name="tipo_apoyo"
-                                  value={padronForm.tipo_apoyo || "Servicio"}
-                                  onChange={handleInputChange}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                              >
-                                  <option value="Servicio">Servicio</option>
-                                  <option value="Especie">Especie</option>
-                                  <option value="Monetario">Monetario</option>
-                                  <option value="Producto Subsidiado">Producto Subsidiado</option>
-                                  <option value="Mixto">Mixto</option>
-                                  <option value="Estatal">Estatal</option>
-                              </select>
-                          </div>
-
-                          <div className="md:col-span-2 space-y-1">
-                              <label className="text-xs font-bold text-slate-700 ml-1">Criterio / Actividad</label>
-                              <textarea
-                                  name="criterio_seleccion"
-                                  value={padronForm.criterio_seleccion || "Servidor Público Estatal"}
-                                  onChange={handleInputChange}
-                                  rows="2"
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none"
-                              />
-                          </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Tipo Apoyo</label>
+                                <input type="text" name="tipo_apoyo" value={padronForm.tipo_apoyo} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Monto ($)</label>
+                                <input type="number" name="monto_apoyo" value={padronForm.monto_apoyo} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            </div>
+                            <div className="md:col-span-2 space-y-1">
+                                <label className="text-xs font-bold text-slate-700 ml-1">Criterio / Actividad (Detalle)</label>
+                                <textarea name="criterio_seleccion" value={padronForm.criterio_seleccion} onChange={handleInputChange} rows="2" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none"></textarea>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -608,11 +564,8 @@ export const DetailModal = ({ item, onClose }) => {
 
           <div className="flex items-center gap-4">
             
-            {/* LOGICA DE BOTONES PARA PADRON */}
             {activeTab === 'padron' ? (
-                // Si estamos en la pestaña PADRON
                 isEditingPadron ? (
-                    // MODO EDICION: Mostrar Cancelar + Guardar
                     <>
                         <button 
                            onClick={() => setIsEditingPadron(false)}
@@ -630,7 +583,6 @@ export const DetailModal = ({ item, onClose }) => {
                         </button>
                     </>
                 ) : (
-                    // MODO LECTURA: Mostrar Botón para ir a Editar
                     <button 
                         onClick={() => setIsEditingPadron(true)}
                         className="px-8 py-3 bg-white border-2 border-slate-200 text-slate-700 hover:border-emerald-500 hover:text-emerald-600 rounded-2xl font-bold text-sm transition-all shadow-sm flex items-center gap-2"
@@ -639,7 +591,6 @@ export const DetailModal = ({ item, onClose }) => {
                     </button>
                 )
             ) : (
-                // Si estamos en la pestaña GENERAL
                 <div className="text-[10px] text-slate-400 font-medium hidden md:block text-right">
                     Gestión CECA<span className="text-indigo-500">MED</span> <br/>Documento Confidencial
                 </div>

@@ -222,11 +222,73 @@ const actualizarPadron = async (req, res) => {
   }
 };
 
+// 7. OBTENER LISTA COMPLETA FUSIONADA (Para la Tabla Padrón)
+const getAllExpedientes = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin, tipo, nombre } = req.query;
+
+    // A. Obtener la lista base (Colección 'atendidos')
+    // Reutilizamos tu lógica de filtrado existente
+    let basicDataList;
+    if (nombre) {
+      basicDataList = await Atendido.searchByName(nombre);
+    } else {
+      basicDataList = await Atendido.getFiltered({ fechaInicio, fechaFin, tipo });
+    }
+
+    // B. Hacer el "JOIN" manual en paralelo
+    // Map devuelve un array de Promesas, y Promise.all espera a que todas se resuelvan.
+    const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
+        
+        // Buscamos el documento detalle que tenga el MISMO ID
+        const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
+        const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
+
+        // Fusionamos los datos (Base + Detalle)
+        return {
+            // --- ID y Datos Base ---
+            id: baseItem.id,
+            ...baseItem, // Esparce todo lo que venga en atendidos
+            
+            // Aseguramos campos base clave por si acaso
+            fecha_beneficio: baseItem.fecha_recepcion || '',
+            curp: baseItem.curp || '',
+            nombre: baseItem.nombre || '',
+            apellido_paterno: baseItem.apellido_paterno || '',
+            apellido_materno: baseItem.apellido_materno || '',
+            sexo: baseItem.sexo || '',
+            edad: baseItem.edad_o_nacimiento || baseItem.fecha_nacimiento || '', // Ajusta según tu campo real
+            
+            // --- Datos del Padrón (Detalle) ---
+            // Si no existen en detalle, enviamos string vacío para que la tabla no falle
+            municipio: detalleData.municipio || '',
+            localidad: detalleData.localidad || '',
+            tipo_beneficiario: detalleData.tipo_beneficiario || '',
+            tipo_apoyo: detalleData.tipo_apoyo || '',
+            monto_apoyo: detalleData.monto_apoyo || '',
+            estado_civil: detalleData.estado_civil || '',
+            cargo_ocupacion: detalleData.cargo_ocupacion || '',
+            parentesco: detalleData.parentesco || '',
+            criterio_seleccion: detalleData.criterio_seleccion || '',
+            actividad_apoyo: detalleData.actividad_apoyo || ''
+        };
+    }));
+
+    // C. Responder con la lista fusionada
+    res.status(200).json({ ok: true, count: fullDataList.length, data: fullDataList });
+
+  } catch (error) {
+    console.error("Error en getAllExpedientes:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAtendidos,
   getAtendidoById,      // Endpoint ligero
   getExpedienteCompleto, // Endpoint pesado (Nuevo)
   getResumenMensual,
   migrarExpedientes,
-  actualizarPadron      // Nuevo endpoint para actualizar padrón
+  actualizarPadron,   // Nuevo endpoint para actualizar padrón
+  getAllExpedientes   // Nuevo endpoint para obtener lista fusionada
 };

@@ -1,6 +1,6 @@
 import React from 'react';
-// 1. IMPORTANTE: Agregamos 'User' a los imports
-import { Users, Globe, BookOpen, User } from 'lucide-react';
+// 1. AGREGAMOS 'FileSpreadsheet' a los imports para el icono del padrón
+import { Users, Globe, BookOpen, User, FileSpreadsheet } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 
 export const Sidebar = ({ currentView, onNavigate }) => {
@@ -16,7 +16,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
   return (
     <aside className="w-full h-full p-6 bg-slate-900 flex flex-col">
       
-      {/* ENCABEZADO CON LOGO EN CÍRCULO BLANCO */}
+      {/* ENCABEZADO */}
       <div className="mb-10 flex flex-col items-center text-center">
         <div className="bg-white p-3 rounded-full shadow-lg shadow-white/5 mb-3">
           <img 
@@ -36,6 +36,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
       </div>
 
       <nav className="space-y-2 flex-1">
+        
         {/* Botón Atendidos */}
         <button 
           onClick={() => onNavigate('atendidos')} 
@@ -44,6 +45,16 @@ export const Sidebar = ({ currentView, onNavigate }) => {
           <Users size={20} /> 
           <span>Atendidos</span>
         </button>
+
+        {/* --- NUEVO BOTÓN: PADRÓN --- */}
+        <button 
+          onClick={() => onNavigate('padron')} 
+          className={getLinkClass('padron')}
+        >
+          <FileSpreadsheet size={20} /> 
+          <span>Padrón</span>
+        </button>
+        {/* --------------------------- */}
 
         {/* Botón Recepción */}
         <button
@@ -63,8 +74,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
           <span>Sitios de Interés</span>
         </button>
 
-        {/* 2. NUEVA SECCIÓN DE PERFIL */}
-        {/* Agregamos una línea divisoria (border-t) para separar secciones */}
+        {/* SECCIÓN DE PERFIL */}
         <div className="pt-4 mt-4 border-t border-slate-800">
             <p className="text-xs font-bold text-slate-600 uppercase tracking-widest px-4 mb-2">
               Cuenta

@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const API_URL = `${BASE_URL}/api/atendidos`;
+// API_URL ya incluye '/api/atendidos'
+const API_URL = `${BASE_URL}/api/atendidos`; 
 
 export const AtendidosService = {
   // 1. Obtener lista ligera (Tabla principal)
@@ -27,11 +28,10 @@ export const AtendidosService = {
   },
 
   // 3. NUEVO: Obtener expediente COMPLETO (Base + Padrón)
-  // Úsalo cuando vayas a editar los datos del padrón o ver historial
   getCompleto: async (id) => {
     try {
       const response = await axios.get(`${API_URL}/${id}/completo`);
-      return response.data; // Retorna { ok: true, data: { ...campos_base, ...campos_detalle } }
+      return response.data; 
     } catch (error) {
       console.error("Error en service getCompleto:", error);
       throw error;
@@ -39,7 +39,6 @@ export const AtendidosService = {
   },
 
   // 4. NUEVO: Guardar datos del Padrón
-  // Envía los campos extra (municipio, tipo apoyo, etc.)
   updatePadron: async (id, datosPadron) => {
     try {
       const response = await axios.put(`${API_URL}/${id}/padron`, datosPadron);
@@ -59,5 +58,18 @@ export const AtendidosService = {
       console.error("Error en service getResumen:", error);
       throw error;
     }
+  },
+
+  // 6. OBTENER REPORTE PADRÓN (Lista Pesada)
+  // CORREGIDO AQUÍ: Usamos API_URL en lugar de BASE_URL
+  getPadronReport: async (params = {}) => {
+    try {
+      const response = await axios.get(`${API_URL}/padron/completo`, { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error en getPadronReport:", error);
+      throw error;
+    }
   }
+
 };

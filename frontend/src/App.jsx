@@ -7,7 +7,10 @@ import { Sidebar } from './components/Sidebar';
 import Atendidos from './pages/Atendidos';
 import SitiosInteres from './pages/SitiosInteres';
 import Recepcion from './pages/Recepcion';
-import Perfil from './pages/Perfil'; // <--- 1. FALTABA IMPORTAR ESTO
+import Perfil from './pages/Perfil';
+// 1. IMPORTAR LA NUEVA PÁGINA
+import Padron from './pages/Padron'; 
+
 import { LogOut } from 'lucide-react';
 
 const AppContent = () => {
@@ -54,10 +57,12 @@ const AppContent = () => {
 
         {/* RENDERIZADO CONDICIONAL DE PÁGINAS */}
         {currentView === 'atendidos' && <Atendidos />}
+        
+        {/* 2. AGREGAR ESTA LÍNEA PARA MOSTRAR EL PADRÓN */}
+        {currentView === 'padron' && <Padron />}
+
         {currentView === 'sitios' && <SitiosInteres />}
         {currentView === 'recepcion' && <Recepcion />}
-        
-        {/* 2. FALTABA ESTA LÍNEA PARA MOSTRAR EL PERFIL */}
         {currentView === 'perfil' && <Perfil />}
 
       </main>
