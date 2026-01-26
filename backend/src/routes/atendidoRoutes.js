@@ -9,8 +9,14 @@ const atendidoController = require('../controllers/atendidoController');
 // URL: GET /api/atendidos/resumen
 router.get('/resumen', atendidoController.getResumenMensual);
 
+// --- NUEVA RUTA: Sincronización con Sheets ---
+// URL: POST /api/atendidos/padron/exportar
+// Esta ruta busca los PENDIENTES, los sube al Excel y los marca como ENVIADO.
+// Va antes de /:id para que no confunda "padron" con un ID.
+router.post('/padron/exportar', atendidoController.exportarExpedientesAPadron);
+
 // URL: GET /api/atendidos/padron/completo
-// ¡IMPORTANTE! Esta debe ir ANTES de cualquier /:id para evitar conflicto
+// Esta obtiene la lista completa (con JOIN) para verla en el front (sin exportar ni cambiar estatus)
 router.get('/padron/completo', atendidoController.getAllExpedientes);
 
 // Ruta de migración
@@ -26,15 +32,12 @@ router.get('/', atendidoController.getAtendidos);
 // Estas capturan "cualquier cosa" que siga a la barra, por eso van al final.
 
 // URL: GET /api/atendidos/:id/completo
-// (Si pusieras esta arriba, "padron/completo" caería aquí creyendo que el id es "padron")
 router.get('/:id/completo', atendidoController.getExpedienteCompleto);
 
 // URL: PUT /api/atendidos/:id/padron
 router.put('/:id/padron', atendidoController.actualizarPadron);
 
 // URL: GET /api/atendidos/:id 
-// (Suele ir al final de todo para no interferir con sub-rutas si usaras regex, 
-// aunque en este caso estricto no choca con /:id/algo, es buena práctica dejarla al final)
 router.get('/:id', atendidoController.getAtendidoById);
 
 module.exports = router;

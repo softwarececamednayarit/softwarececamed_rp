@@ -141,3 +141,119 @@ exports.agregarAAgenda = async (datos) => {
     throw new Error('No se pudo sincronizar con la hoja de Agenda.');
   }
 };
+
+
+const SPREADSHEET_PADRON_ID = process.env.GOOGLE_SHEET_PADRON_ID; // Tu nueva variable de entorno
+
+// --- NUEVOS HELPERS PARA PADRÓN ---
+
+const obtenerHojaTrimestre = (fechaStr) => {
+  if (!fechaStr) return '1er trimestre'; 
+  
+  // Intentar parsear fecha (asumiendo YYYY-MM-DD o ISO)
+  const fecha = new Date(fechaStr);
+  if (isNaN(fecha.getTime())) return '1er trimestre'; // Fallback si la fecha es inválida
+
+  const mes = fecha.getMonth(); // 0 = Enero, 11 = Diciembre
+
+  if (mes >= 0 && mes <= 2) return '1er trimestre'; // Ene-Mar
+  if (mes >= 3 && mes <= 5) return '2do trimestre'; // Abr-Jun
+  if (mes >= 6 && mes <= 8) return '3er trimestre'; // Jul-Sep
+  if (mes >= 9 && mes <= 11) return '4to trimestre';// Oct-Dic
+  
+  return '1er trimestre';
+};
+
+exports.exportarLotePadron = async (listaCompleta) => {
+  try {
+    // -----------------------------------------------------------
+    // 1. FILTRADO INTELIGENTE
+    // -----------------------------------------------------------
+    const listosParaSubir = listaCompleta.filter(item => {
+      // CONDICIÓN A: Que no se haya subido antes
+      const esPendiente = item.estatus_padron === 'PENDIENTE' || !item.estatus_padron;
+
+      // CONDICIÓN B: Que tenga los datos MÍNIMOS obligatorios (Validación)
+      // Ajusta estos campos según lo que consideres "incompleto"
+      const estaCompleto = 
+          item.nombre && 
+          item.apellido_paterno && 
+          item.curp && 
+          item.curp.length >= 10 && // Validación básica de CURP
+          item.tipo_apoyo &&
+          item.municipio;
+
+      return esPendiente && estaCompleto;
+    });
+
+    if (listosParaSubir.length === 0) {
+      console.log('⚠ No se encontraron registros PENDIENTES y COMPLETOS para subir.');
+      return { procesados: 0, ids: [] };
+    }
+
+    // -----------------------------------------------------------
+    // 2. CLASIFICACIÓN POR TRIMESTRE
+    // -----------------------------------------------------------
+    const lotes = {
+      '1er trimestre': [],
+      '2do trimestre': [],
+      '3er trimestre': [],
+      '4to trimestre': []
+    };
+
+    const idsProcesados = [];
+
+    listosParaSubir.forEach(dato => {
+      const hoja = obtenerHojaTrimestre(dato.fecha_beneficio);
+      
+      // Mapeo EXACTO de columnas A - P
+      const fila = [
+        formatoTitulo(dato.tipo_beneficiario || 'Ciudadano'), // A
+        dato.criterio_seleccion || 'Solicitud Directa',       // B
+        dato.tipo_apoyo || 'Servicio',                        // C
+        dato.monto_apoyo || '0',                              // D
+        (dato.curp || '').toUpperCase(),                      // E
+        formatoTitulo(dato.nombre || ''),                     // F
+        formatoTitulo(`${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`), // G
+        formatoTitulo(dato.sexo || ''),                       // H
+        formatoTitulo(dato.parentesco || ''),                 // I
+        dato.edad || '',                                      // J
+        formatoTitulo(dato.estado_civil || ''),               // K
+        formatoTitulo(dato.cargo_ocupacion || ''),            // L
+        formatoOracion(dato.actividad_apoyo || ''),           // M
+        formatoTitulo(dato.municipio || ''),                  // N
+        formatoTitulo(dato.localidad || ''),                  // O
+        dato.fecha_beneficio || ''                            // P
+      ];
+
+      if (lotes[hoja]) {
+        lotes[hoja].push(fila);
+        idsProcesados.push(dato.id); 
+      }
+    });
+
+    // -----------------------------------------------------------
+    // 3. ENVÍO A SHEETS
+    // -----------------------------------------------------------
+    const promesasEnvio = Object.keys(lotes).map(async (nombreHoja) => {
+      const filas = lotes[nombreHoja];
+      if (filas.length === 0) return;
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_PADRON_ID,
+        range: `${nombreHoja}!A12`,
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        resource: { values: filas },
+      });
+    });
+
+    await Promise.all(promesasEnvio);
+    
+    return { procesados: idsProcesados.length, ids: idsProcesados };
+
+  } catch (error) {
+    console.error('❌ Error exportando lote al Padrón:', error.message);
+    throw new Error('Falló la sincronización con Google Sheets Padrón.');
+  }
+};

@@ -1,5 +1,6 @@
 const Atendido = require('../models/atendidoModel');
 const db = require('../../config/firebase');
+const sheetsService = require('../services/googleSheetsService');
 
 // 1. Obtener lista con filtros (LIGERO)
 const getAtendidos = async (req, res) => {
@@ -283,6 +284,125 @@ const getAllExpedientes = async (req, res) => {
   }
 };
 
+
+const exportarExpedientesAPadron = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin, tipo, nombre } = req.query;
+
+    // ---------------------------------------------------------
+    // 1. OBTENER Y FUSIONAR DATOS
+    // ---------------------------------------------------------
+    
+    // A. Buscar en colección base 'atendidos'
+    let basicDataList;
+    if (nombre) {
+      basicDataList = await Atendido.searchByName(nombre);
+    } else {
+      basicDataList = await Atendido.getFiltered({ fechaInicio, fechaFin, tipo });
+    }
+
+    // B. Join manual con 'expedientes_detalle'
+    const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
+        const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
+        const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
+        
+        // Formatear fecha
+        let fechaLimpia = '';
+        if (baseItem.fecha_recepcion) {
+            if (typeof baseItem.fecha_recepcion.toDate === 'function') {
+                fechaLimpia = baseItem.fecha_recepcion.toDate().toISOString().split('T')[0];
+            } else {
+                fechaLimpia = baseItem.fecha_recepcion;
+            }
+        }
+
+        const edadRaw = baseItem.edad_o_nacimiento || baseItem.fecha_nacimiento || '';
+        // Limpiamos: Convertimos a texto -> Reemplazamos " años" (ignorando mayúsculas/minúsculas) -> Quitamos espacios extra
+        const edadLimpia = edadRaw.toString().replace(/ años/gi, '').trim();
+
+        return {
+            id: baseItem.id,
+            ...baseItem,
+            
+            // CORRECCIÓN 1: Leer el estatus desde 'detalleData', no desde 'baseItem'
+            estatus_padron: detalleData.estatus_padron || 'PENDIENTE', 
+            
+            fecha_beneficio: fechaLimpia,
+            curp: baseItem.curp || '',
+            nombre: baseItem.nombre || '',
+            apellido_paterno: baseItem.apellido_paterno || '',
+            apellido_materno: baseItem.apellido_materno || '',
+            sexo: baseItem.sexo || '',
+            edad: edadLimpia,
+            
+            // Datos Detalle
+            municipio: detalleData.municipio || '',
+            localidad: detalleData.localidad || '',
+            tipo_beneficiario: detalleData.tipo_beneficiario || '',
+            tipo_apoyo: detalleData.tipo_apoyo || '',
+            monto_apoyo: detalleData.monto_apoyo || '',
+            estado_civil: detalleData.estado_civil || '',
+            cargo_ocupacion: detalleData.cargo_ocupacion || '',
+            parentesco: detalleData.parentesco || '',
+            criterio_seleccion: detalleData.criterio_seleccion || '',
+            actividad_apoyo: detalleData.actividad_apoyo || ''
+        };
+    }));
+
+    // ---------------------------------------------------------
+    // 2. FILTRAR Y ENVIAR A SHEETS
+    // ---------------------------------------------------------
+    
+    // Filtramos los que tengan estatus PENDIENTE (que ahora viene de expediente_detalles)
+    const listaPendiente = fullDataList.filter(item => item.estatus_padron === 'PENDIENTE');
+
+    if (listaPendiente.length === 0) {
+        return res.status(200).json({ 
+            ok: true, 
+            message: 'No hay expedientes nuevos (PENDIENTE) para exportar.',
+            count: 0 
+        });
+    }
+
+    // LLAMADA AL SERVICIO
+    const resultadoSheet = await sheetsService.exportarLotePadron(listaPendiente);
+
+    // ---------------------------------------------------------
+    // 3. ACTUALIZAR FIREBASE (CAMBIAR ESTATUS)
+    // ---------------------------------------------------------
+    
+    if (resultadoSheet.ids.length > 0) {
+        const batch = db.batch();
+        
+        resultadoSheet.ids.forEach(id => {
+            // CORRECCIÓN 2: Apuntar a la colección 'expedientes_detalle'
+            const docRef = db.collection('expedientes_detalle').doc(id); 
+            
+            // Usamos set con merge: true por seguridad, por si el documento de detalle 
+            // no existiera (aunque debería), así lo crea si falta o actualiza si existe.
+            batch.set(docRef, { estatus_padron: 'ENVIADO' }, { merge: true });
+        });
+
+        await batch.commit();
+        console.log(`🔄 Base de datos actualizada: ${resultadoSheet.ids.length} registros marcados como ENVIADO en expedientes_detalle.`);
+    }
+
+    // ---------------------------------------------------------
+    // 4. RESPONDER AL CLIENTE
+    // ---------------------------------------------------------
+    res.status(200).json({ 
+        ok: true, 
+        message: 'Exportación exitosa.',
+        processed_count: resultadoSheet.procesados,
+        details: resultadoSheet.ids
+    });
+
+  } catch (error) {
+    console.error("Error crítico en exportarExpedientesAPadron:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAtendidos,
   getAtendidoById,      // Endpoint ligero
@@ -290,5 +410,6 @@ module.exports = {
   getResumenMensual,
   migrarExpedientes,
   actualizarPadron,   // Nuevo endpoint para actualizar padrón
-  getAllExpedientes   // Nuevo endpoint para obtener lista fusionada
+  getAllExpedientes,   // Nuevo endpoint para obtener lista fusionada
+  exportarExpedientesAPadron // Nuevo endpoint para exportar a Google Sheets
 };
