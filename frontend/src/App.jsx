@@ -1,71 +1,76 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './pages/Login';
+import { LogOut, Loader2, Menu } from 'lucide-react';
 
 // Importar componentes
+import Login from './pages/Login';
 import { Sidebar } from './components/Sidebar';
+
+// Importar páginas
 import Atendidos from './pages/Atendidos';
 import SitiosInteres from './pages/SitiosInteres';
 import Recepcion from './pages/Recepcion';
 import Perfil from './pages/Perfil';
-// 1. IMPORTAR LA NUEVA PÁGINA
 import Padron from './pages/Padron'; 
 import Gestion from './pages/Gestion';
 
-import { LogOut } from 'lucide-react';
-
 const AppContent = () => {
   const { user, loading, logout } = useAuth();
-  
   const [currentView, setCurrentView] = useState('atendidos');
+  
+  // Estado para menú móvil (opcional, por si quieres expandirlo luego)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // --- PANTALLA DE CARGA ---
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-400 font-bold">
-        Cargando sistema...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-indigo-600 gap-3">
+        <Loader2 size={48} className="animate-spin" />
+        <p className="text-slate-400 font-bold text-sm tracking-widest uppercase">Cargando sistema...</p>
       </div>
     );
   }
 
+  // --- LOGIN ---
   if (!user) return <Login />;
 
+  // --- APP PRINCIPAL ---
   return (
-    <div className="flex min-h-screen bg-slate-100/50 font-sans text-slate-900">
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       
-      {/* Sidebar Fijo */}
-      <div className="hidden lg:flex flex-col sticky top-0 h-screen bg-slate-900 w-72 shrink-0">
-        
+      {/* 1. SIDEBAR (Escritorio) */}
+      {/* Nota: Ya no necesitamos el botón de logout aquí abajo, 
+          porque el componente <Sidebar /> ya lo trae integrado internamente. */}
+      <div className="hidden lg:flex w-72 shrink-0 h-full">
         <Sidebar 
           currentView={currentView} 
           onNavigate={setCurrentView} 
         />
-        
-        <div className="p-4 border-t border-slate-800 mt-auto">
-          <button 
-            onClick={logout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all text-sm font-bold"
-          >
-            <LogOut size={18} /> Cerrar Sesión
-          </button>
-        </div>
       </div>
 
-      <main className="flex-1 overflow-y-auto relative">
-        {/* Botón móvil de logout */}
-        <button onClick={logout} className="lg:hidden absolute top-4 right-4 p-2 bg-white rounded-full shadow-md text-slate-700 z-50">
-          <LogOut size={20} />
-        </button>
-
-        {/* RENDERIZADO CONDICIONAL DE PÁGINAS */}
-        {currentView === 'atendidos' && <Atendidos />}
+      {/* 2. ÁREA PRINCIPAL */}
+      <main className="flex-1 relative h-full flex flex-col overflow-hidden">
         
-        {/* 2. AGREGAR ESTA LÍNEA PARA MOSTRAR EL PADRÓN */}
-        {currentView === 'padron' && <Padron />}
-        {currentView === 'gestion' && <Gestion />}
+        {/* Header Móvil (Solo visible en pantallas chicas) */}
+        <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900 text-white shadow-md z-50 shrink-0">
+            <span className="font-black tracking-tight text-lg">CECAMED</span>
+            <button 
+                onClick={logout} 
+                className="p-2 bg-white/10 rounded-lg active:bg-white/20 transition-colors"
+            >
+                <LogOut size={20} />
+            </button>
+        </div>
 
-        {currentView === 'sitios' && <SitiosInteres />}
-        {currentView === 'recepcion' && <Recepcion />}
-        {currentView === 'perfil' && <Perfil />}
+        {/* Contenedor de Vistas (Con scroll propio) */}
+        <div className="flex-1 overflow-y-auto relative bg-slate-50/50">
+            {currentView === 'atendidos' && <Atendidos />}
+            {currentView === 'padron'    && <Padron />}
+            {currentView === 'gestion'   && <Gestion />}
+            {currentView === 'sitios'    && <SitiosInteres />}
+            {currentView === 'recepcion' && <Recepcion />}
+            {currentView === 'perfil'    && <Perfil />}
+        </div>
 
       </main>
     </div>

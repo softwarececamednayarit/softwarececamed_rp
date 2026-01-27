@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AtendidosService } from '../services/atendidosService'; // Ajusta la ruta si es necesario (../ o ./)
+import { AtendidosService } from '../services/atendidosService'; 
 import { StatCard } from '../components/StatCard';
 import { DataTable } from '../components/DataTable';
 import { SearchFilters } from '../components/SearchFilters';
@@ -48,21 +48,45 @@ const Atendidos = () => {
     atendidos.filter(a => normalizeText(a.tipo).includes(normalizeText(keyword))).length;
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto bg-slate-50/50">
       <div className="max-w-screen-2xl mx-auto px-6 md:px-12 py-10 md:py-16 space-y-12">
         
-        {/* Header de la página */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Panel de Atendidos</h1>
-            <p className="text-slate-500 text-lg font-medium">
-              {dataFiltrada.length} registros encontrados.
-            </p>
+        {/* --- NUEVO HEADER TIPO TARJETA --- */}
+        <header className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+          
+          {/* Decoración de fondo sutil */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none" />
+
+          <div className="space-y-2 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-slate-900 rounded-xl text-white shadow-lg shadow-slate-900/20">
+                <Users size={24} /> 
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+                Panel de Atendidos
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 pl-1">
+              <span className={`flex h-2 w-2 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></span>
+              <p className="text-slate-500 font-medium text-sm">
+                Mostrando <span className="text-slate-900 font-bold">{dataFiltrada.length}</span> registros activos.
+              </p>
+            </div>
           </div>
-          <button onClick={fetchData} disabled={loading} className="flex items-center justify-center gap-2 bg-white border border-slate-200 px-6 py-3 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50">
-            <RefreshCw size={20} className={loading ? 'animate-spin text-indigo-500' : ''} />
-            Actualizar Datos
-          </button>
+
+          <div className="flex items-center gap-3 relative z-10">
+            <button 
+              onClick={fetchData} 
+              disabled={loading} 
+              className="group flex items-center justify-center gap-2.5 bg-white border border-slate-200 px-6 py-3.5 rounded-2xl font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50/50 transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <RefreshCw 
+                size={18} 
+                className={`transition-transform group-hover:rotate-180 ${loading ? 'animate-spin text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'}`} 
+              />
+              <span>{loading ? 'Actualizando...' : 'Actualizar Datos'}</span>
+            </button>
+          </div>
         </header>
 
         {/* SECCIÓN DE ESTADÍSTICAS (5 CARDS SEPARADAS) */}
