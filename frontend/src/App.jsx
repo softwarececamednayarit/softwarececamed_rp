@@ -10,6 +10,7 @@ import Recepcion from './pages/Recepcion';
 import Perfil from './pages/Perfil';
 // 1. IMPORTAR LA NUEVA PÁGINA
 import Padron from './pages/Padron'; 
+import Gestion from './pages/Gestion';
 
 import { LogOut } from 'lucide-react';
 
@@ -60,6 +61,7 @@ const AppContent = () => {
         
         {/* 2. AGREGAR ESTA LÍNEA PARA MOSTRAR EL PADRÓN */}
         {currentView === 'padron' && <Padron />}
+        {currentView === 'gestion' && <Gestion />}
 
         {currentView === 'sitios' && <SitiosInteres />}
         {currentView === 'recepcion' && <Recepcion />}

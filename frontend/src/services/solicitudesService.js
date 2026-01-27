@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Ajusta esto a la URL de tu backend
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const BASE_URL = 'http://localhost:3000' || import.meta.env.VITE_API_URL;
 const API_URL = `${BASE_URL}/api/solicitudes`;
 
 // 1. OBTENER LISTA (Ahora acepta un filtro de status)

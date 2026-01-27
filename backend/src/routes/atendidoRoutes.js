@@ -35,7 +35,7 @@ router.get('/', atendidoController.getAtendidos);
 router.get('/:id/completo', atendidoController.getExpedienteCompleto);
 
 // URL: PUT /api/atendidos/:id/padron
-router.put('/:id/padron', atendidoController.actualizarPadron);
+router.put('/:id/padron', atendidoController.updateExpedienteDetalle);
 
 // URL: GET /api/atendidos/:id 
 router.get('/:id', atendidoController.getAtendidoById);

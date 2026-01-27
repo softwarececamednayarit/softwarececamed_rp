@@ -1,6 +1,6 @@
 import React from 'react';
-// 1. AGREGAMOS 'FileSpreadsheet' a los imports para el icono del padrón
-import { Users, Globe, BookOpen, User, FileSpreadsheet } from 'lucide-react';
+// 1. AGREGAMOS 'Briefcase' a los imports
+import { Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 
 export const Sidebar = ({ currentView, onNavigate }) => {
@@ -46,7 +46,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
           <span>Atendidos</span>
         </button>
 
-        {/* --- NUEVO BOTÓN: PADRÓN --- */}
+        {/* Botón Padrón */}
         <button 
           onClick={() => onNavigate('padron')} 
           className={getLinkClass('padron')}
@@ -54,7 +54,15 @@ export const Sidebar = ({ currentView, onNavigate }) => {
           <FileSpreadsheet size={20} /> 
           <span>Padrón</span>
         </button>
-        {/* --------------------------- */}
+
+        {/* --- 2. NUEVO BOTÓN: GESTIÓN --- */}
+        <button 
+          onClick={() => onNavigate('gestion')} 
+          className={getLinkClass('gestion')}
+        >
+          <Briefcase size={20} /> 
+          <span>Gestión</span>
+        </button>
 
         {/* Botón Recepción */}
         <button
