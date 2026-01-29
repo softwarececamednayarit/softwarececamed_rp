@@ -58,13 +58,11 @@ const getExpedienteCompleto = async (req, res) => {
     const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
 
     // C. Lógica de "Prestador de Servicio"
-    // Validamos si la propiedad EXISTE en detalle (aunque sea string vacío).
-    // Si existe, respetamos esa. Si no existe (undefined), sugerimos la original.
     let prestadorFinal;
     if (detalleData.prestador_nombre !== undefined) {
-        prestadorFinal = detalleData.prestador_nombre; // Toma el valor editado (incluso si se borró y está vacío)
+      prestadorFinal = detalleData.prestador_nombre; 
     } else {
-        prestadorFinal = basicData.unidad_medica || basicData.institucion || ''; // Sugerencia inicial
+      prestadorFinal = basicData.unidad_medica || basicData.institucion || ''; 
     }
 
     // D. Construcción del Objeto
@@ -84,8 +82,6 @@ const getExpedienteCompleto = async (req, res) => {
       descripcion_hechos: basicData.descripcion_hechos || '',
       
       // --- SECCIÓN 2: Datos Editables (Guardados en expedientes_detalle) ---
-      
-      // Campo Prestador (Ahora controlado por la lógica superior)
       prestador_nombre: prestadorFinal,
 
       // Padrón
@@ -168,7 +164,6 @@ const migrarExpedientes = async (req, res) => {
       batch.set(detalleRef, {
         atendido_link_id: id,
         fecha_migracion: new Date(),
-        estatus_padron: 'PENDIENTE',
         historial_clinico: []
       });
       
@@ -194,7 +189,7 @@ const migrarExpedientes = async (req, res) => {
 };
 
 // =====================================================================
-// 6. ACTUALIZAR / GUARDAR DETALLES (Aquí se guarda el prestador_nombre)
+// 6. ACTUALIZAR / GUARDAR DETALLES
 // =====================================================================
 const updateExpedienteDetalle = async (req, res) => {
   const { id } = req.params;
@@ -206,8 +201,6 @@ const updateExpedienteDetalle = async (req, res) => {
       return res.status(404).json({ message: "El expediente base no existe." });
     }
 
-    // Al guardar aquí, "prestador_nombre" se escribe físicamente en expedientes_detalle.
-    // A partir de este momento, este campo tendrá prioridad sobre el original.
     const updateData = {
       // Padrón
       tipo_beneficiario: data.tipo_beneficiario,
@@ -235,7 +228,7 @@ const updateExpedienteDetalle = async (req, res) => {
       servicio: data.servicio,
       no_asignado: data.no_asignado,
       
-      // CAMPO IMPORTANTE: Se guarda explícitamente en esta colección
+      // CAMPO IMPORTANTE
       prestador_nombre: data.prestador_nombre, 
 
       fecha_ultima_actualizacion: new Date()
@@ -268,67 +261,73 @@ const getAllExpedientes = async (req, res) => {
     }
 
     const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
-        const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
-        const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
+      const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
+      const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
 
-        // Lógica de Prioridad (Igual que en getExpedienteCompleto)
-        let prestadorFinal;
-        if (detalleData.prestador_nombre !== undefined) {
-            prestadorFinal = detalleData.prestador_nombre; // Usamos el dato de esta colección
-        } else {
-            prestadorFinal = baseItem.unidad_medica || baseItem.institucion || ''; // Fallback
-        }
+      // Lógica de Prioridad
+      let prestadorFinal;
+      if (detalleData.prestador_nombre !== undefined) {
+        prestadorFinal = detalleData.prestador_nombre; 
+      } else {
+        prestadorFinal = baseItem.unidad_medica || baseItem.institucion || ''; 
+      }
 
-        let fechaLimpia = '';
-        if (baseItem.fecha_recepcion) { 
-             fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
-                ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
-                : baseItem.fecha_recepcion;
-        }
+      let domicilioFinal;
+      if (detalleData.domicilio !== undefined) {
+        domicilioFinal = detalleData.domicilio; 
+      } else {
+        domicilioFinal = baseItem.domicilio || baseItem.domicilio_ciudadano || ''; 
+      }
+
+      let fechaLimpia = '';
+      if (baseItem.fecha_recepcion) { 
+        fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
+          ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
+          : baseItem.fecha_recepcion;
+      }
+      
+      return {
+        id: baseItem.id,
+        ...baseItem,
         
-        return {
-            id: baseItem.id,
-            ...baseItem,
-            
-            // Datos Base
-            fecha_beneficio: baseItem.fecha_recepcion || '',
-            curp: baseItem.curp || '',
-            nombre: baseItem.nombre || '',
-            apellido_paterno: baseItem.apellido_paterno || '',
-            apellido_materno: baseItem.apellido_materno || '',
-            sexo: baseItem.sexo || '',
-            edad: baseItem.edad_o_nacimiento || '',
-            telefono: baseItem.telefono || '',
-            domicilio: baseItem.domicilio || '',
-            descripcion_hechos: baseItem.descripcion_hechos || '',
+        // Datos Base
+        fecha_beneficio: baseItem.fecha_recepcion || '',
+        curp: baseItem.curp || '',
+        nombre: baseItem.nombre || '',
+        apellido_paterno: baseItem.apellido_paterno || '',
+        apellido_materno: baseItem.apellido_materno || '',
+        sexo: baseItem.sexo || '',
+        edad: baseItem.edad_o_nacimiento || '',
+        telefono: baseItem.telefono || '',
+        domicilio: domicilioFinal,
+        descripcion_hechos: baseItem.descripcion_hechos || '',
 
-            // Padrón
-            municipio: detalleData.municipio || '',
-            localidad: detalleData.localidad || '',
-            tipo_beneficiario: detalleData.tipo_beneficiario || '',
-            tipo_apoyo: detalleData.tipo_apoyo || '',
-            monto_apoyo: detalleData.monto_apoyo || '',
-            parentesco: detalleData.parentesco || '',
-            criterio_seleccion: detalleData.criterio_seleccion || '',
-            estado_civil: detalleData.estado_civil || '',
-            cargo_ocupacion: detalleData.cargo_ocupacion || '',
-            actividad_apoyo: detalleData.actividad_apoyo || '',
+        // Padrón
+        municipio: detalleData.municipio || '',
+        localidad: detalleData.localidad || '',
+        tipo_beneficiario: detalleData.tipo_beneficiario || '',
+        tipo_apoyo: detalleData.tipo_apoyo || '',
+        monto_apoyo: detalleData.monto_apoyo || '',
+        parentesco: detalleData.parentesco || '',
+        criterio_seleccion: detalleData.criterio_seleccion || '',
+        estado_civil: detalleData.estado_civil || '',
+        cargo_ocupacion: detalleData.cargo_ocupacion || '',
+        actividad_apoyo: detalleData.actividad_apoyo || '',
 
-            // Clasificación
-            foraneo: detalleData.foraneo || '',
-            representante: detalleData.representante || '',
-            via_telefonica: detalleData.via_telefonica || '',
-            submotivo: detalleData.submotivo || '',
-            tipo_asunto: detalleData.tipo_asunto || '',
-            no_asignado: detalleData.no_asignado || '',
-            servicio: detalleData.servicio || '',
-            observaciones_servicio: detalleData.observaciones_servicio || '',
-            motivo: detalleData.motivo_inconformidad || '',
-            especialidad: detalleData.especialidad || '',
-            
-            // Campo calculado/leído
-            prestador_nombre: prestadorFinal
-        };
+        // Clasificación
+        foraneo: detalleData.foraneo || '',
+        representante: detalleData.representante || '',
+        via_telefonica: detalleData.via_telefonica || '',
+        submotivo: detalleData.submotivo || '',
+        tipo_asunto: detalleData.tipo_asunto || '',
+        no_asignado: detalleData.no_asignado || '',
+        servicio: detalleData.servicio || '',
+        observaciones_servicio: detalleData.observaciones_servicio || '',
+        motivo: detalleData.motivo_inconformidad || '',
+        especialidad: detalleData.especialidad || '',
+        
+        prestador_nombre: prestadorFinal
+      };
     }));
 
     res.status(200).json({ ok: true, count: fullDataList.length, data: fullDataList });
@@ -340,11 +339,13 @@ const getAllExpedientes = async (req, res) => {
 };
 
 // =====================================================================
-// 8. Exportar a Google Sheets
+// 8. GENERAR REPORTE PADRÓN (Limpiar y Rescribir)
 // =====================================================================
 const exportarExpedientesAPadron = async (req, res) => {
   try {
     const { fechaInicio, fechaFin, tipo, nombre } = req.query;
+
+    console.log("📄 Generando reporte completo del Padrón...");
 
     // 1. Obtener Base
     let basicDataList;
@@ -354,74 +355,175 @@ const exportarExpedientesAPadron = async (req, res) => {
       basicDataList = await Atendido.getFiltered({ fechaInicio, fechaFin, tipo });
     }
 
-    // 2. Fusionar
+    if (!basicDataList || basicDataList.length === 0) {
+       return res.status(200).json({ ok: true, message: 'No se encontraron registros base en esas fechas.', count: 0 });
+    }
+
+    // 2. Fusionar con Detalle
     const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
-        const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
-        const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
+      const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
+      const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
+      
+      let fechaLimpia = '';
+      if (baseItem.fecha_recepcion) {
+        fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
+          ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
+          : baseItem.fecha_recepcion;
+      }
+
+      const edadRaw = baseItem.edad_o_nacimiento || baseItem.fecha_nacimiento || '';
+      const edadLimpia = edadRaw.toString().replace(/ años/gi, '').trim();
+
+      return {
+        id: baseItem.id,
+        ...baseItem,
         
-        let fechaLimpia = '';
-        if (baseItem.fecha_recepcion) {
-            fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
-                ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
-                : baseItem.fecha_recepcion;
-        }
-
-        const edadRaw = baseItem.edad_o_nacimiento || baseItem.fecha_nacimiento || '';
-        const edadLimpia = edadRaw.toString().replace(/ años/gi, '').trim();
-
-        return {
-            id: baseItem.id,
-            ...baseItem,
-            estatus_padron: detalleData.estatus_padron || 'PENDIENTE', 
-            fecha_beneficio: fechaLimpia,
-            curp: baseItem.curp || '',
-            nombre: baseItem.nombre || '',
-            apellido_paterno: baseItem.apellido_paterno || '',
-            apellido_materno: baseItem.apellido_materno || '',
-            sexo: baseItem.sexo || '',
-            edad: edadLimpia,
-            municipio: detalleData.municipio || '',
-            localidad: detalleData.localidad || '',
-            tipo_beneficiario: detalleData.tipo_beneficiario || '',
-            tipo_apoyo: detalleData.tipo_apoyo || '',
-            monto_apoyo: detalleData.monto_apoyo || '',
-            estado_civil: detalleData.estado_civil || '',
-            cargo_ocupacion: detalleData.cargo_ocupacion || '',
-            parentesco: detalleData.parentesco || '',
-            criterio_seleccion: detalleData.criterio_seleccion || '',
-            actividad_apoyo: detalleData.actividad_apoyo || ''
-        };
+        fecha_beneficio: fechaLimpia,
+        curp: baseItem.curp || '',
+        nombre: baseItem.nombre || '',
+        apellido_paterno: baseItem.apellido_paterno || '',
+        apellido_materno: baseItem.apellido_materno || '',
+        sexo: baseItem.sexo || '',
+        edad: edadLimpia,
+        
+        // Datos del detalle (Defaults vacíos para evitar undefined)
+        municipio: detalleData.municipio || '',
+        localidad: detalleData.localidad || '',
+        tipo_beneficiario: detalleData.tipo_beneficiario || 'Directo', // Default sugerido
+        tipo_apoyo: detalleData.tipo_apoyo || 'Servicio',              // Default sugerido
+        monto_apoyo: detalleData.monto_apoyo || '',
+        estado_civil: detalleData.estado_civil || '',
+        cargo_ocupacion: detalleData.cargo_ocupacion || '',
+        parentesco: detalleData.parentesco || 'Beneficiario',
+        criterio_seleccion: detalleData.criterio_seleccion || '',
+        actividad_apoyo: detalleData.actividad_apoyo || ''
+      };
     }));
 
-    // 3. Filtrar PENDIENTES
-    const listaPendiente = fullDataList.filter(item => item.estatus_padron === 'PENDIENTE');
+    // 3. VALIDACIÓN (MODIFICADA)
+    // He comentado el filtro estricto. Ahora pasará TODO, incluso si falta el municipio.
+    // Esto es útil para debug. Cuando producción esté lista, puedes descomentarlo.
+    
+    const listaLimpia = fullDataList; 
+    
+    /* FILTRO ESTRICTO (Descomentar si solo quieres registros perfectos)
+    const listaLimpia = fullDataList.filter(item => {
+       // Solo exportar si tiene Municipio y Tipo Apoyo definidos
+       return item.municipio && item.tipo_apoyo;
+    });
+    */
 
-    if (listaPendiente.length === 0) {
-        return res.status(200).json({ ok: true, message: 'No hay expedientes nuevos para exportar.', count: 0 });
+    if (listaLimpia.length === 0) {
+      return res.status(200).json({ ok: true, message: 'Hay expedientes, pero faltan datos obligatorios (Municipio/Apoyo) en todos ellos.', count: 0 });
     }
 
     // 4. Enviar a Sheets
-    const resultadoSheet = await sheetsService.exportarLotePadron(listaPendiente);
+    const resultadoSheet = await sheetsService.generarReporteCompleto(listaLimpia);
 
-    // 5. Actualizar Estatus en Firebase
-    if (resultadoSheet.ids.length > 0) {
-        const batch = db.batch();
-        resultadoSheet.ids.forEach(id => {
-            const docRef = db.collection('expedientes_detalle').doc(id); 
-            batch.set(docRef, { estatus_padron: 'ENVIADO' }, { merge: true });
-        });
-        await batch.commit();
-    }
-
+    // 5. Responder
     res.status(200).json({ 
-        ok: true, 
-        message: 'Exportación exitosa.',
-        processed_count: resultadoSheet.procesados,
-        details: resultadoSheet.ids
+      ok: true, 
+      message: 'Reporte de Padrón actualizado exitosamente.',
+      processed_count: resultadoSheet.count,
+      url: resultadoSheet.url 
     });
 
   } catch (error) {
     console.error("Error en exportarExpedientesAPadron:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+// =====================================================================
+// 9. GENERAR REGISTRO CLÁSICO (Con Folios Automáticos)
+// =====================================================================
+const exportarRegistroClasico = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin, tipo, nombre } = req.query;
+
+    console.log("📊 Generando Registro Clásico...");
+
+    // 1. OBTENER BASE DE DATOS
+    const basicDataList = await Atendido.getFiltered({ fechaInicio, fechaFin, tipo });
+
+    if (!basicDataList || basicDataList.length === 0) {
+       return res.status(200).json({ ok: true, message: 'No hay registros para este periodo.', count: 0 });
+    }
+
+    // 2. FUSIONAR CON DETALLES (Prestador, Domicilio, etc.)
+    const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
+      const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
+      const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
+      
+      let fechaLimpia = '';
+      if (baseItem.fecha_recepcion) {
+        fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
+          ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
+          : baseItem.fecha_recepcion;
+      }
+
+      // Prioridad Prestador y Domicilio (Si se editó, gana el detalle)
+      const prestadorFinal = detalleData.prestador_nombre !== undefined 
+           ? detalleData.prestador_nombre 
+           : (baseItem.unidad_medica || baseItem.institucion || '');
+
+      const domicilioFinal = detalleData.domicilio !== undefined
+           ? detalleData.domicilio
+           : (baseItem.domicilio || baseItem.domicilio_ciudadano || '');
+
+      return {
+        id: baseItem.id,
+        ...baseItem,
+        fecha_recepcion: fechaLimpia,
+        
+        // Datos Prioritarios
+        prestador_nombre: prestadorFinal,
+        domicilio: domicilioFinal,
+
+        // Datos Detalle
+        foraneo: detalleData.foraneo,
+        ocupacion: detalleData.cargo_ocupacion || detalleData.ocupacion,
+        representante: detalleData.representante,
+        via_telefonica: detalleData.via_telefonica,
+        especialidad: detalleData.especialidad,
+        motivo_inconformidad: detalleData.motivo_inconformidad,
+        submotivo: detalleData.submotivo,
+        actividad_apoyo: detalleData.actividad_apoyo,
+        tipo_asunto: detalleData.tipo_asunto, 
+        observaciones_servicio: detalleData.observaciones_servicio,
+        diagnostico: detalleData.diagnostico
+      };
+    }));
+
+    // 3. ENVIAR A SHEETS (Genera Excel y calcula folios)
+    const resultado = await sheetsService.generarReporteClasico(fullDataList);
+
+    // 4. GUARDAR FOLIOS EN FIREBASE (Paso Crítico Nuevo)
+    // Tomamos los folios calculados en el paso anterior y actualizamos la BD
+    if (resultado.updates && resultado.updates.length > 0) {
+        console.log("💾 Guardando folios asignados en Firebase...");
+        const batch = db.batch();
+        
+        resultado.updates.forEach(item => {
+            const docRef = db.collection('expedientes_detalle').doc(item.id);
+            batch.set(docRef, {
+                servicio: item.servicio,       // Ej: "G-98"
+                no_asignado: item.no_asignado  // Ej: "15/2025"
+            }, { merge: true });
+        });
+
+        await batch.commit();
+        console.log("✅ Folios actualizados correctamente en la base de datos.");
+    }
+
+    res.status(200).json({ 
+      ok: true, 
+      message: 'Registro generado y folios guardados en base de datos.',
+      url: resultado.url,
+      count: resultado.count
+    });
+
+  } catch (error) {
+    console.error("Error en exportarRegistroClasico:", error);
     res.status(500).json({ ok: false, message: error.message });
   }
 };
@@ -434,5 +536,6 @@ module.exports = {
   migrarExpedientes,
   updateExpedienteDetalle,
   getAllExpedientes,
-  exportarExpedientesAPadron
+  exportarExpedientesAPadron,
+  exportarRegistroClasico
 };

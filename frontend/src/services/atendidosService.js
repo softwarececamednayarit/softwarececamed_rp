@@ -70,15 +70,25 @@ export const AtendidosService = {
     }
   },
 
-  // 7. [NUEVO] EXPORTAR A SHEETS (Dispara la subida y cambio de estatus)
-  exportarPadron: async (params = {}) => {
+  // 7. EXPORTAR PADRÓN (Sobrescribe el Excel con datos limpios)
+  generarReporte: async (params = {}) => {
     try {
-      // Usamos POST porque esto modifica la BD (cambia estatus a ENVIADO)
-      // params sirve por si quieres filtrar qué exportar (ej. solo fechas de enero)
-      const response = await axios.post(`${API_URL}/padron/exportar`, null, { params });
+      const response = await axios.get(`${API_URL}/padron/exportar`, { params });
       return response.data;
     } catch (error) {
-      console.error("Error en exportarPadron:", error);
+      console.error("Error en generarReporte:", error);
+      throw error;
+    }
+  },
+
+  // 8. [NUEVO] EXPORTAR REGISTRO CLÁSICO (Con Folios Automáticos)
+  generarReporteClasico: async (params = {}) => {
+    try {
+      // params puede contener fechas { fechaInicio, fechaFin } para filtrar qué mes generar
+      const response = await axios.get(`${API_URL}/clasico/exportar`, { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error en generarReporteClasico:", error);
       throw error;
     }
   }

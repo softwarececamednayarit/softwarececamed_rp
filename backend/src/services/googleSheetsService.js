@@ -14,9 +14,6 @@ try {
 }
 
 // 2. CONFIGURACIÓN DEL SERVICIO
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
-const SHEET_NAME = 'AGENDA'; 
-
 const auth = new google.auth.GoogleAuth({
   credentials: serviceAccount,
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -24,115 +21,92 @@ const auth = new google.auth.GoogleAuth({
 
 const sheets = google.sheets({ version: 'v4', auth });
 
-// --- FUNCIONES DE FORMATO (HELPERS) ---
+// --- CONSTANTES DE ID ---
+const SPREADSHEET_AGENDA_ID = process.env.GOOGLE_SHEET_ID; 
+const SPREADSHEET_PADRON_ID = process.env.GOOGLE_SHEET_PADRON_ID;
+const SPREADSHEET_CLASICO_ID = process.env.GOOGLE_SHEET_CLASICO_ID; 
 
-// Convierte: "JUAN PEREZ" o "juan perez" -> "Juan Perez"
+// --- FUNCIONES DE FORMATO (HELPERS) ---
 const formatoTitulo = (texto) => {
   if (!texto) return '';
-  return texto
-    .toLowerCase()
-    .split(' ')
-    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
-    .join(' ');
+  return texto.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 };
 
-// Convierte: "el paciente llego. dolia mucho." -> "El paciente llego. Dolia mucho."
 const formatoOracion = (texto) => {
   if (!texto) return '';
-  // 1. Convertir todo a minúscula base
-  let resultado = texto.toLowerCase();
-  // 2. Mayúscula a la primera letra absoluta
-  resultado = resultado.charAt(0).toUpperCase() + resultado.slice(1);
-  // 3. Mayúscula después de cada punto y espacio (. )
-  resultado = resultado.replace(/(\. \w)/g, (match) => match.toUpperCase());
-  return resultado;
+  let res = texto.toLowerCase();
+  res = res.charAt(0).toUpperCase() + res.slice(1);
+  return res.replace(/(\. \w)/g, (match) => match.toUpperCase());
 };
 
+const obtenerHojaTrimestre = (fechaStr) => {
+  if (!fechaStr) return '1er trimestre'; 
+  const fecha = new Date(fechaStr);
+  if (isNaN(fecha.getTime())) return '1er trimestre'; 
+  const mes = fecha.getMonth(); 
+  if (mes >= 0 && mes <= 2) return '1er trimestre';
+  if (mes >= 3 && mes <= 5) return '2do trimestre';
+  if (mes >= 6 && mes <= 8) return '3er trimestre';
+  if (mes >= 9 && mes <= 11) return '4to trimestre';
+  return '1er trimestre';
+};
+
+// --- NUEVOS HELPERS PARA FOLIOS ---
+const ROMANOS = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+
+const obtenerMesRomano = (fechaStr) => {
+  if (!fechaStr) return 'X'; 
+  const fecha = new Date(fechaStr);
+  if (isNaN(fecha.getTime())) return 'X';
+  return ROMANOS[fecha.getMonth() + 1] || 'X';
+};
+
+const obtenerAnio = (fechaStr) => {
+  if (!fechaStr) return new Date().getFullYear();
+  const fecha = new Date(fechaStr);
+  return isNaN(fecha.getTime()) ? new Date().getFullYear() : fecha.getFullYear();
+};
+
+// =====================================================================
+// 1. FUNCIÓN AGENDA (INTACTA)
+// =====================================================================
 exports.agregarAAgenda = async (datos) => {
   try {
-    // ---------------------------------------------------------
-    // A. LÓGICA DE TRANSFORMACIÓN
-    // ---------------------------------------------------------
-
-    // 1. Armar nombre completo (Usamos formato Titulo)
     const nombreRaw = `${datos.nombre || ''} ${datos.apellido_paterno || ''} ${datos.apellido_materno || ''}`.trim();
     const nombreCompleto = formatoTitulo(nombreRaw);
-
-    // 2. Lógica: ¿Quién presenta?
     const quienPresenta = (datos.quien_presenta || '').toLowerCase();
     const esElPaciente = quienPresenta.includes('paciente') || quienPresenta.includes('mismo');
-
-    // 3. Variables calculadas
-    const checkEsPaciente = esElPaciente ? 'Sí' : 'No'; // Más limpio que mayúscula cerrada
+    const checkEsPaciente = esElPaciente ? 'Sí' : 'No'; 
     
-    // Limpieza de representante
     const repNombre = esElPaciente ? '---' : formatoTitulo(datos.representante_nombre || '');
     const repTelefono = esElPaciente ? '---' : (datos.representante_telefono || '');
     const repRelacion = esElPaciente ? '---' : formatoTitulo(datos.representante_parentesco || '');
 
-    // ---------------------------------------------------------
-    // B. DEFINICIÓN DE COLUMNAS (SCHEMA)
-    // ---------------------------------------------------------
     const fila = [
-      // [COL A] TIPO (Este sí lo dejamos en mayúscula para que resalte como etiqueta)
       (datos.tipo_asignado || 'SIN CLASIFICAR').toUpperCase(),
-
-      // [COL B] NOMBRE DEL PACIENTE (Formato Título)
       nombreCompleto,
-
-      // [COL C] TELÉFONO
       datos.telefono || '',
-
-      // [COL D] ¿ES EL PACIENTE?
       checkEsPaciente,
-
-      // [COL E] NOMBRE REPRESENTANTE (Formato Título)
       repNombre,
-
-      // [COL F] TELÉFONO REPRESENTANTE 
       repTelefono,
-
-      // [COL G] PARENTESCO (Formato Título)
       repRelacion,
-
-      // [COL H] CONTRA QUIÉN ES (Formato Título para nombres de docs/clínicas)
       formatoTitulo(datos.medico_nombre || ''),
-
-      // [COL I] INSTRUCCIONES (Formato Oración: Texto legible)
       formatoOracion(datos.notas_seguimiento || ''),
-
-      // [COL J] HECHOS (Formato Oración: Texto legible)
       formatoOracion(datos.descripcion_hechos || ''),
-
-      // --- DATOS DEMOGRÁFICOS ---
-      // [COL K] EDAD
       datos.edad || '',
-      
-      // [COL L] SEXO (H/M o Mujer/Hombre - Formato Título)
       formatoTitulo(datos.sexo || ''),
-      
-      // [COL M] CURP (Este SIEMPRE debe ser mayúscula cerrada por ley)
       (datos.curp || '').toUpperCase(),
-      
-      // [COL N] DOMICILIO (Formato Título o Oración, Título se ve mejor en direcciones)
       formatoTitulo(datos.domicilio || ''),
-      
-      // [COL O] FECHA
       datos.fecha_recepcion || ''
     ];
 
-    // ---------------------------------------------------------
-    // C. ESCRITURA
-    // ---------------------------------------------------------
-    const request = {
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:A`, 
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_AGENDA_ID,
+      range: `AGENDA!A:A`, 
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS', 
       resource: { values: [fila] },
-    };
-
-    await sheets.spreadsheets.values.append(request);
+    });
     console.log(`Agenda actualizada para: ${nombreCompleto}`);
     return true;
 
@@ -142,58 +116,29 @@ exports.agregarAAgenda = async (datos) => {
   }
 };
 
-
-const SPREADSHEET_PADRON_ID = process.env.GOOGLE_SHEET_PADRON_ID; // Tu nueva variable de entorno
-
-// --- NUEVOS HELPERS PARA PADRÓN ---
-
-const obtenerHojaTrimestre = (fechaStr) => {
-  if (!fechaStr) return '1er trimestre'; 
-  
-  // Intentar parsear fecha (asumiendo YYYY-MM-DD o ISO)
-  const fecha = new Date(fechaStr);
-  if (isNaN(fecha.getTime())) return '1er trimestre'; // Fallback si la fecha es inválida
-
-  const mes = fecha.getMonth(); // 0 = Enero, 11 = Diciembre
-
-  if (mes >= 0 && mes <= 2) return '1er trimestre'; // Ene-Mar
-  if (mes >= 3 && mes <= 5) return '2do trimestre'; // Abr-Jun
-  if (mes >= 6 && mes <= 8) return '3er trimestre'; // Jul-Sep
-  if (mes >= 9 && mes <= 11) return '4to trimestre';// Oct-Dic
-  
-  return '1er trimestre';
-};
-
-exports.exportarLotePadron = async (listaCompleta) => {
+// =====================================================================
+// 2. FUNCIÓN PADRÓN (MODO LIMPIAR Y PEGAR) - CORREGIDA
+// =====================================================================
+exports.generarReporteCompleto = async (listaDatos) => {
   try {
-    // -----------------------------------------------------------
-    // 1. FILTRADO INTELIGENTE
-    // -----------------------------------------------------------
-    const listosParaSubir = listaCompleta.filter(item => {
-      // CONDICIÓN A: Que no se haya subido antes
-      const esPendiente = item.estatus_padron === 'PENDIENTE' || !item.estatus_padron;
+    console.log(`📄 Iniciando reporte Padrón en hoja existente con ${listaDatos.length} registros...`);
 
-      // CONDICIÓN B: Que tenga los datos MÍNIMOS obligatorios (Validación)
-      // Ajusta estos campos según lo que consideres "incompleto"
-      const estaCompleto = 
-          item.nombre && 
-          item.apellido_paterno && 
-          item.curp && 
-          item.curp.length >= 10 && // Validación básica de CURP
-          item.tipo_apoyo &&
-          item.municipio;
+    // --- NUEVO: ORDENAR (MÁS VIEJOS ARRIBA) ---
+    listaDatos.sort((a, b) => {
+      // Usamos fecha_beneficio porque es la clave de este reporte
+      const fechaA = new Date(a.fecha_beneficio || 0).getTime();
+      const fechaB = new Date(b.fecha_beneficio || 0).getTime();
+      
+      // ASCENDENTE (Viejos arriba): A - B
+      const diff = fechaA - fechaB; 
+      
+      if (diff !== 0) return diff;
 
-      return esPendiente && estaCompleto;
+      // Desempate por ID para evitar saltos si tienen la misma hora
+      return String(a.id).localeCompare(String(b.id));
     });
 
-    if (listosParaSubir.length === 0) {
-      console.log('⚠ No se encontraron registros PENDIENTES y COMPLETOS para subir.');
-      return { procesados: 0, ids: [] };
-    }
-
-    // -----------------------------------------------------------
-    // 2. CLASIFICACIÓN POR TRIMESTRE
-    // -----------------------------------------------------------
+    // 1. CLASIFICAR DATOS EN LOS 4 TRIMESTRES
     const lotes = {
       '1er trimestre': [],
       '2do trimestre': [],
@@ -201,59 +146,209 @@ exports.exportarLotePadron = async (listaCompleta) => {
       '4to trimestre': []
     };
 
-    const idsProcesados = [];
-
-    listosParaSubir.forEach(dato => {
-      const hoja = obtenerHojaTrimestre(dato.fecha_beneficio);
+    listaDatos.forEach(dato => {
+      // Asegúrate que esta función devuelva exactamente el nombre de la pestaña en tu Excel
+      const hoja = obtenerHojaTrimestre(dato.fecha_beneficio); 
       
-      // Mapeo EXACTO de columnas A - P
       const fila = [
-        formatoTitulo(dato.tipo_beneficiario || 'Ciudadano'), // A
-        dato.criterio_seleccion || 'Solicitud Directa',       // B
-        dato.tipo_apoyo || 'Servicio',                        // C
-        dato.monto_apoyo || '0',                              // D
-        (dato.curp || '').toUpperCase(),                      // E
-        formatoTitulo(dato.nombre || ''),                     // F
-        formatoTitulo(`${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`), // G
-        formatoTitulo(dato.sexo || ''),                       // H
-        formatoTitulo(dato.parentesco || ''),                 // I
-        dato.edad || '',                                      // J
-        formatoTitulo(dato.estado_civil || ''),               // K
-        formatoTitulo(dato.cargo_ocupacion || ''),            // L
-        formatoOracion(dato.actividad_apoyo || ''),           // M
-        formatoTitulo(dato.municipio || ''),                  // N
-        formatoTitulo(dato.localidad || ''),                  // O
-        dato.fecha_beneficio || ''                            // P
+        formatoTitulo(dato.tipo_beneficiario || 'Ciudadano'),
+        dato.criterio_seleccion || 'Solicitud Directa',
+        dato.tipo_apoyo || 'Servicio',
+        dato.monto_apoyo || '0',
+        (dato.curp || '').toUpperCase(),
+        formatoTitulo(dato.nombre || ''),
+        formatoTitulo(`${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`),
+        formatoTitulo(dato.sexo || ''),
+        formatoTitulo(dato.parentesco || ''),
+        dato.edad || '',
+        formatoTitulo(dato.estado_civil || ''),
+        formatoTitulo(dato.cargo_ocupacion || ''),
+        formatoOracion(dato.actividad_apoyo || ''),
+        formatoTitulo(dato.municipio || ''),
+        formatoTitulo(dato.localidad || ''),
+        dato.fecha_beneficio || ''
       ];
 
+      // Protección por si la fecha devuelve una hoja que no definimos en 'lotes'
       if (lotes[hoja]) {
         lotes[hoja].push(fila);
-        idsProcesados.push(dato.id); 
       }
     });
 
-    // -----------------------------------------------------------
-    // 3. ENVÍO A SHEETS
-    // -----------------------------------------------------------
-    const promesasEnvio = Object.keys(lotes).map(async (nombreHoja) => {
-      const filas = lotes[nombreHoja];
-      if (filas.length === 0) return;
+    // 2. EJECUTAR LIMPIEZA Y ESCRITURA
+    const promesas = Object.keys(lotes).map(async (nombreHoja) => {
+      const filasNuevas = lotes[nombreHoja];
 
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_PADRON_ID,
-        range: `${nombreHoja}!A12`,
-        valueInputOption: 'USER_ENTERED',
-        insertDataOption: 'INSERT_ROWS',
-        resource: { values: filas },
-      });
+      // OJO: Agregamos comillas simples '' alrededor del nombre de la hoja
+      // Esto es vital cuando el nombre tiene espacios (ej: '1er trimestre'!A12)
+      const rango = `'${nombreHoja}'!A12`; 
+      const rangoLimpieza = `'${nombreHoja}'!A12:P2000`;
+
+      // A. LIMPIAR RANGO
+      try {
+        await sheets.spreadsheets.values.clear({
+          spreadsheetId: SPREADSHEET_PADRON_ID,
+          range: rangoLimpieza, 
+        });
+      } catch (e) {
+        // Imprimimos el error real para depurar
+        console.warn(`⚠️ Aviso: No se pudo limpiar la hoja "${nombreHoja}". Detalles:`, e.message);
+        return; // Si no encuentra la hoja, saltamos al siguiente trimestre
+      }
+
+      // B. ESCRIBIR DATOS NUEVOS (Solo si hay)
+      if (filasNuevas.length > 0) {
+        try {
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_PADRON_ID,
+            range: rango, 
+            valueInputOption: 'USER_ENTERED',
+            resource: { values: filasNuevas },
+          });
+          console.log(`✅ ${nombreHoja}: ${filasNuevas.length} registros escritos.`);
+        } catch (writeError) {
+          console.error(`❌ Error escribiendo en "${nombreHoja}":`, writeError.message);
+        }
+      }
     });
 
-    await Promise.all(promesasEnvio);
-    
-    return { procesados: idsProcesados.length, ids: idsProcesados };
+    await Promise.all(promesas);
+
+    const webLink = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_PADRON_ID}/edit`;
+
+    return { 
+        success: true, 
+        url: webLink,
+        count: listaDatos.length 
+    };
 
   } catch (error) {
-    console.error('❌ Error exportando lote al Padrón:', error.message);
-    throw new Error('Falló la sincronización con Google Sheets Padrón.');
+    console.error("❌ Error CRÍTICO actualizando Padrón:", error);
+    throw new Error("Falló la actualización del archivo Excel. Revisa los logs del servidor.");
+  }
+};
+
+// =====================================================================
+// 3. FUNCIÓN REGISTRO CLÁSICO (CORREGIDA: SIN COMILLAS EN RANGO)
+// =====================================================================
+exports.generarReporteClasico = async (listaDatos) => {
+  try {
+    console.log(`📄 Generando Registro Clásico ESTABLE para ${listaDatos.length} expedientes...`);
+
+    // A. ORDENAR CRONOLÓGICAMENTE (BLINDADO)
+    listaDatos.sort((a, b) => {
+      const fechaA = new Date(a.fecha_recepcion || 0).getTime();
+      const fechaB = new Date(b.fecha_recepcion || 0).getTime();
+      
+      const diff = fechaA - fechaB;
+      if (diff !== 0) return diff;
+
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    // B. INICIALIZAR CONTADORES
+    let contadorGlobal = 1; 
+    const contadoresTipo = {
+      'Gestion': 0, 'Orientacion': 0, 'Asesoria': 0, 'Queja': 0, 'Dictamen': 0
+    };
+
+    // C. MAPEO Y CÁLCULO
+    const filas = listaDatos.map(dato => {
+      const anio = obtenerAnio(dato.fecha_recepcion);
+      const mesRomano = obtenerMesRomano(dato.fecha_recepcion);
+
+      let tipoRaw = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+      
+      tipoRaw = tipoRaw.charAt(0).toUpperCase() + tipoRaw.slice(1).toLowerCase(); 
+      if (!contadoresTipo.hasOwnProperty(tipoRaw)) tipoRaw = 'Orientacion';
+
+      contadoresTipo[tipoRaw]++;
+      const consecutivoTipo = contadoresTipo[tipoRaw];
+
+      let folioServicio = '';
+      if (tipoRaw === 'Queja' || tipoRaw === 'Dictamen') {
+        const letra = tipoRaw.charAt(0); 
+        folioServicio = `${letra}${consecutivoTipo}/${mesRomano}/${anio}`;
+      } else {
+        const inicial = tipoRaw.charAt(0); 
+        folioServicio = `${inicial}-${consecutivoTipo}`;
+      }
+
+      const noAsignado = `${contadorGlobal}/${anio}`;
+      contadorGlobal++;
+
+      const nombreCompleto = formatoTitulo(`${dato.nombre || ''} ${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`);
+      const prestador = formatoTitulo(dato.prestador_nombre || '');
+
+      return [
+        dato.fecha_recepcion || '',                                  
+        dato.foraneo ? 'Si' : 'No',                                  
+        nombreCompleto,                                              
+        formatoTitulo(dato.domicilio || ''),                         
+        dato.telefono || '',                                         
+        dato.edad || '',                                             
+        formatoTitulo(dato.estado_civil || ''),                      
+        formatoTitulo(dato.sexo || ''),                              
+        formatoTitulo(dato.ocupacion || dato.cargo_ocupacion || ''), 
+        (dato.curp || '').toUpperCase(),                             
+        formatoTitulo(dato.representante || ''),                     
+        dato.via_telefonica ? 'Si' : 'No',                           
+        prestador,                                                   
+        formatoOracion(dato.diagnostico || ''),                      
+        formatoTitulo(dato.especialidad || ''),                      
+        formatoOracion(dato.motivo_inconformidad || ''),             
+        formatoOracion(dato.submotivo || ''),                        
+        formatoOracion(dato.descripcion_hechos || ''),               
+        formatoTitulo(dato.actividad_apoyo || dato.tipo_asunto || ''), 
+        formatoOracion(dato.observaciones_servicio || ''),           
+        folioServicio,                                               
+        noAsignado                                                   
+      ];
+    });
+
+    // D. LIMPIAR Y ESCRIBIR
+    const NOMBRE_HOJA = "Datos"; 
+
+    try {
+      // CORRECCIÓN: Quitamos las comillas simples '' alrededor de NOMBRE_HOJA
+      // Antes: `'${NOMBRE_HOJA}'!A2:V10000` (Error) -> Ahora: `${NOMBRE_HOJA}!A2:V10000` (Correcto)
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId: SPREADSHEET_CLASICO_ID,
+        range: `${NOMBRE_HOJA}!A2:V10000`, 
+      });
+    } catch (e) {
+      console.warn(`Aviso: No se pudo limpiar la hoja '${NOMBRE_HOJA}'. Verifica que la pestaña exista en el Excel.`);
+    }
+
+    if (filas.length > 0) {
+      // CORRECCIÓN: Quitamos las comillas aquí también
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_CLASICO_ID,
+        range: `${NOMBRE_HOJA}!A2`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: filas },
+      });
+    }
+
+    // --- PREPARAR DATOS PARA GUARDAR EN BD ---
+    const datosParaGuardar = listaDatos.map((dato, index) => ({
+      id: dato.id,
+      servicio: filas[index][20],    
+      no_asignado: filas[index][21]  
+    }));
+
+    const webLink = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`;
+    
+    return { 
+        success: true, 
+        url: webLink, 
+        count: filas.length,
+        updates: datosParaGuardar 
+    };
+
+  } catch (error) {
+    console.error("❌ Error en Registro Clásico:", error.message); // .message para ver el error limpio
+    throw new Error("Falló la generación del Registro Clásico.");
   }
 };

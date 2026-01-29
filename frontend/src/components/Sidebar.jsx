@@ -12,7 +12,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
   const MENU_ITEMS = [
     { id: 'atendidos', label: 'Atendidos', icon: Users },
     { id: 'padron',    label: 'Padrón',    icon: FileSpreadsheet },
-    { id: 'gestion',   label: 'Gestión',   icon: Briefcase },
+    { id: 'gestion',   label: 'Registro Clásico',   icon: Briefcase },
     { id: 'recepcion', label: 'Recepción', icon: BookOpen },
     { id: 'sitios',    label: 'Sitios',    icon: Globe },
   ];

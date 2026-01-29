@@ -159,14 +159,14 @@ const Recepcion = () => {
                      <User size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-lg text-slate-800 leading-tight mb-1 truncate" title={`${sol.nombre} ${sol.apellido_paterno}`}>
-                      {sol.nombre} {sol.apellido_paterno}
+                    <h3 className="font-bold text-lg text-slate-800 leading-tight mb-1 truncate" title={`${sol.nombre} ${sol.apellido_paterno} ${sol.apellido_materno}`}>
+                      {sol.nombre} {sol.apellido_paterno} {sol.apellido_materno}
                     </h3>
                     <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">
-                        {sol.apellido_materno}
+                        {sol.sexo}
                     </p>
                     <div className="flex items-center gap-1.5 text-slate-500 text-xs font-bold mt-2">
-                      <Phone size={12} className="text-indigo-500" /> {sol.telefono}
+                      <Phone size={12} className="text-indigo-500" /> {sol.telefonoCel}
                     </div>
                   </div>
                 </div>

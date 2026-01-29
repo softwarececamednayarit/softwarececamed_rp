@@ -3,8 +3,7 @@ import {
   Search, Save, X, Edit2, Loader2, AlertCircle, FileSpreadsheet, Eye 
 } from 'lucide-react';
 import { AtendidosService } from '../services/atendidosService';
-import { DetailModal } from './DetailModal';
-import { formatDate, getStatusColor } from '../utils/formatters';
+// NOTA: Eliminamos la importación de DetailModal aquí.
 
 // --- CONSTANTES ---
 const MUNICIPIOS = [
@@ -37,14 +36,16 @@ const ACTIVIDADES_APOYO = [
   "Orientación", "Gestión", "Asesoría", "Queja", "Dictamen"
 ];
 
-export const PadronTable = () => {
+// RECIBIMOS LA PROP onViewDetails
+export const PadronTable = ({ onViewDetails }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItem, setSelectedItem] = useState(null);
+  
+  // ELIMINADO: const [selectedItem, setSelectedItem] = useState(null);
 
   // --- CARGA ---
   const loadData = async () => {
@@ -74,8 +75,7 @@ export const PadronTable = () => {
       tipo_beneficiario: row.tipo_beneficiario || 'Directo',
       parentesco: row.parentesco || 'Beneficiario',
       actividad_apoyo: row.actividad_apoyo || 'Orientación',
-      tipo_apoyo: row.tipo_apoyo || 'Servicio',
-      // 1. AGREGADO: Default "Servidor Público Estatal" si viene vacío
+      tipo_asunto: row.tipo_asunto || 'Servicio',
       criterio_seleccion: row.criterio_seleccion || 'Servidor Público Estatal', 
       monto_apoyo: row.monto_apoyo || ''
     });
@@ -105,11 +105,14 @@ export const PadronTable = () => {
     }
   };
 
-  const handleViewDetails = (item) => setSelectedItem(item);
-  const handleCloseModal = () => {
-    setSelectedItem(null);
-    loadData(); 
+  // --- NUEVA LÓGICA DE VER DETALLES ---
+  const handleViewDetails = (item) => {
+    if (onViewDetails) {
+        onViewDetails(item); // Avisamos al padre (Padron.jsx)
+    }
   };
+
+  // ELIMINADO: handleCloseModal (Lo maneja el padre)
 
   const filteredData = data.filter(item => 
     item.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -151,7 +154,6 @@ export const PadronTable = () => {
                   <th className="p-4 w-32 bg-slate-100">Socioeconómico</th>
                   <th className="p-4 w-32 bg-slate-100">Beneficiario</th>
                   <th className="p-4 w-32 bg-slate-100">Actividad</th>
-                  {/* 2. AGREGADO: Columna Criterio */}
                   <th className="p-4 w-48 bg-slate-100">Criterio / Justificación</th> 
                   <th className="p-4 w-32 bg-slate-100">Apoyo</th>
                   <th className="p-4 w-20 bg-slate-100">Monto</th>
@@ -161,7 +163,7 @@ export const PadronTable = () => {
               <tbody className="text-xs divide-y divide-slate-100">
                 {filteredData.map((row) => {
                   const isEditing = editingId === row.id;
-                  const isIncomplete = !row.municipio || !row.tipo_apoyo || !row.actividad_apoyo;
+                  const isIncomplete = !row.municipio || !row.tipo_asunto || !row.actividad_apoyo;
 
                   return (
                     <tr key={row.id} className={`hover:bg-slate-50 transition-colors ${isEditing ? 'bg-indigo-50/30' : ''}`}>
@@ -220,7 +222,6 @@ export const PadronTable = () => {
                              </select>
                           </td>
 
-                          {/* 3. CAMPO EDITABLE CRITERIO (TEXTAREA) */}
                           <td className="p-2 align-top">
                              <textarea 
                                 name="criterio_seleccion" 
@@ -233,7 +234,7 @@ export const PadronTable = () => {
                           </td>
 
                           <td className="p-2 align-top">
-                             <select name="tipo_apoyo" value={editForm.tipo_apoyo} onChange={handleChange} className="w-full p-1.5 border border-indigo-300 rounded text-xs bg-white">
+                             <select name="tipo_asunto" value={editForm.tipo_asunto} onChange={handleChange} className="w-full p-1.5 border border-indigo-300 rounded text-xs bg-white">
                                {TIPOS_APOYO.map(t => <option key={t} value={t}>{t}</option>)}
                              </select>
                           </td>
@@ -278,7 +279,6 @@ export const PadronTable = () => {
                              </span>
                           </td>
                           
-                          {/* 4. CAMPO LECTURA CRITERIO */}
                           <td className="p-4 align-top">
                              <div className="text-[10px] text-slate-500 line-clamp-3 leading-tight" title={row.criterio_seleccion}>
                                {row.criterio_seleccion || '-'}
@@ -286,7 +286,7 @@ export const PadronTable = () => {
                           </td>
 
                           <td className="p-4 align-top">
-                             <div className="text-slate-600 font-medium">{row.tipo_apoyo || '-'}</div>
+                             <div className="text-slate-600 font-medium">{row.tipo_asunto || '-'}</div>
                           </td>
                           <td className="p-4 align-top font-mono text-slate-600 font-bold">
                              {row.monto_apoyo ? `$${row.monto_apoyo}` : '-'}
@@ -313,7 +313,6 @@ export const PadronTable = () => {
         <div className="p-4 border-t border-slate-100 bg-slate-50 text-right text-xs text-slate-400">Mostrando {filteredData.length} registros</div>
       </div>
 
-      {selectedItem && <DetailModal item={selectedItem} onClose={handleCloseModal} initialTab="padron" />}
     </>
   );
 };
