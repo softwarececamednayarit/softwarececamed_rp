@@ -487,6 +487,7 @@ const exportarRegistroClasico = async (req, res) => {
         especialidad: detalleData.especialidad,
         motivo_inconformidad: detalleData.motivo_inconformidad,
         submotivo: detalleData.submotivo,
+        estado_civil: detalleData.estado_civil,
         actividad_apoyo: detalleData.actividad_apoyo,
         tipo_asunto: detalleData.tipo_asunto, 
         observaciones_servicio: detalleData.observaciones_servicio,
