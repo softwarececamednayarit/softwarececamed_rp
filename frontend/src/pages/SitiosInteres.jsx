@@ -1,9 +1,9 @@
 import React from 'react';
-import { ExternalLink, Globe, FileSpreadsheet, Building2, ClipboardList, ArrowRight, Scale, Link2 } from 'lucide-react';
+import { ExternalLink, Globe, FileSpreadsheet, Building2, ClipboardList, ArrowRight, Scale, Link2, Briefcase } from 'lucide-react';
 
 const sitios = [
   {
-    titulo: "Bitácora de Registro",
+    titulo: "Bitácora de Registro de Beneficiarios",
     descripcion: "Acceso directo a la hoja de cálculo de Google para el control interno de registros.",
     url: "https://docs.google.com/spreadsheets/d/1CxnNaIDN5lvRVExeCNlJmu8vOLmKvUOhgPi6gulLTPY/edit?usp=sharing",
     icon: <FileSpreadsheet size={24} className="text-white" />,
@@ -30,13 +30,27 @@ const sitios = [
     icon: <ClipboardList size={24} className="text-white" />,
     color: "bg-purple-500" 
   },
+  // {
+  //   titulo: "CONAMED Nacional",
+  //   descripcion: "Comisión Nacional de Arbitraje Médico. Marco normativo federal.",
+  //   url: "https://www.gob.mx/conamed",
+  //   icon: <Scale size={24} className="text-white" />, 
+  //   color: "bg-amber-600"
+  // },
   {
-    titulo: "CONAMED Nacional",
-    descripcion: "Comisión Nacional de Arbitraje Médico. Marco normativo federal.",
-    url: "https://www.gob.mx/conamed",
-    icon: <Scale size={24} className="text-white" />, 
-    color: "bg-amber-600"
+    titulo: "Padrón de Beneficiarios",
+    descripcion: "Acceso al padrón de beneficiarios trimestral del Programa de Atención Médica.",
+    url: "https://docs.google.com/spreadsheets/d/1s-c5_tQp2R0bxxCbmGvMEXdDx0ci-4E-08sLa4Ln9Ko/edit?usp=drive_link",
+    icon: <FileSpreadsheet size={24} className="text-white" />, 
+    color: "bg-teal-500"
   },
+  {
+    titulo: "Registro Clásico de Beneficiarios",
+    descripcion: "Acceso al registro clásico de beneficiarios del Programa de Atención Médica en el formato antiguo.",
+    url: "https://docs.google.com/spreadsheets/d/1mc8Ad07ikytOBLyMC7HqIYS4sxM1s4WbCVBzch5Y8Q4/edit?usp=drive_link",
+    icon: <Briefcase size={24} className="text-white" />, 
+    color: "bg-rose-500"
+  }
 ];
 
 const SitiosInteres = () => {
