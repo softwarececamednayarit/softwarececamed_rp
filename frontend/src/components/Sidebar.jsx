@@ -16,6 +16,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
     { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp },
     { id: 'recepcion',    label: 'Recepción',        icon: BookOpen },
     { id: 'sitios',       label: 'Sitios',           icon: Globe },
+    { id: 'usuarios',     label: 'Usuarios',         icon: Users },
   ];
 
   // Helper de estilos

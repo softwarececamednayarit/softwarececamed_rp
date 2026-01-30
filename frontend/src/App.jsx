@@ -14,6 +14,7 @@ import Perfil from './pages/Perfil';
 import Padron from './pages/Padron'; 
 import Gestion from './pages/Gestion';
 import Estadisticas from './pages/Estadisticas';
+import Usuarios from './pages/Usuarios';
 
 const AppContent = () => {
   const { user, loading, logout } = useAuth();
@@ -114,6 +115,7 @@ const AppContent = () => {
             {currentView === 'recepcion' && <Recepcion />}
             {currentView === 'perfil'    && <Perfil />}
             {currentView === 'estadisticas' && <Estadisticas />}
+            {currentView === 'usuarios' && <Usuarios />}
         </div>
 
       </main>
