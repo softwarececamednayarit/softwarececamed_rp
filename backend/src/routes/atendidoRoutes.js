@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const atendidoController = require('../controllers/atendidoController');
+const verifyToken = require('../middleware/authMiddleware');
 
+router.use(verifyToken);
 // =====================================================================
 // 1. RUTAS ESTÁTICAS / ESPECÍFICAS (SIEMPRE AL PRINCIPIO)
 // =====================================================================

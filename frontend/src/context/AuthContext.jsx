@@ -9,14 +9,30 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Al cargar la app, revisamos si hay un token guardado
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const initAuth = () => {
+      try {
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+        
+        // Verificamos que existan AMBOS datos
+        if (storedToken && storedUser) {
+          // Intentamos parsear el usuario
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        }
+      } catch (error) {
+        console.error("Error al restaurar sesión:", error);
+        // Si hay error (datos corruptos), limpiamos todo por seguridad
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        // Siempre quitamos el loading, haya éxito o error
+        setLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const login = (token, userData) => {
@@ -29,6 +45,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    // Opcional: Redirigir si no estás usando un Router Wrapper
+    // window.location.href = '/'; 
   };
 
   return (

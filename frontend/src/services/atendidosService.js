@@ -1,13 +1,15 @@
-import axios from 'axios';
+// src/services/atendidosService.js
+import api from './axiosConfig'; // <--- CAMBIO IMPORTANTE
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const API_URL = `${BASE_URL}/api/atendidos`; 
+// Como axiosConfig ya tiene la baseURL '.../api', aquí solo definimos la ruta del recurso
+const ENDPOINT = '/atendidos'; 
 
 export const AtendidosService = {
   // 1. Obtener lista ligera (Tabla principal)
   getAll: async (params = {}) => {
     try {
-      const response = await axios.get(API_URL, { params });
+      // Usamos api.get en lugar de axios.get
+      const response = await api.get(ENDPOINT, { params });
       return response.data;
     } catch (error) {
       console.error("Error en service getAll:", error);
@@ -18,7 +20,7 @@ export const AtendidosService = {
   // 2. Obtener registro básico (Modal de vista rápida)
   getById: async (id) => {
     try {
-      const response = await axios.get(`${API_URL}/${id}`);
+      const response = await api.get(`${ENDPOINT}/${id}`);
       return response.data; 
     } catch (error) {
       console.error("Error en service getById:", error);
@@ -29,7 +31,7 @@ export const AtendidosService = {
   // 3. Obtener expediente COMPLETO (Base + Padrón)
   getCompleto: async (id) => {
     try {
-      const response = await axios.get(`${API_URL}/${id}/completo`);
+      const response = await api.get(`${ENDPOINT}/${id}/completo`);
       return response.data; 
     } catch (error) {
       console.error("Error en service getCompleto:", error);
@@ -40,7 +42,7 @@ export const AtendidosService = {
   // 4. Guardar datos del Padrón (Edición individual)
   updatePadron: async (id, datosPadron) => {
     try {
-      const response = await axios.put(`${API_URL}/${id}/padron`, datosPadron);
+      const response = await api.put(`${ENDPOINT}/${id}/padron`, datosPadron);
       return response.data;
     } catch (error) {
       console.error("Error en service updatePadron:", error);
@@ -51,7 +53,7 @@ export const AtendidosService = {
   // 5. Estadísticas
   getResumen: async (params = {}) => {
     try {
-      const response = await axios.get(`${API_URL}/resumen`, { params });
+      const response = await api.get(`${ENDPOINT}/resumen`, { params });
       return response.data;
     } catch (error) {
       console.error("Error en service getResumen:", error);
@@ -59,10 +61,10 @@ export const AtendidosService = {
     }
   },
 
-  // 6. OBTENER VISTA PREVIA DEL PADRÓN (Solo lectura, para mostrar tabla antes de subir)
+  // 6. OBTENER VISTA PREVIA DEL PADRÓN (Solo lectura)
   getPadronReport: async (params = {}) => {
     try {
-      const response = await axios.get(`${API_URL}/padron/completo`, { params });
+      const response = await api.get(`${ENDPOINT}/padron/completo`, { params });
       return response.data;
     } catch (error) {
       console.error("Error en getPadronReport:", error);
@@ -70,10 +72,12 @@ export const AtendidosService = {
     }
   },
 
-  // 7. EXPORTAR PADRÓN (Sobrescribe el Excel con datos limpios)
+  // 7. EXPORTAR PADRÓN (Excel)
   generarReporte: async (params = {}) => {
     try {
-      const response = await axios.get(`${API_URL}/padron/exportar`, { params });
+      // Nota: Si el backend devuelve un archivo binario (blob) directamente, 
+      // podrías necesitar agregar { responseType: 'blob', params }
+      const response = await api.get(`${ENDPOINT}/padron/exportar`, { params });
       return response.data;
     } catch (error) {
       console.error("Error en generarReporte:", error);
@@ -81,11 +85,10 @@ export const AtendidosService = {
     }
   },
 
-  // 8. [NUEVO] EXPORTAR REGISTRO CLÁSICO (Con Folios Automáticos)
+  // 8. [NUEVO] EXPORTAR REGISTRO CLÁSICO
   generarReporteClasico: async (params = {}) => {
     try {
-      // params puede contener fechas { fechaInicio, fechaFin } para filtrar qué mes generar
-      const response = await axios.get(`${API_URL}/clasico/exportar`, { params });
+      const response = await api.get(`${ENDPOINT}/clasico/exportar`, { params });
       return response.data;
     } catch (error) {
       console.error("Error en generarReporteClasico:", error);

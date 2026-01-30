@@ -1,147 +1,139 @@
-const db = require('../../config/firebase');
+const db = require('../../config/firebase'); // Ajusta según tu estructura de carpetas
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel'); // <-- IMPORTAMOS EL MODELO
+const User = require('../models/userModel');
 
-const SECRET_KEY = process.env.JWT_SECRET || 'secreto_super_seguro';
+// 🔒 CLAVE SECRETA: En producción, asegúrate de que venga del .env
+// Si process.env.JWT_SECRET falla, el sistema avisa o usa un fallback solo en desarrollo.
+const SECRET_KEY = process.env.JWT_SECRET || 'secreto_super_seguro_dev';
 
-// REGISTRO
+// =============================================================================
+// REGISTRO (Crear nuevos usuarios)
+// =============================================================================
 exports.register = async (req, res) => {
   try {
-    const { email, password, nombre } = req.body;
+    const { email, password, nombre, role } = req.body; // Agregué 'role' opcional
 
-    // Validación básica (Podrías mover esto al modelo también)
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Faltan datos' });
+    if (!email || !password || !nombre) {
+      return res.status(400).json({ message: 'Faltan datos obligatorios (email, password, nombre)' });
     }
 
-    // Verificar duplicados
-    const userQuery = await db.collection('usuarios').where('email', '==', email).get();
+    // 1. Verificar duplicados (Optimizada con limit(1))
+    const userQuery = await db.collection('usuarios')
+      .where('email', '==', email)
+      .limit(1) // <-- IMPORTANTE: Detener búsqueda al encontrar uno
+      .get();
+
     if (!userQuery.empty) {
-      return res.status(400).json({ message: 'El usuario ya existe' });
+      return res.status(400).json({ message: 'El correo electrónico ya está registrado.' });
     }
 
-    // Hashear
+    // 2. Encriptar contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Crear objeto para guardar
+    // 3. Objeto para guardar
     const newUserRaw = {
       email,
-      password: hashedPassword,
+      password: hashedPassword, // Guardamos hash, nunca texto plano
       nombre,
-      role: 'admin',
+      role: role || 'admin', // Por defecto admin, o lo que envíes
       createdAt: new Date().toISOString()
     };
 
-    // Guardar en Firestore
+    // 4. Guardar en Firestore
     const docRef = await db.collection('usuarios').add(newUserRaw);
 
-    // Usar el Modelo para responder bonito
+    // 5. Responder (Usando el Modelo para limpiar datos sensibles)
     const userModel = new User(docRef.id, newUserRaw);
 
     res.status(201).json({ 
-      message: 'Usuario creado', 
-      user: userModel.toSafeJSON() // <-- Enviamos sin password
+      message: 'Usuario registrado exitosamente', 
+      user: userModel.toSafeJSON() 
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error en registro:", error);
+    res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
 
-// LOGIN
+// =============================================================================
+// LOGIN (Generar Token JWT) - EL CORAZÓN DE LA SEGURIDAD
+// =============================================================================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const userQuery = await db.collection('usuarios').where('email', '==', email).get();
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email y contraseña requeridos' });
+    }
+
+    // 1. Buscar usuario
+    const userQuery = await db.collection('usuarios')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
     
+    // 🛡️ SEGURIDAD: Mensaje genérico para no revelar si el email existe o no
+    const errorMsg = 'Credenciales inválidas'; 
+
     if (userQuery.empty) {
-      return res.status(400).json({ message: 'Credenciales inválidas' });
+      return res.status(401).json({ message: errorMsg });
     }
 
     const userDoc = userQuery.docs[0];
     const userData = userDoc.data();
 
-    // Instanciamos el modelo con los datos de la DB
-    const currentUser = new User(userDoc.id, userData);
+    // 2. Comparar contraseña (Hash vs Texto plano)
+    const isMatch = await bcrypt.compare(password, userData.password);
 
-    // Comparar password usando el dato del modelo
-    const validPassword = await bcrypt.compare(password, currentUser.password);
-
-    if (!validPassword) {
-      return res.status(400).json({ message: 'Credenciales inválidas' });
+    if (!isMatch) {
+      return res.status(401).json({ message: errorMsg });
     }
 
-    // Token
+    // 3. Crear Instancia del Modelo (Para tener los datos limpios y el ID)
+    const currentUser = new User(userDoc.id, userData);
+
+    // 4. Generar el JWT
+    // Payload: Qué datos viajan encriptados dentro del token
+    const tokenPayload = { 
+        id: currentUser.id, 
+        email: currentUser.email, 
+        role: currentUser.role 
+    };
+
     const token = jwt.sign(
-      { id: currentUser.id, email: currentUser.email, role: currentUser.role },
+      tokenPayload,
       SECRET_KEY,
-      { expiresIn: '8h' }
+      { expiresIn: '12h' } // Duración de la sesión (ajustable)
     );
 
+    // 5. Responder al Frontend
     res.json({
-      message: 'Bienvenido',
-      token,
-      user: currentUser.toSafeJSON()
+      message: 'Inicio de sesión exitoso',
+      token, // <--- Este es el "pase" que Axios guardará
+      user: currentUser.toSafeJSON() // Datos para mostrar en el perfil del front
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error en login:", error);
+    res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
 
-// FORZAR CAMBIO DE CONTRASEÑA
-// exports.forceResetPassword = async (req, res) => {
-//   try {
-//     const { email, newPassword } = req.body;
-
-//     // Validación simple
-//     if (!email || !newPassword) {
-//       return res.status(400).json({ message: 'Se requiere email y newPassword' });
-//     }
-
-//     // 1. Buscar al usuario por email
-//     const userQuery = await db.collection('usuarios').where('email', '==', email).get();
-
-//     if (userQuery.empty) {
-//       return res.status(404).json({ message: 'Usuario no encontrado' });
-//     }
-
-//     // Obtenemos la referencia al documento (ID)
-//     const userDoc = userQuery.docs[0];
-    
-//     // 2. Hashear la NUEVA contraseña
-//     const salt = await bcrypt.genSalt(10);
-//     const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-//     // 3. Actualizar solo el campo password en Firestore
-//     await db.collection('usuarios').doc(userDoc.id).update({
-//       password: hashedPassword
-//     });
-
-//     res.json({ 
-//       message: `Contraseña actualizada exitosamente para: ${email}` 
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-// CAMBIO DE CONTRASEÑA SEGURO (Requiere contraseña anterior)
+// =============================================================================
+// CAMBIAR CONTRASEÑA (Protegido)
+// =============================================================================
 exports.changePassword = async (req, res) => {
   try {
     const { email, currentPassword, newPassword } = req.body;
 
-    // 1. Validar que vengan todos los datos
     if (!email || !currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Faltan datos (email, contraseña actual o nueva)' });
+      return res.status(400).json({ message: 'Faltan datos.' });
     }
 
-    // 2. Buscar al usuario en Firestore
-    const userQuery = await db.collection('usuarios').where('email', '==', email).get();
+    const userQuery = await db.collection('usuarios').where('email', '==', email).limit(1).get();
 
     if (userQuery.empty) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
@@ -150,19 +142,17 @@ exports.changePassword = async (req, res) => {
     const userDoc = userQuery.docs[0];
     const userData = userDoc.data();
 
-    // 3. VERIFICAR LA CONTRASEÑA ACTUAL (Paso Clave de Seguridad)
-    // Comparamos la contraseña escrita (currentPassword) con el hash en la DB
+    // 1. Verificar contraseña actual
     const isMatch = await bcrypt.compare(currentPassword, userData.password);
-
     if (!isMatch) {
       return res.status(401).json({ message: 'La contraseña actual es incorrecta' });
     }
 
-    // 4. Hashear la NUEVA contraseña
+    // 2. Hashear nueva contraseña
     const salt = await bcrypt.genSalt(10);
     const newHashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // 5. Actualizar en Firestore
+    // 3. Actualizar
     await db.collection('usuarios').doc(userDoc.id).update({
       password: newHashedPassword
     });
@@ -170,7 +160,7 @@ exports.changePassword = async (req, res) => {
     res.json({ message: 'Contraseña actualizada correctamente' });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al actualizar la contraseña' });
+    console.error("Error cambiando password:", error);
+    res.status(500).json({ message: 'Error al actualizar la contraseña' });
   }
 };
