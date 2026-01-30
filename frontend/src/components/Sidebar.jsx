@@ -1,20 +1,21 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext'; // Importamos para el Logout
+import { useAuth } from '../context/AuthContext';
 import { 
-  Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut 
+  Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp
 } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 
 export const Sidebar = ({ currentView, onNavigate }) => {
-  const { logout } = useAuth(); // Hook para cerrar sesión
+  const { logout } = useAuth(); 
 
-  // 1. DEFINICIÓN DE RUTAS (Fácil de mantener)
+  // 1. DEFINICIÓN DE RUTAS
   const MENU_ITEMS = [
-    { id: 'atendidos', label: 'Atendidos', icon: Users },
-    { id: 'padron',    label: 'Padrón',    icon: FileSpreadsheet },
-    { id: 'gestion',   label: 'Registro Clásico',   icon: Briefcase },
-    { id: 'recepcion', label: 'Recepción', icon: BookOpen },
-    { id: 'sitios',    label: 'Sitios',    icon: Globe },
+    { id: 'atendidos',    label: 'Atendidos',        icon: Users },
+    { id: 'padron',       label: 'Padrón',           icon: FileSpreadsheet },
+    { id: 'gestion',      label: 'Registro Clásico', icon: Briefcase },
+    { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp },
+    { id: 'recepcion',    label: 'Recepción',        icon: BookOpen },
+    { id: 'sitios',       label: 'Sitios',           icon: Globe },
   ];
 
   // Helper de estilos
