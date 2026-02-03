@@ -68,6 +68,11 @@ const MOTIVOS_CATALOGO = {
   ]
 };
 
+const ESTATUS_SIREMED_OPCIONES = [
+  "PENDIENTE",
+  "SUBIDO"
+];
+
 // =============================================================================
 // COMPONENTE PRINCIPAL
 // =============================================================================
@@ -85,6 +90,10 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   // Estados para controlar inputs manuales (OTROS)
   const [isOtherSpecialty, setIsOtherSpecialty] = useState(false);
   const [isOtherSubmotivo, setIsOtherSubmotivo] = useState(false); // <--- NUEVO ESTADO
+
+  // Estado para estatus SIREMED
+  const [statusSiremed, setStatusSiremed] = useState('PENDIENTE');
+  const [updatingStatus, setUpdatingStatus] = useState(false); // Para el loading del select
 
   // Formulario único que agrupa Padrón + Gestión
   const [padronForm, setPadronForm] = useState({
@@ -126,6 +135,7 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
         if (isMounted && response.ok) {
           const data = response.data;
           setFullData(data);
+          setStatusSiremed(data.estatus_siremed || 'PENDIENTE');
           
           // 1. Detección de Especialidad Custom
           const espViene = data.especialidad || '';
@@ -136,11 +146,10 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
           const motivoActual = data.motivo_inconformidad;
           const subViene = data.submotivo || '';
           const catalogoSub = MOTIVOS_CATALOGO[motivoActual] || [];
-          
+
           // Si hay submotivo Y no está en la lista estándar, es un "OTRO" guardado anteriormente
           const esSubmotivoCustom = subViene && !catalogoSub.includes(subViene);
           if (esSubmotivoCustom) setIsOtherSubmotivo(true);
-
           setPadronForm({
             // Padrón
             tipo_beneficiario: data.tipo_beneficiario || '',
@@ -196,6 +205,24 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
       }
       return newState;
     });
+  };
+
+  const handleStatusChange = async (e) => {
+    const newStatus = e.target.value;
+    try {
+      setUpdatingStatus(true);
+      await AtendidosService.updateEstatusSiremed(item.id, newStatus);
+      
+      setStatusSiremed(newStatus);
+      
+      setFullData(prev => ({ ...prev, estatus_siremed: newStatus }));
+      
+    } catch (error) {
+      console.error("Error actualizando estatus SIREMED:", error);
+      alert("❌ No se pudo actualizar el estatus.");
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   // Handler para Especialidad (Ya existente)
@@ -308,7 +335,44 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
                    </div>
                 </div>
              </div>
-             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X size={24} /></button>
+
+             {/* --- SECCIÓN DERECHA: ESTATUS SIREMED Y CERRAR --- */}
+             <div className="flex items-center gap-3">
+                {/* SELECTOR DE ESTATUS */}
+                <div className="hidden md:flex flex-col items-end mr-2">
+                    <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+                       {updatingStatus && <Loader2 size={10} className="animate-spin" />} Estatus SIREMED
+                    </span>
+                    <div className="relative group">
+                        <select 
+                            value={statusSiremed} 
+                            onChange={handleStatusChange}
+                            disabled={updatingStatus}
+                            className={`
+                                appearance-none cursor-pointer
+                                pl-3 pr-8 py-1.5 rounded-lg text-xs font-bold border 
+                                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                                transition-all shadow-lg
+                                ${statusSiremed === 'PENDIENTE' ? 'bg-amber-500/20 border-amber-500 text-amber-300' : ''}
+                                ${statusSiremed === 'COMPLETADO' ? 'bg-blue-500/20 border-blue-500 text-blue-300' : ''}
+                                ${!['PENDIENTE', 'COMPLETADO'].includes(statusSiremed) ? 'bg-slate-800 border-slate-600 text-slate-300' : ''}
+                            `}
+                        >
+                            {ESTATUS_SIREMED_OPCIONES.map(st => (
+                                <option key={st} value={st} className="bg-slate-900 text-slate-200 py-1">
+                                    {st}
+                                </option>
+                            ))}
+                        </select>
+                        {/* Flecha personalizada */}
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70">
+                             <svg width="8" height="5" viewBox="0 0 10 6" fill="currentColor"><path d="M0 0L5 6L10 0H0Z"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X size={24} /></button>
+             </div>
           </div>
 
           <div className="flex gap-4 mt-8 border-b border-white/10">

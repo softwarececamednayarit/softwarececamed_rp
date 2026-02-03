@@ -529,6 +529,43 @@ const exportarRegistroClasico = async (req, res) => {
   }
 };
 
+// =====================================================================
+// 10. ACTUALIZAR ESTATUS SIREMED
+// =====================================================================
+const updateEstatusSiremed = async (req, res) => {
+  const { id } = req.params;
+  const { estatus_siremed } = req.body; // <--- Solo extraemos lo que nos importa
+
+  try {
+    // 1. Validación simple: Si no enviaron el dato, no hacemos nada.
+    if (estatus_siremed === undefined) {
+      return res.status(400).json({ message: "Falta el campo estatus_siremed." });
+    }
+
+    // 2. Verificar que el expediente padre exista (Buena práctica mantenerlo)
+    const basicCheck = await db.collection('atendidos').doc(id).get();
+    if (!basicCheck.exists) {
+      return res.status(404).json({ message: "El expediente base no existe." });
+    }
+
+    // 3. Preparamos el objeto SOLO con ese campo y la fecha
+    const updateData = {
+      estatus_siremed: estatus_siremed,
+      fecha_ultima_actualizacion: new Date()
+    };
+
+    // 4. Guardamos
+    // Usamos { merge: true } para que NO borre los otros datos que ya tenga el documento
+    await db.collection('expedientes_detalle').doc(id).set(updateData, { merge: true });
+
+    res.json({ success: true, message: 'Estatus SIREMED actualizado correctamente.' });
+
+  } catch (error) {
+    console.error("Error actualizando estatus:", error);
+    res.status(500).json({ error: 'Error al actualizar el estatus' });
+  }
+};
+
 module.exports = {
   getAtendidos,
   getAtendidoById,
@@ -538,5 +575,6 @@ module.exports = {
   updateExpedienteDetalle,
   getAllExpedientes,
   exportarExpedientesAPadron,
-  exportarRegistroClasico
+  exportarRegistroClasico, 
+  updateEstatusSiremed
 };
