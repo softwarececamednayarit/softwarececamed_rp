@@ -162,31 +162,61 @@ export const Estadisticas = () => {
     <div className="flex-1 overflow-y-auto bg-slate-50/50">
       <div className="max-w-screen-2xl mx-auto px-6 md:px-12 py-10 md:py-16 space-y-12">
         
-        {/* --- HEADER --- */}
-        <div className="flex flex-col xl:flex-row justify-between items-end gap-6 border-b border-slate-200 pb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-               <Activity size={32} className="text-indigo-600"/> Tablero de Control
-            </h1>
-            <p className="text-slate-500 font-medium mt-2">
-              Análisis estratégico de <span className="font-bold text-indigo-600">{metrics.total}</span> registros.
-            </p>
+        {/* --- HEADER ACTUALIZADO (ESTILO GESTIÓN) --- */}
+        <header className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative overflow-hidden">
+          
+          {/* Efecto de gradiente decorativo de fondo */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none" />
+
+          <div className="space-y-2 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-slate-900 rounded-xl text-white shadow-lg shadow-slate-900/20">
+                <Activity size={24} /> 
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+                Tablero de Control
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 pl-1">
+              <span className="flex h-2 w-2 rounded-full bg-indigo-500"></span>
+              <p className="text-slate-500 font-medium text-sm">
+                Análisis estratégico de <span className="font-bold text-indigo-600">{metrics.total}</span> registros.
+              </p>
+            </div>
           </div>
 
-          <div className="w-full xl:w-auto bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-4">
-             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest">
+          {/* Filtros de Fecha */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 relative z-10 w-full xl:w-auto">
+            <div className="flex items-center gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm w-full">
+              <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mr-2">
                 <Filter size={14} /> Periodo
-             </div>
-             <div className="flex items-center gap-2 w-full md:w-auto">
-                <input type="date" value={dateRange.start} onChange={(e) => setDateRange(prev => ({...prev, start: e.target.value}))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 w-full outline-none focus:ring-2 focus:ring-indigo-500"/>
+              </div>
+              <div className="flex items-center gap-2 flex-1">
+                <input 
+                  type="date" 
+                  value={dateRange.start} 
+                  onChange={(e) => setDateRange(prev => ({...prev, start: e.target.value}))} 
+                  className="bg-transparent border-none text-sm font-bold text-slate-700 outline-none focus:ring-0 w-full"
+                />
                 <span className="text-slate-300 font-bold">-</span>
-                <input type="date" value={dateRange.end} onChange={(e) => setDateRange(prev => ({...prev, end: e.target.value}))} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 w-full outline-none focus:ring-2 focus:ring-indigo-500"/>
-             </div>
-             {(dateRange.start || dateRange.end) && (
-               <button onClick={() => setDateRange({ start: '', end: '' })} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><X size={18} /></button>
-             )}
+                <input 
+                  type="date" 
+                  value={dateRange.end} 
+                  onChange={(e) => setDateRange(prev => ({...prev, end: e.target.value}))} 
+                  className="bg-transparent border-none text-sm font-bold text-slate-700 outline-none focus:ring-0 w-full"
+                />
+              </div>
+              {(dateRange.start || dateRange.end) && (
+                <button 
+                  onClick={() => setDateRange({ start: '', end: '' })} 
+                  className="ml-2 p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        </header>
 
         {/* =================================================================================
             SECCIÓN 1: PERFIL DEMOGRÁFICO
