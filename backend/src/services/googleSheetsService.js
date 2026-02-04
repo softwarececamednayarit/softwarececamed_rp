@@ -229,27 +229,31 @@ exports.generarReporteCompleto = async (listaDatos) => {
 };
 
 // =====================================================================
-// 3. FUNCIÓN REGISTRO CLÁSICO (CORREGIDA: SIN COMILLAS EN RANGO)
+// 3. FUNCIÓN REGISTRO CLÁSICO (Con Acentos ✅)
 // =====================================================================
 exports.generarReporteClasico = async (listaDatos) => {
   try {
     console.log(`📄 Generando Registro Clásico ESTABLE para ${listaDatos.length} expedientes...`);
 
-    // A. ORDENAR CRONOLÓGICAMENTE (BLINDADO)
+    // A. ORDENAR CRONOLÓGICAMENTE
     listaDatos.sort((a, b) => {
       const fechaA = new Date(a.fecha_recepcion || 0).getTime();
       const fechaB = new Date(b.fecha_recepcion || 0).getTime();
-      
       const diff = fechaA - fechaB;
       if (diff !== 0) return diff;
-
       return String(a.id).localeCompare(String(b.id));
     });
 
-    // B. INICIALIZAR CONTADORES
+    // B. INICIALIZAR CONTADORES (Con Acentos)
     let contadorGlobal = 1; 
+    
+    // Las claves deben coincidir EXACTAMENTE con lo que escribiremos en el Excel
     const contadoresTipo = {
-      'Gestion': 0, 'Orientacion': 0, 'Asesoria': 0, 'Queja': 0, 'Dictamen': 0
+      'Gestión': 0, 
+      'Orientación': 0, 
+      'Asesoría': 0, 
+      'Queja': 0, 
+      'Dictamen': 0
     };
 
     // C. MAPEO Y CÁLCULO
@@ -257,21 +261,46 @@ exports.generarReporteClasico = async (listaDatos) => {
       const anio = obtenerAnio(dato.fecha_recepcion);
       const mesRomano = obtenerMesRomano(dato.fecha_recepcion);
 
-      let tipoRaw = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+      // 1. Limpieza básica para análisis (Quitamos acentos solo para comparar)
+      let textoBase = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // "orientacion"
       
-      tipoRaw = tipoRaw.charAt(0).toUpperCase() + tipoRaw.slice(1).toLowerCase(); 
-      if (!contadoresTipo.hasOwnProperty(tipoRaw)) tipoRaw = 'Orientacion';
+      // 2. Capitalizar base
+      let tipoAnalisis = textoBase.charAt(0).toUpperCase() + textoBase.slice(1).toLowerCase(); // "Orientacion"
 
-      contadoresTipo[tipoRaw]++;
-      const consecutivoTipo = contadoresTipo[tipoRaw];
+      // 3. DEFINIR TIPO FINAL (CON ACENTOS)
+      let tipoFinal = 'Orientación'; // Default
 
+      if (tipoAnalisis.includes('Asesoria')) {
+          tipoFinal = 'Orientación'; // Fusión Asesoría -> Orientación
+      } else if (tipoAnalisis.includes('Orientacion')) {
+          tipoFinal = 'Orientación';
+      } else if (tipoAnalisis.includes('Gestion')) {
+          tipoFinal = 'Gestión';
+      } else if (tipoAnalisis.includes('Queja')) {
+          tipoFinal = 'Queja';
+      } else if (tipoAnalisis.includes('Dictamen')) {
+          tipoFinal = 'Dictamen';
+      }
+
+      // 4. Incrementar Contadores
+      if (contadoresTipo.hasOwnProperty(tipoFinal)) {
+          contadoresTipo[tipoFinal]++;
+      } else {
+          // Si por alguna razón extraña no cae en ninguno, lo mandamos a Orientación
+          tipoFinal = 'Orientación';
+          contadoresTipo['Orientación']++;
+      }
+      
+      const consecutivoTipo = contadoresTipo[tipoFinal];
+
+      // 5. Generar Folio
       let folioServicio = '';
-      if (tipoRaw === 'Queja' || tipoRaw === 'Dictamen') {
-        const letra = tipoRaw.charAt(0); 
+      if (tipoFinal === 'Queja' || tipoFinal === 'Dictamen') {
+        const letra = tipoFinal.charAt(0); // Q o D
         folioServicio = `${letra}${consecutivoTipo}/${mesRomano}/${anio}`;
       } else {
-        const inicial = tipoRaw.charAt(0); 
+        const inicial = tipoFinal.charAt(0); // O (Orientación) o G (Gestión)
         folioServicio = `${inicial}-${consecutivoTipo}`;
       }
 
@@ -300,29 +329,29 @@ exports.generarReporteClasico = async (listaDatos) => {
         formatoOracion(dato.motivo_inconformidad || ''),             
         formatoOracion(dato.submotivo || ''),                        
         formatoOracion(dato.descripcion_hechos || ''),               
-        formatoTitulo(dato.actividad_apoyo || dato.tipo_asunto || ''), 
+        
+        // Aquí va el tipo con acento bonito ✨
+        tipoFinal, 
+        
         formatoOracion(dato.observaciones_servicio || ''),           
         folioServicio,                                               
         noAsignado                                                   
       ];
     });
 
-    // D. LIMPIAR Y ESCRIBIR
+    // ... (El resto del código de escritura y retorno se queda igual) ...
     const NOMBRE_HOJA = "Datos"; 
 
     try {
-      // CORRECCIÓN: Quitamos las comillas simples '' alrededor de NOMBRE_HOJA
-      // Antes: `'${NOMBRE_HOJA}'!A2:V10000` (Error) -> Ahora: `${NOMBRE_HOJA}!A2:V10000` (Correcto)
       await sheets.spreadsheets.values.clear({
         spreadsheetId: SPREADSHEET_CLASICO_ID,
         range: `${NOMBRE_HOJA}!A2:V10000`, 
       });
     } catch (e) {
-      console.warn(`Aviso: No se pudo limpiar la hoja '${NOMBRE_HOJA}'. Verifica que la pestaña exista en el Excel.`);
+      console.warn(`Aviso: No se pudo limpiar la hoja. Verifica Excel.`);
     }
 
     if (filas.length > 0) {
-      // CORRECCIÓN: Quitamos las comillas aquí también
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_CLASICO_ID,
         range: `${NOMBRE_HOJA}!A2`,
@@ -331,24 +360,21 @@ exports.generarReporteClasico = async (listaDatos) => {
       });
     }
 
-    // --- PREPARAR DATOS PARA GUARDAR EN BD ---
     const datosParaGuardar = listaDatos.map((dato, index) => ({
       id: dato.id,
       servicio: filas[index][20],    
       no_asignado: filas[index][21]  
     }));
 
-    const webLink = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`;
-    
     return { 
         success: true, 
-        url: webLink, 
+        url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`, 
         count: filas.length,
         updates: datosParaGuardar 
     };
 
   } catch (error) {
-    console.error("❌ Error en Registro Clásico:", error.message); // .message para ver el error limpio
+    console.error("❌ Error en Registro Clásico:", error.message); 
     throw new Error("Falló la generación del Registro Clásico.");
   }
 };

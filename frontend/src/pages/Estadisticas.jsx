@@ -5,8 +5,11 @@ import {
 } from 'recharts';
 import { 
   Loader2, Activity, Calendar, MapPin, Building2, 
-  Stethoscope, AlertCircle, Filter, X, Users, Briefcase, UserCheck, HeartHandshake, Tag 
+  Stethoscope, AlertCircle, Filter, X, Users, Briefcase, UserCheck, HeartHandshake, Tag,
+  FileText // <--- AGREGAR ESTE ICONO
 } from 'lucide-react';
+
+import { generarPDFMensual } from '../utils/pdfGenerator';
 
 // --- PALETAS DE COLORES ---
 const COLORS_PADRON = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669']; // Verdes
@@ -149,6 +152,34 @@ export const Estadisticas = () => {
 
   }, [rawData, dateRange]);
 
+  // --- 3. MANEJADOR DE EXPORTACIÓN PDF ---
+  const handleExportPDF = () => {
+    // A. Replicamos el filtro de fechas para obtener la lista exacta
+    const dataToExport = rawData.filter(item => {
+      if (!item.fecha_recepcion) return false;
+      const itemDate = new Date(item.fecha_recepcion + 'T00:00:00'); 
+      const start = dateRange.start ? new Date(dateRange.start + 'T00:00:00') : null;
+      const end = dateRange.end ? new Date(dateRange.end + 'T23:59:59') : null;
+
+      if (start && itemDate < start) return false;
+      if (end && itemDate > end) return false;
+      return true;
+    });
+
+    if (dataToExport.length === 0) {
+      alert("No hay datos para generar el reporte en este periodo.");
+      return;
+    }
+
+    // B. Definimos fechas para el título del reporte
+    // Si no hay filtro, usamos la fecha actual como referencia
+    const fechaInicio = dateRange.start || new Date().toISOString(); 
+    const fechaFin = dateRange.end || new Date().toISOString();
+
+    // C. Llamamos a tu utilidad
+    generarPDFMensual(dataToExport, fechaInicio, fechaFin);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-[80vh] text-indigo-600">
@@ -185,9 +216,11 @@ export const Estadisticas = () => {
             </div>
           </div>
 
-          {/* Filtros de Fecha */}
+          {/* AREA DE ACCIONES: Filtros de Fecha + Botón PDF */}
           <div className="flex flex-col sm:flex-row items-center gap-3 relative z-10 w-full xl:w-auto">
-            <div className="flex items-center gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm w-full">
+            
+            {/* 1. Selector de Fechas */}
+            <div className="flex items-center gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm w-full sm:w-auto">
               <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mr-2">
                 <Filter size={14} /> Periodo
               </div>
@@ -215,6 +248,17 @@ export const Estadisticas = () => {
                 </button>
               )}
             </div>
+
+            {/* 2. BOTÓN GENERAR PDF (NUEVO) */}
+            <button 
+              onClick={handleExportPDF}
+              className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-4 rounded-2xl flex items-center gap-2 transition-all shadow-lg shadow-rose-200 font-bold text-sm whitespace-nowrap active:scale-95 w-full sm:w-auto justify-center"
+            >
+              <FileText size={18} />
+              <span className="hidden sm:inline">Generar PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </button>
+
           </div>
         </header>
 
