@@ -433,8 +433,9 @@ const exportarExpedientesAPadron = async (req, res) => {
     res.status(500).json({ ok: false, message: error.message });
   }
 };
+
 // =====================================================================
-// 9. GENERAR REGISTRO CLÁSICO (Con Folios Automáticos)
+// 9. GENERAR REGISTRO CLÁSICO
 // =====================================================================
 const exportarRegistroClasico = async (req, res) => {
   try {
@@ -449,11 +450,12 @@ const exportarRegistroClasico = async (req, res) => {
        return res.status(200).json({ ok: true, message: 'No hay registros para este periodo.', count: 0 });
     }
 
-    // 2. FUSIONAR CON DETALLES (Prestador, Domicilio, etc.)
+    // 2. FUSIONAR CON DETALLES
     const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
       const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
       const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
       
+      // A. Limpieza de Fecha
       let fechaLimpia = '';
       if (baseItem.fecha_recepcion) {
         fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
@@ -461,20 +463,25 @@ const exportarRegistroClasico = async (req, res) => {
           : baseItem.fecha_recepcion;
       }
 
-      // Prioridad Prestador y Domicilio (Si se editó, gana el detalle)
+      // B. Limpieza de Edad (AGREGADO) 
+      const edadRaw = baseItem.edad_o_nacimiento || baseItem.fecha_nacimiento || '';
+      const edadLimpia = edadRaw.toString().replace(/ años/gi, '').trim();
+
+      // C. Prioridad de Datos (Prestador y Domicilio)
       const prestadorFinal = detalleData.prestador_nombre !== undefined 
-           ? detalleData.prestador_nombre 
-           : (baseItem.unidad_medica || baseItem.institucion || '');
+            ? detalleData.prestador_nombre 
+            : (baseItem.unidad_medica || baseItem.institucion || '');
 
       const domicilioFinal = detalleData.domicilio !== undefined
-           ? detalleData.domicilio
-           : (baseItem.domicilio || baseItem.domicilio_ciudadano || '');
+            ? detalleData.domicilio
+            : (baseItem.domicilio || baseItem.domicilio_ciudadano || '');
 
       return {
         id: baseItem.id,
         ...baseItem,
         fecha_recepcion: fechaLimpia,
-        
+        edad: edadLimpia, // <--- AHORA SÍ SE MANDA LIMPIA
+
         // Datos Prioritarios
         prestador_nombre: prestadorFinal,
         domicilio: domicilioFinal,
@@ -495,11 +502,10 @@ const exportarRegistroClasico = async (req, res) => {
       };
     }));
 
-    // 3. ENVIAR A SHEETS (Genera Excel y calcula folios)
+    // 3. ENVIAR A SHEETS
     const resultado = await sheetsService.generarReporteClasico(fullDataList);
 
-    // 4. GUARDAR FOLIOS EN FIREBASE (Paso Crítico Nuevo)
-    // Tomamos los folios calculados en el paso anterior y actualizamos la BD
+    // 4. GUARDAR FOLIOS
     if (resultado.updates && resultado.updates.length > 0) {
         console.log("💾 Guardando folios asignados en Firebase...");
         const batch = db.batch();
@@ -507,13 +513,13 @@ const exportarRegistroClasico = async (req, res) => {
         resultado.updates.forEach(item => {
             const docRef = db.collection('expedientes_detalle').doc(item.id);
             batch.set(docRef, {
-                servicio: item.servicio,       // Ej: "G-98"
-                no_asignado: item.no_asignado  // Ej: "15/2025"
+                servicio: item.servicio,
+                no_asignado: item.no_asignado
             }, { merge: true });
         });
 
         await batch.commit();
-        console.log("✅ Folios actualizados correctamente en la base de datos.");
+        console.log("✅ Folios actualizados correctamente.");
     }
 
     res.status(200).json({ 
