@@ -4,7 +4,7 @@ import {
   Phone, Mail, MapPin, FileText, Activity, List,
   Globe, IdCard, AlertTriangle, Stethoscope, Clock, CheckCircle,
   Copy, Save, Loader2, FileEdit, Layout, Pencil, Ban, Briefcase,
-  PhoneCall, Map, UserCheck, AlertCircle, HelpCircle, Scale
+  PhoneCall, Map, UserCheck, AlertCircle, HelpCircle, Scale, Trash2
 } from 'lucide-react';
 import { formatDate, formatName, getStatusColor } from '../utils/formatters';
 import { AtendidosService } from '../services/atendidosService'; 
@@ -86,6 +86,7 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   const [saving, setSaving] = useState(false);
   const [isEditingPadron, setIsEditingPadron] = useState(false);
   const [fullData, setFullData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Estados para controlar inputs manuales (OTROS)
   const [isOtherSpecialty, setIsOtherSpecialty] = useState(false);
@@ -290,6 +291,26 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
       alert("❌ Error al guardar la información.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("⚠️ ¿ESTÁS SEGURO?\n\nEsta acción eliminará PERMANENTEMENTE el expediente y todos sus detalles.\nNo se puede deshacer.")) {
+        return;
+    }
+
+    try {
+        setIsDeleting(true);
+        await AtendidosService.deleteAtendido(item.id);
+        
+        alert("🗑️ Expediente eliminado correctamente.");
+        onClose(); // Cerramos el modal
+        // Nota: Idealmente aquí deberías disparar una función para recargar la tabla padre
+    } catch (error) {
+        console.error("Error eliminando:", error);
+        alert("❌ Error al eliminar el expediente.");
+    } finally {
+        setIsDeleting(false);
     }
   };
 
@@ -837,9 +858,23 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
 
         {/* --- FOOTER --- */}
         <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
-          <button onClick={handleCopyForPlatform} className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-2xl font-bold text-xs transition-colors border border-indigo-100 shadow-sm">
-            <Copy size={16} /> <span className="hidden sm:inline">Copiar JSON</span>
-          </button>
+          {/* ZONA IZQUIERDA: UTILIDADES Y PELIGRO */}
+          <div className="flex items-center gap-3">
+             {/* Botón Eliminar */}
+             <button 
+                onClick={handleDelete} 
+                disabled={isDeleting || saving}
+                className="flex items-center gap-2 px-4 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-2xl font-bold text-xs transition-colors shadow-sm disabled:opacity-50"
+             >
+                {isDeleting ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16} />}
+                <span className="hidden sm:inline">{isDeleting ? 'Eliminando...' : 'Eliminar'}</span>
+             </button>
+
+             {/* Botón Copiar (El que ya tenías) */}
+             <button onClick={handleCopyForPlatform} className="flex items-center gap-2 px-4 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-2xl font-bold text-xs transition-colors border border-indigo-100 shadow-sm">
+                <Copy size={16} /> <span className="hidden sm:inline">Copiar</span>
+             </button>
+          </div>
 
           <div className="flex items-center gap-4">
             {activeTab === 'padron' && isEditingPadron ? (
