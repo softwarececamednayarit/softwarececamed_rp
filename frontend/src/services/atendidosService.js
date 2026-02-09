@@ -105,6 +105,17 @@ export const AtendidosService = {
       console.error("Error en service updateEstatusSiremed:", error);
       throw error;
     }
+  },
+
+  // 10. ELIMINAR EXPEDIENTE (Borrado Físico)
+  deleteAtendido: async (id) => {
+    try {
+      const response = await api.delete(`${ENDPOINT}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error en service deleteAtendido:", error);
+      throw error;
+    }
   }
 
 };
