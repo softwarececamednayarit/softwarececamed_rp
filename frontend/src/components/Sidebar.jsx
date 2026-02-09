@@ -1,23 +1,73 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp
+  Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp,
+  Shield // 1. IMPORTAMOS EL ICONO SHIELD
 } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 
 export const Sidebar = ({ currentView, onNavigate }) => {
-  const { logout } = useAuth(); 
+  const { logout, user } = useAuth(); 
 
-  // 1. DEFINICIÓN DE RUTAS
+  // ===========================================================================
+  // 1. CONFIGURACIÓN DE ACCESOS (Aquí defines quién ve qué)
+  // ===========================================================================
   const MENU_ITEMS = [
+    // --- ACCESO PÚBLICO (Sin propiedad 'roles') ---
     { id: 'atendidos',    label: 'Atendidos',        icon: Users },
-    { id: 'padron',       label: 'Padrón',           icon: FileSpreadsheet },
-    { id: 'gestion',      label: 'Registro Clásico', icon: Briefcase },
-    { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp },
-    { id: 'recepcion',    label: 'Recepción',        icon: BookOpen },
     { id: 'sitios',       label: 'Sitios',           icon: Globe },
-    { id: 'usuarios',     label: 'Usuarios',         icon: Users },
+    
+    // --- ACCESO RESTRINGIDO ---
+    { 
+      id: 'recepcion',    
+      label: 'Recepción',        
+      icon: BookOpen, 
+      roles: ['admin'] 
+    },
+    { 
+        id: 'padron',       
+        label: 'Padrón',           
+        icon: FileSpreadsheet,
+        roles: ['admin', 'operativo']
+    },
+    { 
+        id: 'gestion',      
+        label: 'Registro Clásico', 
+        icon: Briefcase,
+        roles: ['admin', 'operativo']
+    },
+    { 
+        id: 'estadisticas', 
+        label: 'Estadísticas',     
+        icon: TrendingUp,
+        roles: ['admin'] 
+    },
+
+    // 2. AGREGAMOS LA BITÁCORA AQUÍ
+    { 
+        id: 'bitacora',     
+        label: 'Bitácora',         
+        icon: Shield,
+        roles: ['admin'] // Solo Admin puede ver auditoría
+    },
+    
+    // --- ACCESO EXCLUSIVO ---
+    { 
+        id: 'usuarios',     
+        label: 'Usuarios',         
+        icon: Users,
+        roles: ['admin'] 
+    },
   ];
+
+  // 2. FILTRADO INTELIGENTE
+  const visibleItems = MENU_ITEMS.filter(item => {
+    // Si no tiene la propiedad roles, es público -> MOSTRAR
+    if (!item.roles) return true;
+    
+    // Si tiene roles, verificamos si el rol del usuario está en la lista -> MOSTRAR SI COINCIDE
+    return item.roles.includes(user?.role);
+  });
 
   // Helper de estilos
   const getLinkClass = (isActive) => {
@@ -61,11 +111,10 @@ export const Sidebar = ({ currentView, onNavigate }) => {
       <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-1">
         
         <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-2 mt-2">
-            Principal
+            Navegación
         </p>
         
-        {/* Renderizado Dinámico */}
-        {MENU_ITEMS.map((item) => (
+        {visibleItems.map((item) => (
           <button 
             key={item.id}
             onClick={() => onNavigate(item.id)} 

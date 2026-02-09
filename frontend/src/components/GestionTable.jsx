@@ -228,7 +228,9 @@ export const GestionTable = ({ onViewDetails }) => {
                            <div className="flex gap-1 items-center mt-1">
                               <span className="font-bold">{row.telefono}</span>
                               <span className="text-slate-300">|</span>
-                              <span>{row.edad ? `${row.edad} años` : ''}</span>
+                              <span>
+                                {row.edad ? `${String(row.edad).replace(/ ?años/gi, '')} años` : ''}
+                              </span>
                            </div>
                            {/* MUESTRO EL MUNICIPIO PARA QUE SEPAS POR QUÉ SE MARCÓ */}
                            <div className="text-[9px] text-slate-400 mt-1">

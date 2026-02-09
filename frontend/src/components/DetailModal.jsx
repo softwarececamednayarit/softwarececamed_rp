@@ -4,7 +4,7 @@ import {
   Phone, Mail, MapPin, FileText, Activity, List,
   Globe, IdCard, AlertTriangle, Stethoscope, Clock, CheckCircle,
   Copy, Save, Loader2, FileEdit, Layout, Pencil, Ban, Briefcase,
-  PhoneCall, Map, UserCheck, AlertCircle, HelpCircle
+  PhoneCall, Map, UserCheck, AlertCircle, HelpCircle, Scale
 } from 'lucide-react';
 import { formatDate, formatName, getStatusColor } from '../utils/formatters';
 import { AtendidosService } from '../services/atendidosService'; 
@@ -121,7 +121,21 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     observaciones_servicio: '',
     servicio: '',
     no_asignado: '',
-    prestador_nombre: '' 
+    prestador_nombre: '' ,
+    expediente_dga: '',
+    fecha_oficio: '',
+    numero_oficio: '',
+    autoridad_solicitante: '',
+    nombre_solicitante: '',
+    cargo_solicitante: '',
+    expediente_investigacion: '',
+    motivo_litis: '',
+    sala_medica: '',
+    modalidad_conclusion: '',
+    submodalidad_conclusion: '',
+    resultado_analisis: '',
+    danos_salud: '',
+    fecha_inicio_proceso: ''
   });
 
   // --- EFECTO: CARGAR DATOS ---
@@ -175,7 +189,21 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
             observaciones_servicio: data.observaciones_servicio || '',
             servicio: data.servicio || '',
             no_asignado: data.no_asignado || '',
-            prestador_nombre: data.prestador_nombre || ''
+            prestador_nombre: data.prestador_nombre || '',
+            expediente_dga: data.expediente_dga || '',
+            fecha_oficio: data.fecha_oficio || '',
+            numero_oficio: data.numero_oficio || '',
+            autoridad_solicitante: data.autoridad_solicitante || '',
+            nombre_solicitante: data.nombre_solicitante || '',
+            cargo_solicitante: data.cargo_solicitante || '',
+            expediente_investigacion: data.expediente_investigacion || '',
+            motivo_litis: data.motivo_litis || '',
+            sala_medica: data.sala_medica || '',
+            modalidad_conclusion: data.modalidad_conclusion || '',
+            submodalidad_conclusion: data.submodalidad_conclusion || '',
+            resultado_analisis: data.resultado_analisis || '',
+            danos_salud: data.danos_salud || '',
+            fecha_inicio_proceso: data.fecha_inicio_proceso || ''
           });
         }
       } catch (error) {
@@ -266,6 +294,9 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   };
 
   const displayData = fullData ? { ...item, ...fullData } : item;
+  const isDictamen = displayData?.tipo === 'Dictamen' || 
+                     displayData?.tipo === 'DICTAMEN' || 
+                     padronForm?.actividad_apoyo === 'Dictamen';
 
   const RenderField = ({ label, value, icon: Icon, isBool }) => (
     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 h-full">
@@ -298,7 +329,7 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
       const dataToCopy = basicData.data || basicData;
       await navigator.clipboard.writeText(JSON.stringify(dataToCopy));
       
-      alert("📋 Datos BÁSICOS (Endpoint Original) copiados al portapapeles.");
+      alert("📋 Datos básicos copiados al portapapeles.");
 
     } catch (err) {
       console.error("Error al obtener datos básicos:", err);
@@ -480,6 +511,32 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
                         </div>
                     </div>
                 </section>
+                {isDictamen && (
+                  <section>
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <Scale size={14} /> Datos Específicos del Dictamen
+                      </h3>
+                      <div className="bg-purple-50 p-6 rounded-[2rem] border border-purple-100 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <RenderField label="Exp. DGA" value={displayData.expediente_dga} />
+                          <RenderField label="Fecha Oficio" value={displayData.fecha_oficio} />
+                          <RenderField label="No. Oficio" value={displayData.numero_oficio} />
+                          <RenderField label="Fecha Inicio" value={displayData.fecha_inicio_proceso} />
+                          
+                          <div className="md:col-span-2">
+                              <RenderField label="Autoridad Solicitante" value={displayData.autoridad_solicitante} />
+                          </div>
+                          <div className="md:col-span-2">
+                              <RenderField label="Cargo Solicitante" value={displayData.cargo_solicitante} />
+                          </div>
+                          <div className="md:col-span-4">
+                              <RenderField label="Motivo de la Litis" value={displayData.motivo_litis} />
+                          </div>
+                          <div className="md:col-span-4">
+                              <RenderField label="Resultado Análisis" value={displayData.resultado_analisis} />
+                          </div>
+                      </div>
+                  </section>
+                )}
              </div>
           )}
 

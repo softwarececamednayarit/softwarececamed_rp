@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { LogOut, Loader2, Menu, X } from 'lucide-react'; // Agregué 'X' para cerrar menú
+import { LogOut, Loader2, Menu, X, AlertCircle } from 'lucide-react'; 
 
 // Importar componentes
 import Login from './pages/Login';
@@ -15,12 +15,11 @@ import Padron from './pages/Padron';
 import Gestion from './pages/Gestion';
 import Estadisticas from './pages/Estadisticas';
 import Usuarios from './pages/Usuarios';
+import Bitacora from './pages/Bitacora'; // 1. IMPORTAR BITÁCORA
 
 const AppContent = () => {
   const { user, loading, logout } = useAuth();
   const [currentView, setCurrentView] = useState('atendidos');
-  
-  // Estado para el menú móvil
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // --- PANTALLA DE CARGA ---
@@ -36,88 +35,118 @@ const AppContent = () => {
   // --- LOGIN ---
   if (!user) return <Login />;
 
-  // Función para navegar y cerrar el menú móvil automáticamente
   const handleNavigate = (view) => {
     setCurrentView(view);
-    setIsMobileMenuOpen(false); // Cierra el menú al seleccionar
+    setIsMobileMenuOpen(false);
   };
 
-  // --- APP PRINCIPAL ---
+  // --- COMPONENTE DE ACCESO DENEGADO ---
+  const AccesoDenegado = () => (
+    <div className="flex flex-col items-center justify-center h-full text-slate-400 animate-in fade-in zoom-in duration-300">
+       <div className="bg-rose-50 p-6 rounded-full mb-4">
+           <AlertCircle size={48} className="text-rose-500" />
+       </div>
+       <h2 className="text-2xl font-black text-slate-800">Acceso Denegado</h2>
+       <p className="mt-2 font-medium">No tienes los permisos necesarios para ver esta sección.</p>
+       <button 
+           onClick={() => setCurrentView('atendidos')}
+           className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors"
+       >
+           Volver al Inicio
+       </button>
+    </div>
+  );
+
+  // --- LÓGICA DE RENDERIZADO CON SEGURIDAD ---
+  const renderView = () => {
+    // Obtenemos el rol actual (con fallback a string vacío por seguridad)
+    const myRole = user?.role || '';
+
+    switch (currentView) {
+      // =================================================================
+      // 1. PÁGINAS PÚBLICAS (Sin restricción de roles)
+      // =================================================================
+      case 'atendidos':    return <Atendidos />;
+      case 'sitios':       return <SitiosInteres />;
+      case 'perfil':       return <Perfil />; // Generalmente pública para logueados
+
+      // =================================================================
+      // 2. PÁGINAS DE OPERACIÓN (Admin + Operativo)
+      // =================================================================
+      case 'padron':
+        if (['admin', 'operativo'].includes(myRole)) return <Padron />;
+        return <AccesoDenegado />;
+
+      case 'gestion':
+        if (['admin', 'operativo'].includes(myRole)) return <Gestion />;
+        return <AccesoDenegado />;
+
+      // =================================================================
+      // 3. PÁGINAS EXCLUSIVAS DE ADMINISTRADOR
+      // =================================================================
+      case 'recepcion': 
+      case 'estadisticas':
+      case 'usuarios':
+      case 'bitacora': // 2. AGREGAMOS EL CASO BITÁCORA
+        if (['admin'].includes(myRole)) {
+            if (currentView === 'recepcion')    return <Recepcion />;
+            if (currentView === 'estadisticas') return <Estadisticas />;
+            if (currentView === 'bitacora')     return <Bitacora />; // Renderizar componente
+            return <Usuarios />;
+        }
+        return <AccesoDenegado />;
+
+      default: return <Atendidos />;
+    }
+  };
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden relative">
       
-      {/* 1. SIDEBAR (Escritorio) - Siempre visible en pantallas grandes */}
+      {/* 1. SIDEBAR (Escritorio) */}
       <div className="hidden lg:flex w-72 shrink-0 h-full">
-        <Sidebar 
-          currentView={currentView} 
-          onNavigate={setCurrentView} 
-        />
+        <Sidebar currentView={currentView} onNavigate={setCurrentView} />
       </div>
 
-      {/* 2. SIDEBAR (Móvil - Overlay) */}
-      {/* Si está abierto, mostramos un fondo oscuro y el menú encima */}
+      {/* 2. SIDEBAR (Móvil) */}
       {isMobileMenuOpen && (
         <div className="absolute inset-0 z-50 lg:hidden flex">
-           {/* Fondo oscuro al dar click cierra */}
            <div 
              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
              onClick={() => setIsMobileMenuOpen(false)}
            />
-           
-           {/* El Sidebar en sí */}
            <div className="relative w-72 h-full bg-slate-900 shadow-2xl flex flex-col">
-              {/* Botón cerrar manual */}
               <button 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
               >
                 <X size={24} />
               </button>
-
-              {/* Reutilizamos el componente Sidebar */}
-              <Sidebar 
-                currentView={currentView} 
-                onNavigate={handleNavigate} // Usamos la función que cierra el menú
-              />
+              <Sidebar currentView={currentView} onNavigate={handleNavigate} />
            </div>
         </div>
       )}
 
       {/* 3. ÁREA PRINCIPAL */}
       <main className="flex-1 relative h-full flex flex-col overflow-hidden">
-        
         {/* Header Móvil */}
         <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900 text-white shadow-md z-40 shrink-0">
-            {/* Botón Hamburguesa para abrir menú */}
             <button 
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="p-2 -ml-2 text-slate-300 hover:text-white active:scale-95 transition-transform"
             >
                 <Menu size={24} />
             </button>
-
             <span className="font-black tracking-tight text-lg">CECAMED</span>
-            
-            <button 
-                onClick={logout} 
-                className="p-2 bg-white/10 rounded-lg active:bg-white/20 transition-colors"
-            >
+            <button onClick={logout} className="p-2 bg-white/10 rounded-lg active:bg-white/20 transition-colors">
                 <LogOut size={20} />
             </button>
         </div>
 
         {/* Contenedor de Vistas */}
         <div className="flex-1 overflow-y-auto relative bg-slate-50/50">
-            {currentView === 'atendidos' && <Atendidos />}
-            {currentView === 'padron'    && <Padron />}
-            {currentView === 'gestion'   && <Gestion />}
-            {currentView === 'sitios'    && <SitiosInteres />}
-            {currentView === 'recepcion' && <Recepcion />}
-            {currentView === 'perfil'    && <Perfil />}
-            {currentView === 'estadisticas' && <Estadisticas />}
-            {currentView === 'usuarios' && <Usuarios />}
+            {renderView()}
         </div>
-
       </main>
     </div>
   );

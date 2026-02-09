@@ -6,15 +6,16 @@ import {
 import { 
   Loader2, Activity, Calendar, MapPin, Building2, 
   Stethoscope, AlertCircle, Filter, X, Users, Briefcase, UserCheck, HeartHandshake, Tag,
-  FileText // <--- AGREGAR ESTE ICONO
+  FileText 
 } from 'lucide-react';
 
 import { generarPDFMensual } from '../utils/pdfGenerator';
 
 // --- PALETAS DE COLORES ---
-const COLORS_PADRON = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669']; // Verdes
-const COLORS_GESTION = ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#4f46e5']; // Azules
-const COLORS_DEMO = ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#d97706']; // Amarillos/Naranjas
+const COLORS_PADRON = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669']; 
+const COLORS_GESTION = ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#4f46e5']; 
+const COLORS_DEMO = ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#d97706']; 
+const COLORS_INST = ['#059669', '#2563eb', '#db2777', '#d97706', '#64748b']; // IMSS, ISSSTE, SSN, PRIV, OTROS
 
 export const Estadisticas = () => {
   const [loading, setLoading] = useState(true);
@@ -72,8 +73,6 @@ export const Estadisticas = () => {
     };
 
     // --- C. PROCESAMIENTO DEMOGRÁFICO ---
-    
-    // 1. Rangos de Edad (Limpieza inteligente)
     const edadMap = { '0-17 (Menores)': 0, '18-29 (Jóvenes)': 0, '30-59 (Adultos)': 0, '60+ (Mayores)': 0, 'No Especificado': 0 };
     
     filteredData.forEach(item => {
@@ -82,7 +81,7 @@ export const Estadisticas = () => {
             edadMap['No Especificado']++;
             return;
         }
-        const numero = parseInt(String(edadRaw).replace(/\D/g, '')); // Quita "años"
+        const numero = parseInt(String(edadRaw).replace(/\D/g, ''));
         
         if (isNaN(numero)) {
             edadMap['No Especificado']++;
@@ -98,26 +97,81 @@ export const Estadisticas = () => {
     });
     const porRangoEdad = Object.keys(edadMap).map(k => ({ name: k, value: edadMap[k] }));
 
-    // 2. Sexo / Género
     const porSexo = groupBy('sexo', 10);
-
-    // 3. Estado Civil
     const porEstadoCivil = groupBy('estado_civil', 6);
 
     // --- D. MÉTRICAS PADRÓN ---
     const porMunicipio = groupBy('municipio', 5);
     const porBeneficiario = groupBy('tipo_beneficiario', 5);
-    
-    // CAMBIO AQUÍ: Usamos 'tipo' en lugar de 'tipo_apoyo' o 'tipo_asunto'
     const porTipoGeneral = groupBy('tipo', 6); 
 
     // --- E. MÉTRICAS GESTIÓN ---
     const porActividad = groupBy('actividad_apoyo', 5); 
     const porEspecialidad = groupBy('especialidad', 5);
-    const porInstitucion = groupBy('prestador_nombre', 5);
     const porMotivo = groupBy('motivo', 5); 
 
-    // --- F. TENDENCIA SEMANAL ---
+    // --- F. INSTITUCIONES (LÓGICA EXACTA TUYA) ---
+    const instMap = { 'IMSS': 0, 'ISSSTE': 0, 'SSN': 0, 'PRIVADO': 0, 'OTROS': 0 };
+
+    filteredData.forEach(item => {
+        const nombre = (item.prestador_nombre || item.institucion || '').toUpperCase();
+        
+        // 1. IMSS
+        if (
+            nombre.includes('IMSS') || 
+            nombre.includes('HGZ') || 
+            nombre.includes('UMF') || 
+            nombre.includes('HGR') ||
+            nombre.includes('HOSPITAL GENERAL') || // Ojo: Esto a veces capta SSN si no se especifica, pero es tu regla.
+            nombre.includes('BIENESTAR')
+        ) {
+            instMap['IMSS']++;
+        }
+        // 2. ISSSTE
+        else if (
+            nombre.includes('ISSSTE') || 
+            nombre.includes('FOVISSSTE') ||
+            nombre.includes('CH ') || 
+            nombre.includes('CLINICA HOSPITAL')
+        ) {
+            instMap['ISSSTE']++;
+        }
+        // 3. SSN
+        else if (
+            nombre.includes('SSN') || 
+            nombre.includes('SSA') || 
+            nombre.includes('SERVICIOS DE SALUD') || 
+            nombre.includes('HOSPITAL CIVIL') || 
+            nombre.includes('CENTRO DE SALUD') ||
+            nombre.includes('CESSA') ||
+            nombre.includes('UNEME') ||
+            nombre.includes('INSABI')
+        ) {
+            instMap['SSN']++;
+        }
+        // 4. PRIVADOS
+        else if (
+            nombre.includes('PRIV') || 
+            nombre.includes('PARTICULAR') || 
+            nombre.includes('CONSULTORIO') || 
+            nombre.includes('FARMACIA') || 
+            nombre.includes('SANATORIO') ||
+            nombre.includes('CLINICA SAN') || 
+            nombre.includes('PUERTA DE HIERRO') ||
+            nombre.includes('CMQ') ||
+            nombre.includes('HOSPITAL REAL')
+        ) {
+            instMap['PRIVADO']++;
+        } 
+        // 5. OTROS
+        else {
+            instMap['OTROS']++;
+        }
+    });
+
+    const porInstitucion = Object.keys(instMap).map(k => ({ name: k, value: instMap[k] }));
+
+    // --- G. TENDENCIA SEMANAL ---
     const semanaMap = filteredData.reduce((acc, item) => {
         if (!item.fecha_recepcion) return acc;
         const d = new Date(item.fecha_recepcion);
@@ -142,7 +196,7 @@ export const Estadisticas = () => {
       porEstadoCivil,
       porMunicipio,
       porBeneficiario,
-      porTipoGeneral, // <--- Nueva métrica
+      porTipoGeneral,
       porActividad,  
       porEspecialidad,
       porInstitucion,
@@ -154,7 +208,6 @@ export const Estadisticas = () => {
 
   // --- 3. MANEJADOR DE EXPORTACIÓN PDF ---
   const handleExportPDF = () => {
-    // A. Replicamos el filtro de fechas para obtener la lista exacta
     const dataToExport = rawData.filter(item => {
       if (!item.fecha_recepcion) return false;
       const itemDate = new Date(item.fecha_recepcion + 'T00:00:00'); 
@@ -171,12 +224,9 @@ export const Estadisticas = () => {
       return;
     }
 
-    // B. Definimos fechas para el título del reporte
-    // Si no hay filtro, usamos la fecha actual como referencia
     const fechaInicio = dateRange.start || new Date().toISOString(); 
     const fechaFin = dateRange.end || new Date().toISOString();
 
-    // C. Llamamos a tu utilidad
     generarPDFMensual(dataToExport, fechaInicio, fechaFin);
   };
 
@@ -193,10 +243,8 @@ export const Estadisticas = () => {
     <div className="flex-1 overflow-y-auto bg-slate-50/50">
       <div className="max-w-screen-2xl mx-auto px-6 md:px-12 py-10 md:py-16 space-y-12">
         
-        {/* --- HEADER ACTUALIZADO (ESTILO GESTIÓN) --- */}
+        {/* --- HEADER --- */}
         <header className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative overflow-hidden">
-          
-          {/* Efecto de gradiente decorativo de fondo */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none" />
 
           <div className="space-y-2 relative z-10">
@@ -216,49 +264,36 @@ export const Estadisticas = () => {
             </div>
           </div>
 
-          {/* AREA DE ACCIONES: Filtros de Fecha + Botón PDF */}
           <div className="flex flex-col sm:flex-row items-center gap-3 relative z-10 w-full xl:w-auto">
-            
-            {/* 1. Selector de Fechas */}
             <div className="flex items-center gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm w-full sm:w-auto">
               <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest mr-2">
                 <Filter size={14} /> Periodo
               </div>
               <div className="flex items-center gap-2 flex-1">
                 <input 
-                  type="date" 
-                  value={dateRange.start} 
+                  type="date" value={dateRange.start} 
                   onChange={(e) => setDateRange(prev => ({...prev, start: e.target.value}))} 
                   className="bg-transparent border-none text-sm font-bold text-slate-700 outline-none focus:ring-0 w-full"
                 />
                 <span className="text-slate-300 font-bold">-</span>
                 <input 
-                  type="date" 
-                  value={dateRange.end} 
+                  type="date" value={dateRange.end} 
                   onChange={(e) => setDateRange(prev => ({...prev, end: e.target.value}))} 
                   className="bg-transparent border-none text-sm font-bold text-slate-700 outline-none focus:ring-0 w-full"
                 />
               </div>
               {(dateRange.start || dateRange.end) && (
-                <button 
-                  onClick={() => setDateRange({ start: '', end: '' })} 
-                  className="ml-2 p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                >
+                <button onClick={() => setDateRange({ start: '', end: '' })} className="ml-2 p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
                   <X size={18} />
                 </button>
               )}
             </div>
 
-            {/* 2. BOTÓN GENERAR PDF (NUEVO) */}
-            <button 
-              onClick={handleExportPDF}
-              className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-4 rounded-2xl flex items-center gap-2 transition-all shadow-lg shadow-rose-200 font-bold text-sm whitespace-nowrap active:scale-95 w-full sm:w-auto justify-center"
-            >
+            <button onClick={handleExportPDF} className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-4 rounded-2xl flex items-center gap-2 transition-all shadow-lg shadow-rose-200 font-bold text-sm whitespace-nowrap active:scale-95 w-full sm:w-auto justify-center">
               <FileText size={18} />
               <span className="hidden sm:inline">Generar PDF</span>
               <span className="sm:hidden">PDF</span>
             </button>
-
           </div>
         </header>
 
@@ -273,7 +308,7 @@ export const Estadisticas = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 
-                {/* 1. Género (Pie Chart) */}
+                {/* 1. Género */}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-amber-900/5">
                     <h3 className="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
                         <Users size={16} className="text-amber-500"/> Distribución por Sexo
@@ -284,8 +319,8 @@ export const Estadisticas = () => {
                                 <Pie data={metrics.porSexo} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                                     {metrics.porSexo.map((entry, index) => {
                                         let color = COLORS_DEMO[index % COLORS_DEMO.length];
-                                        if (entry.name.includes('MASCULINO') || entry.name.includes('HOMBRE')) color = '#3b82f6'; // Azul
-                                        if (entry.name.includes('FEMENINO') || entry.name.includes('MUJER')) color = '#ec4899'; // Rosa
+                                        if (entry.name.includes('MASCULINO') || entry.name.includes('HOMBRE')) color = '#3b82f6';
+                                        if (entry.name.includes('FEMENINO') || entry.name.includes('MUJER')) color = '#ec4899';
                                         return <Cell key={`cell-${index}`} fill={color} />;
                                     })}
                                 </Pie>
@@ -296,14 +331,15 @@ export const Estadisticas = () => {
                     </div>
                 </div>
 
-                {/* 2. Rangos de Edad (Bar Chart) */}
+                {/* 2. Rangos de Edad (CORRECCIÓN MARGEN) */}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-amber-900/5 lg:col-span-2">
                     <h3 className="font-bold text-slate-700 mb-6 text-sm uppercase tracking-wider flex items-center gap-2">
                         <Calendar size={16} className="text-amber-500"/> Rangos de Edad
                     </h3>
                     <div className="h-56 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={metrics.porRangoEdad} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                            {/* AUMENTO MARGIN TOP A 25 */}
+                            <BarChart data={metrics.porRangoEdad} margin={{ top: 25, right: 30, left: 20, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#fff7ed" />
                                 <XAxis dataKey="name" tick={{fontSize: 11, fill:'#92400e', fontWeight:'bold'}} axisLine={false} tickLine={false} />
                                 <Tooltip cursor={{fill: '#fffbeb'}} contentStyle={{borderRadius: '12px'}} />
@@ -313,7 +349,7 @@ export const Estadisticas = () => {
                     </div>
                 </div>
 
-                {/* 3. Estado Civil (Bar Chart Horizontal) */}
+                {/* 3. Estado Civil */}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-amber-900/5 lg:col-span-3">
                     <h3 className="font-bold text-slate-700 mb-6 text-sm uppercase tracking-wider flex items-center gap-2">
                         <HeartHandshake size={16} className="text-amber-500"/> Estado Civil
@@ -348,6 +384,7 @@ export const Estadisticas = () => {
                     </h3>
                     <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
+                            {/* AUMENTO MARGIN TOP */}
                             <BarChart data={metrics.porMunicipio} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                                 <XAxis type="number" hide />
@@ -359,7 +396,7 @@ export const Estadisticas = () => {
                     </div>
                 </div>
 
-                {/* Clasificación General (Antes Tipo Apoyo) */}
+                {/* Clasificación General */}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-emerald-900/5 flex flex-col">
                     <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
                         <Tag size={16} className="text-emerald-500"/> Clasificación General
@@ -393,11 +430,12 @@ export const Estadisticas = () => {
                 {/* Actividad de Apoyo */}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-indigo-900/5 lg:col-span-2">
                     <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <Activity size={16} className="text-indigo-500"/> Desglose por Actividad (Gestión/Queja/Orientación)
+                        <Activity size={16} className="text-indigo-500"/> Desglose por Actividad
                     </h3>
                     <div className="h-48 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={metrics.porActividad} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
+                            {/* AUMENTO MARGIN TOP */}
+                            <BarChart data={metrics.porActividad} margin={{ top: 25, right: 30, left: 20, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e7ff" />
                                 <XAxis dataKey="name" tick={{fontSize: 11, fill:'#4f46e5', fontWeight:'bold'}} axisLine={false} tickLine={false} />
                                 <Tooltip cursor={{fill: '#eef2ff'}} contentStyle={{borderRadius: '12px'}} />
@@ -407,7 +445,7 @@ export const Estadisticas = () => {
                     </div>
                 </div>
 
-                {/* Instituciones */}
+                {/* Instituciones (YA CORREGIDO CON TU LÓGICA) */}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-indigo-900/5">
                     <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wider">
                         <Building2 size={16} className="text-indigo-500"/> Instituciones
@@ -417,9 +455,13 @@ export const Estadisticas = () => {
                             <BarChart data={metrics.porInstitucion} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e0e7ff" />
                                 <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={130} tick={{fontSize: 9, fontWeight: 700, fill:'#64748b'}} />
+                                <YAxis dataKey="name" type="category" width={130} tick={{fontSize: 10, fontWeight: 700, fill:'#64748b'}} />
                                 <Tooltip cursor={{fill: '#eef2ff'}} contentStyle={{borderRadius: '12px'}} />
-                                <Bar dataKey="value" fill="#818cf8" radius={[0, 6, 6, 0]} barSize={20} label={{ position: 'right', fill: '#4f46e5', fontSize: 10, fontWeight: 'bold' }} />
+                                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24} label={{ position: 'right', fill: '#4f46e5', fontSize: 11, fontWeight: 'bold' }}>
+                                    {metrics.porInstitucion.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS_INST[index % COLORS_INST.length]} />
+                                    ))}
+                                </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -453,7 +495,7 @@ export const Estadisticas = () => {
             </div>
             <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={metrics.porSemana}>
+                    <AreaChart data={metrics.porSemana} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#64748b" stopOpacity={0.3}/>
@@ -464,7 +506,7 @@ export const Estadisticas = () => {
                         <YAxis axisLine={false} tickLine={false} tick={{fill:'#94a3b8', fontSize:12}} />
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                         <Tooltip contentStyle={{borderRadius: '12px'}} />
-                        <Area type="monotone" dataKey="total" stroke="#475569" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
+                        <Area type="monotone" dataKey="total" stroke="#475569" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" label={{ position: 'top', fill: '#475569', fontSize: 12, fontWeight: 'bold' }}/>
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
