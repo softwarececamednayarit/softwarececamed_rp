@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const atendidoController = require('../controllers/atendidoController');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 router.use(verifyToken);
 // =====================================================================

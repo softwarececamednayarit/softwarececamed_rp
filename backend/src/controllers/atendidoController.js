@@ -1,9 +1,10 @@
 const Atendido = require('../models/atendidoModel');
-const db = require('../../config/firebase');
+const db = require('../../config/firebase'); // Necesario solo para la migración y batch de folios
 const sheetsService = require('../services/googleSheetsService');
+const LoggerService = require('../services/loggerService');
 
 // =====================================================================
-// 1. Obtener lista básica
+// 1. Obtener lista básica (Solo datos de recepción)
 // =====================================================================
 const getAtendidos = async (req, res) => {
   try {
@@ -30,9 +31,7 @@ const getAtendidoById = async (req, res) => {
     const { id } = req.params;
     const data = await Atendido.getById(id);
 
-    if (!data) {
-      return res.status(404).json({ ok: false, message: 'Registro no encontrado' });
-    }
+    if (!data) return res.status(404).json({ ok: false, message: 'Registro no encontrado' });
 
     res.status(200).json({ ok: true, data });
   } catch (error) {
@@ -41,85 +40,186 @@ const getAtendidoById = async (req, res) => {
 };
 
 // =====================================================================
-// 3. Obtener EXPEDIENTE COMPLETO
+// 3. Obtener EXPEDIENTE COMPLETO (Base + Detalles)
 // =====================================================================
 const getExpedienteCompleto = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // 👇 REFACTOR: El modelo se encarga de buscar y unir todo
+    const fullData = await Atendido.getFullExpediente(id);
 
-    // A. Datos Base (atendidos)
-    const basicData = await Atendido.getById(id);
-    if (!basicData) {
-      return res.status(404).json({ ok: false, message: 'Expediente base no encontrado' });
+    if (!fullData) {
+      return res.status(404).json({ ok: false, message: 'Expediente no encontrado' });
     }
-
-    // B. Datos Detalle (expedientes_detalle)
-    const detalleDoc = await db.collection('expedientes_detalle').doc(id).get();
-    const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
-
-    // C. Lógica de "Prestador de Servicio"
-    let prestadorFinal;
-    if (detalleData.prestador_nombre !== undefined) {
-      prestadorFinal = detalleData.prestador_nombre; 
-    } else {
-      prestadorFinal = basicData.unidad_medica || basicData.institucion || ''; 
-    }
-
-    // D. Construcción del Objeto
-    const fullData = {
-      id,
-      // --- SECCIÓN 1: Datos Base (Lectura solamente) ---
-      fecha_recepcion: basicData.fecha_recepcion || '',
-      nombre: basicData.nombre || '',
-      apellido_paterno: basicData.apellido_paterno || '',
-      apellido_materno: basicData.apellido_materno || '',
-      nombre_completo: `${basicData.nombre || ''} ${basicData.apellido_paterno || ''} ${basicData.apellido_materno || ''}`.trim(),
-      domicilio: basicData.domicilio || '',
-      telefono: basicData.telefono || '',
-      edad: basicData.edad || basicData.fecha_nacimiento || '',
-      sexo: basicData.sexo || '',
-      curp: basicData.curp || '',
-      descripcion_hechos: basicData.descripcion_hechos || '',
-      
-      // --- SECCIÓN 2: Datos Editables (Guardados en expedientes_detalle) ---
-      prestador_nombre: prestadorFinal,
-
-      // Padrón
-      tipo_beneficiario: detalleData.tipo_beneficiario || '',
-      criterio_seleccion: detalleData.criterio_seleccion || '',
-      tipo_apoyo: detalleData.tipo_apoyo || '',
-      monto_apoyo: detalleData.monto_apoyo || '',
-      parentesco: detalleData.parentesco || '',
-      estado_civil: detalleData.estado_civil || '',
-      cargo_ocupacion: detalleData.cargo_ocupacion || '',
-      actividad_apoyo: detalleData.actividad_apoyo || '',
-      municipio: detalleData.municipio || '',
-      localidad: detalleData.localidad || '',
-
-      // Clasificación / Gestión
-      foraneo: detalleData.foraneo === true || detalleData.foraneo === "true",
-      representante: detalleData.representante || '',
-      via_telefonica: detalleData.via_telefonica === true || detalleData.via_telefonica === "true",
-      especialidad: detalleData.especialidad || '',
-      motivo_inconformidad: detalleData.motivo_inconformidad || '',
-      submotivo: detalleData.submotivo || '',
-      tipo_asunto: detalleData.tipo_asunto || '',
-      observaciones_servicio: detalleData.observaciones_servicio || '',
-      servicio: detalleData.servicio || '',
-      no_asignado: detalleData.no_asignado || '',
-
-      historial_clinico: detalleData.historial_clinico || []
-    };
 
     res.status(200).json({ ok: true, data: fullData });
-
   } catch (error) {
     res.status(500).json({ ok: false, message: error.message });
   }
 };
 
 // =====================================================================
-// 4. Resumen estadístico
+// 4. ACTUALIZAR / GUARDAR DETALLES
+// =====================================================================
+const updateExpedienteDetalle = async (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+
+  try {
+    // Validar existencia
+    const exists = await Atendido.getById(id);
+    if (!exists) return res.status(404).json({ message: "El expediente base no existe." });
+
+    // 👇 REFACTOR: El modelo se encarga de limpiar y guardar
+    await Atendido.saveDetalle(id, data);
+
+    // LOG
+    LoggerService.log(
+        req.user, 'EDITAR', 'EXPEDIENTE', 
+        `Actualizó expediente ${id}`, 
+        { id_expediente: id, campos: Object.keys(data).length }
+    );
+
+    res.json({ success: true, message: 'Expediente actualizado correctamente.' });
+  } catch (error) {
+    console.error("Error update:", error);
+    res.status(500).json({ error: 'Error al actualizar datos' });
+  }
+};
+
+// =====================================================================
+// 5. OBTENER LISTA COMPLETA (Para Tablas)
+// =====================================================================
+const getAllExpedientes = async (req, res) => {
+  try {
+    // 👇 REFACTOR: Reutilizamos la lógica unificada del modelo
+    const fullDataList = await Atendido.getFullList(req.query);
+    
+    res.status(200).json({ ok: true, count: fullDataList.length, data: fullDataList });
+  } catch (error) {
+    console.error("Error getAll:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
+// =====================================================================
+// 6. GENERAR REPORTE PADRÓN
+// =====================================================================
+const exportarExpedientesAPadron = async (req, res) => {
+  try {
+    console.log("📄 Generando Padrón...");
+    
+    // 👇 REFACTOR: Misma lista que getAllExpedientes, sin duplicar código
+    const listaLimpia = await Atendido.getFullList(req.query);
+
+    if (listaLimpia.length === 0) {
+       return res.status(200).json({ ok: true, message: 'No hay registros para exportar.', count: 0 });
+    }
+
+    // El servicio de Sheets recibe la lista ya limpia
+    const resultadoSheet = await sheetsService.generarReporteCompleto(listaLimpia);
+
+    LoggerService.log(
+        req.user, 'EXPORTAR', 'PADRON', 
+        `Generó reporte Padrón (${resultadoSheet.count} regs)`, 
+        { url: resultadoSheet.url }
+    );
+
+    res.status(200).json({ 
+      ok: true, 
+      message: 'Reporte generado exitosamente.',
+      processed_count: resultadoSheet.count,
+      url: resultadoSheet.url 
+    });
+
+  } catch (error) {
+    console.error("Error Padrón:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
+// =====================================================================
+// 7. GENERAR REGISTRO CLÁSICO
+// =====================================================================
+const exportarRegistroClasico = async (req, res) => {
+  try {
+    console.log("📊 Generando Registro Clásico...");
+
+    // 👇 REFACTOR: Reutilizamos la lista unificada
+    const fullDataList = await Atendido.getFullList(req.query);
+
+    if (fullDataList.length === 0) {
+       return res.status(200).json({ ok: true, message: 'No hay registros.', count: 0 });
+    }
+
+    const resultado = await sheetsService.generarReporteClasico(fullDataList);
+
+    // Guardar folios generados (Esto sí requiere Batch, se puede quedar aquí o mover al modelo)
+    if (resultado.updates && resultado.updates.length > 0) {
+        console.log("💾 Guardando folios...");
+        // Opción A: Dejarlo aquí (está bien porque es lógica de 'post-proceso')
+        // Opción B: Moverlo a AtendidoModel.updateFoliosBatch(resultado.updates)
+        const batch = db.batch();
+        resultado.updates.forEach(item => {
+            const docRef = db.collection('expedientes_detalle').doc(item.id);
+            batch.set(docRef, {
+                servicio: item.servicio,
+                no_asignado: item.no_asignado
+            }, { merge: true });
+        });
+        await batch.commit();
+    }
+
+    LoggerService.log(
+        req.user, 'EXPORTAR', 'REGISTRO_CLASICO', 
+        `Generó reporte Clásico y folios.`, 
+        { count: resultado.count }
+    );
+
+    res.status(200).json({ 
+      ok: true, 
+      message: 'Registro generado y folios actualizados.',
+      url: resultado.url,
+      count: resultado.count
+    });
+
+  } catch (error) {
+    console.error("Error Registro Clásico:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
+// =====================================================================
+// 8. ACTUALIZAR ESTATUS SIREMED
+// =====================================================================
+const updateEstatusSiremed = async (req, res) => {
+  const { id } = req.params;
+  const { estatus_siremed } = req.body; 
+
+  try {
+    if (estatus_siremed === undefined) return res.status(400).json({ message: "Falta estatus." });
+
+    const exists = await Atendido.getById(id);
+    if (!exists) return res.status(404).json({ message: "Expediente no existe." });
+
+    // 👇 REFACTOR: Reusamos el saveDetalle, es lo mismo
+    await Atendido.saveDetalle(id, { estatus_siremed });
+
+    LoggerService.log(
+        req.user, 'ACTUALIZAR', 'SIREMED', 
+        `Cambió estatus a: ${estatus_siremed}`, 
+        { id_expediente: id }
+    );
+
+    res.json({ success: true, message: 'Estatus actualizado.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar estatus' });
+  }
+};
+
+// =====================================================================
+// 9. Resumen estadístico (Sin cambios mayores)
 // =====================================================================
 const getResumenMensual = async (req, res) => {
   try {
@@ -142,12 +242,11 @@ const getResumenMensual = async (req, res) => {
 };
 
 // =====================================================================
-// 5. Script de Migración
+// 10. Script de Migración (Admin Tool)
 // =====================================================================
 const migrarExpedientes = async (req, res) => {
   try {
-    console.log("Iniciando migración segura...");
-    
+    console.log("Iniciando migración...");
     const snapshotAtendidos = await db.collection('atendidos').select().get();
     const snapshotDetalles = await db.collection('expedientes_detalle').select().get();
     const idsExistentes = new Set(snapshotDetalles.docs.map(doc => doc.id));
@@ -157,12 +256,10 @@ const migrarExpedientes = async (req, res) => {
     let lotesProcesados = 0;
 
     for (const doc of snapshotAtendidos.docs) {
-      const id = doc.id;
-      if (idsExistentes.has(id)) continue; 
-
-      const detalleRef = db.collection('expedientes_detalle').doc(id);
-      batch.set(detalleRef, {
-        atendido_link_id: id,
+      if (idsExistentes.has(doc.id)) continue; 
+      
+      batch.set(db.collection('expedientes_detalle').doc(doc.id), {
+        atendido_link_id: doc.id,
         fecha_migracion: new Date(),
         historial_clinico: []
       });
@@ -174,401 +271,18 @@ const migrarExpedientes = async (req, res) => {
         contador = 0;
       }
     }
-
     if (contador > 0) await batch.commit();
 
-    res.json({ 
-      ok: true, 
-      message: `Migración finalizada. Se crearon ${contador + (lotesProcesados * 490)} registros nuevos.` 
-    });
+    const total = contador + (lotesProcesados * 490);
+    
+    // Usuario fallback por si lo corre el sistema
+    const usuarioLog = req.user || { id: 'sys', nombre: 'Admin/System', role: 'system' };
+    LoggerService.log(usuarioLog, 'MIGRAR', 'SISTEMA', `Migración ejecutada`, { nuevos: total });
 
+    res.json({ ok: true, message: `Migración: ${total} nuevos.` });
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, message: error.message });
-  }
-};
-
-// =====================================================================
-// 6. ACTUALIZAR / GUARDAR DETALLES
-// =====================================================================
-const updateExpedienteDetalle = async (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
-
-  try {
-    const basicCheck = await db.collection('atendidos').doc(id).get();
-    if (!basicCheck.exists) {
-      return res.status(404).json({ message: "El expediente base no existe." });
-    }
-
-    const updateData = {
-      // Padrón
-      tipo_beneficiario: data.tipo_beneficiario,
-      criterio_seleccion: data.criterio_seleccion,
-      tipo_apoyo: data.tipo_apoyo,
-      monto_apoyo: data.monto_apoyo,
-      parentesco: data.parentesco,
-      estado_civil: data.estado_civil,
-      cargo_ocupacion: data.cargo_ocupacion,
-      actividad_apoyo: data.actividad_apoyo,
-      municipio: data.municipio,
-      localidad: data.localidad,
-      domicilio: data.domicilio,
-
-      // Clasificación
-      foraneo: data.foraneo,
-      ocupacion: data.ocupacion,
-      representante: data.representante,
-      via_telefonica: data.via_telefonica,
-      especialidad: data.especialidad,
-      motivo_inconformidad: data.motivo_inconformidad, 
-      submotivo: data.submotivo,
-      tipo_asunto: data.tipo_asunto,
-      observaciones_servicio: data.observaciones_servicio,
-      servicio: data.servicio,
-      no_asignado: data.no_asignado,
-      
-      // CAMPO IMPORTANTE
-      prestador_nombre: data.prestador_nombre, 
-
-      fecha_ultima_actualizacion: new Date()
-    };
-
-    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
-
-    await db.collection('expedientes_detalle').doc(id).set(updateData, { merge: true });
-
-    res.json({ success: true, message: 'Expediente actualizado correctamente.' });
-
-  } catch (error) {
-    console.error("Error actualizando expediente:", error);
-    res.status(500).json({ error: 'Error al actualizar datos' });
-  }
-};
-
-// =====================================================================
-// 7. OBTENER LISTA COMPLETA (Para Tablas)
-// =====================================================================
-const getAllExpedientes = async (req, res) => {
-  try {
-    const { fechaInicio, fechaFin, tipo, nombre } = req.query;
-
-    let basicDataList;
-    if (nombre) {
-      basicDataList = await Atendido.searchByName(nombre);
-    } else {
-      basicDataList = await Atendido.getFiltered({ fechaInicio, fechaFin, tipo });
-    }
-
-    const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
-      const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
-      const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
-
-      // Lógica de Prioridad
-      let prestadorFinal;
-      if (detalleData.prestador_nombre !== undefined) {
-        prestadorFinal = detalleData.prestador_nombre; 
-      } else {
-        prestadorFinal = baseItem.unidad_medica || baseItem.institucion || ''; 
-      }
-
-      let domicilioFinal;
-      if (detalleData.domicilio !== undefined) {
-        domicilioFinal = detalleData.domicilio; 
-      } else {
-        domicilioFinal = baseItem.domicilio || baseItem.domicilio_ciudadano || ''; 
-      }
-
-      let fechaLimpia = '';
-      if (baseItem.fecha_recepcion) { 
-        fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
-          ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
-          : baseItem.fecha_recepcion;
-      }
-      
-      return {
-        id: baseItem.id,
-        ...baseItem,
-        
-        // Datos Base
-        fecha_beneficio: baseItem.fecha_recepcion || '',
-        curp: baseItem.curp || '',
-        nombre: baseItem.nombre || '',
-        apellido_paterno: baseItem.apellido_paterno || '',
-        apellido_materno: baseItem.apellido_materno || '',
-        sexo: baseItem.sexo || '',
-        edad: baseItem.edad_o_nacimiento || '',
-        telefono: baseItem.telefono || '',
-        domicilio: domicilioFinal,
-        descripcion_hechos: baseItem.descripcion_hechos || '',
-
-        // Padrón
-        municipio: detalleData.municipio || '',
-        localidad: detalleData.localidad || '',
-        tipo_beneficiario: detalleData.tipo_beneficiario || '',
-        tipo_apoyo: detalleData.tipo_apoyo || '',
-        monto_apoyo: detalleData.monto_apoyo || '',
-        parentesco: detalleData.parentesco || '',
-        criterio_seleccion: detalleData.criterio_seleccion || '',
-        estado_civil: detalleData.estado_civil || '',
-        cargo_ocupacion: detalleData.cargo_ocupacion || '',
-        actividad_apoyo: detalleData.actividad_apoyo || '',
-
-        // Clasificación
-        foraneo: detalleData.foraneo || '',
-        representante: detalleData.representante || '',
-        via_telefonica: detalleData.via_telefonica || '',
-        submotivo: detalleData.submotivo || '',
-        tipo_asunto: detalleData.tipo_asunto || '',
-        no_asignado: detalleData.no_asignado || '',
-        servicio: detalleData.servicio || '',
-        observaciones_servicio: detalleData.observaciones_servicio || '',
-        motivo: detalleData.motivo_inconformidad || '',
-        especialidad: detalleData.especialidad || '',
-        
-        prestador_nombre: prestadorFinal
-      };
-    }));
-
-    res.status(200).json({ ok: true, count: fullDataList.length, data: fullDataList });
-
-  } catch (error) {
-    console.error("Error en getAllExpedientes:", error);
-    res.status(500).json({ ok: false, message: error.message });
-  }
-};
-
-// =====================================================================
-// 8. GENERAR REPORTE PADRÓN (Limpiar y Rescribir)
-// =====================================================================
-const exportarExpedientesAPadron = async (req, res) => {
-  try {
-    const { fechaInicio, fechaFin, tipo, nombre } = req.query;
-
-    console.log("📄 Generando reporte completo del Padrón...");
-
-    // 1. Obtener Base
-    let basicDataList;
-    if (nombre) {
-      basicDataList = await Atendido.searchByName(nombre);
-    } else {
-      basicDataList = await Atendido.getFiltered({ fechaInicio, fechaFin, tipo });
-    }
-
-    if (!basicDataList || basicDataList.length === 0) {
-       return res.status(200).json({ ok: true, message: 'No se encontraron registros base en esas fechas.', count: 0 });
-    }
-
-    // 2. Fusionar con Detalle
-    const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
-      const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
-      const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
-      
-      let fechaLimpia = '';
-      if (baseItem.fecha_recepcion) {
-        fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
-          ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
-          : baseItem.fecha_recepcion;
-      }
-
-      const edadRaw = baseItem.edad_o_nacimiento || baseItem.fecha_nacimiento || '';
-      const edadLimpia = edadRaw.toString().replace(/ años/gi, '').trim();
-
-      return {
-        id: baseItem.id,
-        ...baseItem,
-        
-        fecha_beneficio: fechaLimpia,
-        curp: baseItem.curp || '',
-        nombre: baseItem.nombre || '',
-        apellido_paterno: baseItem.apellido_paterno || '',
-        apellido_materno: baseItem.apellido_materno || '',
-        sexo: baseItem.sexo || '',
-        edad: edadLimpia,
-        
-        // Datos del detalle (Defaults vacíos para evitar undefined)
-        municipio: detalleData.municipio || '',
-        localidad: detalleData.localidad || '',
-        tipo_beneficiario: detalleData.tipo_beneficiario || 'Directo', // Default sugerido
-        tipo_apoyo: detalleData.tipo_apoyo || 'Servicio',              // Default sugerido
-        monto_apoyo: detalleData.monto_apoyo || '',
-        estado_civil: detalleData.estado_civil || '',
-        cargo_ocupacion: detalleData.cargo_ocupacion || '',
-        parentesco: detalleData.parentesco || 'Beneficiario',
-        criterio_seleccion: detalleData.criterio_seleccion || '',
-        actividad_apoyo: detalleData.actividad_apoyo || ''
-      };
-    }));
-
-    // 3. VALIDACIÓN (MODIFICADA)
-    // He comentado el filtro estricto. Ahora pasará TODO, incluso si falta el municipio.
-    // Esto es útil para debug. Cuando producción esté lista, puedes descomentarlo.
-    
-    const listaLimpia = fullDataList; 
-    
-    /* FILTRO ESTRICTO (Descomentar si solo quieres registros perfectos)
-    const listaLimpia = fullDataList.filter(item => {
-       // Solo exportar si tiene Municipio y Tipo Apoyo definidos
-       return item.municipio && item.tipo_apoyo;
-    });
-    */
-
-    if (listaLimpia.length === 0) {
-      return res.status(200).json({ ok: true, message: 'Hay expedientes, pero faltan datos obligatorios (Municipio/Apoyo) en todos ellos.', count: 0 });
-    }
-
-    // 4. Enviar a Sheets
-    const resultadoSheet = await sheetsService.generarReporteCompleto(listaLimpia);
-
-    // 5. Responder
-    res.status(200).json({ 
-      ok: true, 
-      message: 'Reporte de Padrón actualizado exitosamente.',
-      processed_count: resultadoSheet.count,
-      url: resultadoSheet.url 
-    });
-
-  } catch (error) {
-    console.error("Error en exportarExpedientesAPadron:", error);
-    res.status(500).json({ ok: false, message: error.message });
-  }
-};
-
-// =====================================================================
-// 9. GENERAR REGISTRO CLÁSICO
-// =====================================================================
-const exportarRegistroClasico = async (req, res) => {
-  try {
-    const { fechaInicio, fechaFin, tipo, nombre } = req.query;
-
-    console.log("📊 Generando Registro Clásico...");
-
-    // 1. OBTENER BASE DE DATOS
-    const basicDataList = await Atendido.getFiltered({ fechaInicio, fechaFin, tipo });
-
-    if (!basicDataList || basicDataList.length === 0) {
-       return res.status(200).json({ ok: true, message: 'No hay registros para este periodo.', count: 0 });
-    }
-
-    // 2. FUSIONAR CON DETALLES
-    const fullDataList = await Promise.all(basicDataList.map(async (baseItem) => {
-      const detalleDoc = await db.collection('expedientes_detalle').doc(baseItem.id).get();
-      const detalleData = detalleDoc.exists ? detalleDoc.data() : {};
-      
-      // A. Limpieza de Fecha
-      let fechaLimpia = '';
-      if (baseItem.fecha_recepcion) {
-        fechaLimpia = (typeof baseItem.fecha_recepcion.toDate === 'function') 
-          ? baseItem.fecha_recepcion.toDate().toISOString().split('T')[0] 
-          : baseItem.fecha_recepcion;
-      }
-
-      // B. Limpieza de Edad (AGREGADO) 
-      const edadRaw = baseItem.edad_o_nacimiento || baseItem.fecha_nacimiento || '';
-      const edadLimpia = edadRaw.toString().replace(/ años/gi, '').trim();
-
-      // C. Prioridad de Datos (Prestador y Domicilio)
-      const prestadorFinal = detalleData.prestador_nombre !== undefined 
-            ? detalleData.prestador_nombre 
-            : (baseItem.unidad_medica || baseItem.institucion || '');
-
-      const domicilioFinal = detalleData.domicilio !== undefined
-            ? detalleData.domicilio
-            : (baseItem.domicilio || baseItem.domicilio_ciudadano || '');
-
-      return {
-        id: baseItem.id,
-        ...baseItem,
-        fecha_recepcion: fechaLimpia,
-        edad: edadLimpia, // <--- AHORA SÍ SE MANDA LIMPIA
-
-        // Datos Prioritarios
-        prestador_nombre: prestadorFinal,
-        domicilio: domicilioFinal,
-
-        // Datos Detalle
-        foraneo: detalleData.foraneo,
-        ocupacion: detalleData.cargo_ocupacion || detalleData.ocupacion,
-        representante: detalleData.representante,
-        via_telefonica: detalleData.via_telefonica,
-        especialidad: detalleData.especialidad,
-        motivo_inconformidad: detalleData.motivo_inconformidad,
-        submotivo: detalleData.submotivo,
-        estado_civil: detalleData.estado_civil,
-        actividad_apoyo: detalleData.actividad_apoyo,
-        tipo_asunto: detalleData.tipo_asunto, 
-        observaciones_servicio: detalleData.observaciones_servicio,
-        diagnostico: detalleData.diagnostico
-      };
-    }));
-
-    // 3. ENVIAR A SHEETS
-    const resultado = await sheetsService.generarReporteClasico(fullDataList);
-
-    // 4. GUARDAR FOLIOS
-    if (resultado.updates && resultado.updates.length > 0) {
-        console.log("💾 Guardando folios asignados en Firebase...");
-        const batch = db.batch();
-        
-        resultado.updates.forEach(item => {
-            const docRef = db.collection('expedientes_detalle').doc(item.id);
-            batch.set(docRef, {
-                servicio: item.servicio,
-                no_asignado: item.no_asignado
-            }, { merge: true });
-        });
-
-        await batch.commit();
-        console.log("✅ Folios actualizados correctamente.");
-    }
-
-    res.status(200).json({ 
-      ok: true, 
-      message: 'Registro generado y folios guardados en base de datos.',
-      url: resultado.url,
-      count: resultado.count
-    });
-
-  } catch (error) {
-    console.error("Error en exportarRegistroClasico:", error);
-    res.status(500).json({ ok: false, message: error.message });
-  }
-};
-
-// =====================================================================
-// 10. ACTUALIZAR ESTATUS SIREMED
-// =====================================================================
-const updateEstatusSiremed = async (req, res) => {
-  const { id } = req.params;
-  const { estatus_siremed } = req.body; // <--- Solo extraemos lo que nos importa
-
-  try {
-    // 1. Validación simple: Si no enviaron el dato, no hacemos nada.
-    if (estatus_siremed === undefined) {
-      return res.status(400).json({ message: "Falta el campo estatus_siremed." });
-    }
-
-    // 2. Verificar que el expediente padre exista (Buena práctica mantenerlo)
-    const basicCheck = await db.collection('atendidos').doc(id).get();
-    if (!basicCheck.exists) {
-      return res.status(404).json({ message: "El expediente base no existe." });
-    }
-
-    // 3. Preparamos el objeto SOLO con ese campo y la fecha
-    const updateData = {
-      estatus_siremed: estatus_siremed,
-      fecha_ultima_actualizacion: new Date()
-    };
-
-    // 4. Guardamos
-    // Usamos { merge: true } para que NO borre los otros datos que ya tenga el documento
-    await db.collection('expedientes_detalle').doc(id).set(updateData, { merge: true });
-
-    res.json({ success: true, message: 'Estatus SIREMED actualizado correctamente.' });
-
-  } catch (error) {
-    console.error("Error actualizando estatus:", error);
-    res.status(500).json({ error: 'Error al actualizar el estatus' });
   }
 };
 
@@ -576,11 +290,11 @@ module.exports = {
   getAtendidos,
   getAtendidoById,
   getExpedienteCompleto,
-  getResumenMensual,
-  migrarExpedientes,
   updateExpedienteDetalle,
   getAllExpedientes,
   exportarExpedientesAPadron,
   exportarRegistroClasico, 
-  updateEstatusSiremed
+  updateEstatusSiremed,
+  getResumenMensual,
+  migrarExpedientes
 };

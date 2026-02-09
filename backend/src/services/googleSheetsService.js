@@ -229,7 +229,7 @@ exports.generarReporteCompleto = async (listaDatos) => {
 };
 
 // =====================================================================
-// 3. FUNCIÓN REGISTRO CLÁSICO (Con Acentos ✅)
+// 3. FUNCIÓN REGISTRO CLÁSICO (Con Acentos)
 // =====================================================================
 exports.generarReporteClasico = async (listaDatos) => {
   try {
@@ -244,14 +244,13 @@ exports.generarReporteClasico = async (listaDatos) => {
       return String(a.id).localeCompare(String(b.id));
     });
 
-    // B. INICIALIZAR CONTADORES (Con Acentos)
+    // B. INICIALIZAR CONTADORES
     let contadorGlobal = 1; 
     
-    // Las claves deben coincidir EXACTAMENTE con lo que escribiremos en el Excel
     const contadoresTipo = {
       'Gestión': 0, 
       'Orientación': 0, 
-      'Asesoría': 0, 
+      'Asesoría': 0, // <--- Ahora sí se usará este contador
       'Queja': 0, 
       'Dictamen': 0
     };
@@ -261,18 +260,17 @@ exports.generarReporteClasico = async (listaDatos) => {
       const anio = obtenerAnio(dato.fecha_recepcion);
       const mesRomano = obtenerMesRomano(dato.fecha_recepcion);
 
-      // 1. Limpieza básica para análisis (Quitamos acentos solo para comparar)
+      // 1. Limpieza básica
       let textoBase = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // "orientacion"
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
       
-      // 2. Capitalizar base
-      let tipoAnalisis = textoBase.charAt(0).toUpperCase() + textoBase.slice(1).toLowerCase(); // "Orientacion"
+      let tipoAnalisis = textoBase.charAt(0).toUpperCase() + textoBase.slice(1).toLowerCase(); 
 
-      // 3. DEFINIR TIPO FINAL (CON ACENTOS)
+      // 2. DEFINIR TIPO FINAL (CON ACENTOS Y SIN FUSIONES FORZADAS)
       let tipoFinal = 'Orientación'; // Default
 
       if (tipoAnalisis.includes('Asesoria')) {
-          tipoFinal = 'Orientación'; // Fusión Asesoría -> Orientación
+          tipoFinal = 'Asesoría'; // <--- SE RESPETA: Generará folio 'A-#'
       } else if (tipoAnalisis.includes('Orientacion')) {
           tipoFinal = 'Orientación';
       } else if (tipoAnalisis.includes('Gestion')) {
@@ -283,25 +281,28 @@ exports.generarReporteClasico = async (listaDatos) => {
           tipoFinal = 'Dictamen';
       }
 
-      // 4. Incrementar Contadores
+      // 3. Incrementar Contadores
       if (contadoresTipo.hasOwnProperty(tipoFinal)) {
           contadoresTipo[tipoFinal]++;
       } else {
-          // Si por alguna razón extraña no cae en ninguno, lo mandamos a Orientación
-          tipoFinal = 'Orientación';
+          tipoFinal = 'Orientación'; // Fallback de seguridad
           contadoresTipo['Orientación']++;
       }
       
       const consecutivoTipo = contadoresTipo[tipoFinal];
 
-      // 5. Generar Folio
+      // 4. Generar Folio
       let folioServicio = '';
+      
+      // Casos especiales con fecha en el folio (Queja/Dictamen)
       if (tipoFinal === 'Queja' || tipoFinal === 'Dictamen') {
         const letra = tipoFinal.charAt(0); // Q o D
         folioServicio = `${letra}${consecutivoTipo}/${mesRomano}/${anio}`;
-      } else {
-        const inicial = tipoFinal.charAt(0); // O (Orientación) o G (Gestión)
-        folioServicio = `${inicial}-${consecutivoTipo}`;
+      } 
+      // Casos simples (Orientación, Gestión, ASESORÍA)
+      else {
+        const inicial = tipoFinal.charAt(0); // Toma la 'A' de Asesoría, 'O' de Orientación, 'G' de Gestión
+        folioServicio = `${inicial}-${consecutivoTipo}`; // Ej: A-15, O-20, G-5
       }
 
       const noAsignado = `${contadorGlobal}/${anio}`;
@@ -330,8 +331,7 @@ exports.generarReporteClasico = async (listaDatos) => {
         formatoOracion(dato.submotivo || ''),                        
         formatoOracion(dato.descripcion_hechos || ''),               
         
-        // Aquí va el tipo con acento bonito ✨
-        tipoFinal, 
+        tipoFinal, // Asesoría, Gestión, etc.
         
         formatoOracion(dato.observaciones_servicio || ''),           
         folioServicio,                                               
@@ -339,7 +339,7 @@ exports.generarReporteClasico = async (listaDatos) => {
       ];
     });
 
-    // ... (El resto del código de escritura y retorno se queda igual) ...
+    // D. LIMPIAR Y ESCRIBIR
     const NOMBRE_HOJA = "Datos"; 
 
     try {

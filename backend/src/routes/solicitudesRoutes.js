@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 // Asegúrate que el nombre del archivo coincida (solicitudesController vs solicitudController)
 const solicitudesController = require('../controllers/solicitudController'); 
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 router.use(verifyToken);
 
 // 1. GET (Lista)

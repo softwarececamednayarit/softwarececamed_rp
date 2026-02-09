@@ -1,13 +1,12 @@
-const db = require('../../config/firebase'); 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel');
+const User = require('../models/userModel'); // Tu modelo vitaminado
+const LoggerService = require('../services/loggerService');
 
-// 🔒 CLAVE SECRETA
 const SECRET_KEY = process.env.JWT_SECRET || 'secreto_super_seguro_dev';
 
 // =============================================================================
-// REGISTRO (Crear nuevos usuarios)
+// REGISTRO
 // =============================================================================
 exports.register = async (req, res) => {
   try {
@@ -17,41 +16,32 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Faltan datos obligatorios.' });
     }
 
-    // 1. Verificar duplicados
-    const userQuery = await db.collection('usuarios')
-      .where('email', '==', email)
-      .limit(1)
-      .get();
-
-    if (!userQuery.empty) {
+    // 1. Usar Modelo para verificar
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
       return res.status(400).json({ message: 'El correo electrónico ya está registrado.' });
     }
 
-    // 2. Encriptar contraseña
+    // 2. Encriptar (Esto sí es lógica de negocio, se queda aquí)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. Objeto para guardar
-    const newUserRaw = {
+    // 3. Usar Modelo para crear
+    const newUser = await User.create({
       email,
       password: hashedPassword,
       nombre,
-      role: role || 'admin', 
-      createdAt: new Date().toISOString(),
-      // [NUEVO] Campos por defecto para el control de acceso
-      activo: true, 
-      mustChangePassword: true // Por seguridad, usuarios nuevos deberían cambiar su clave (opcional)
-    };
+      role
+    });
 
-    // 4. Guardar en Firestore
-    const docRef = await db.collection('usuarios').add(newUserRaw);
-
-    // 5. Responder
-    const userModel = new User(docRef.id, newUserRaw);
+    // LOG
+    if (req.user) {
+      LoggerService.log(req.user, 'CREAR', 'USUARIOS', `Registró nuevo usuario: ${email}`, { nuevo_id: newUser.id });
+    }
 
     res.status(201).json({ 
       message: 'Usuario registrado exitosamente', 
-      user: userModel.toSafeJSON() 
+      user: newUser.toSafeJSON() 
     });
 
   } catch (error) {
@@ -61,66 +51,45 @@ exports.register = async (req, res) => {
 };
 
 // =============================================================================
-// LOGIN (Generar Token JWT) - AQUI ESTÁ LA SEGURIDAD
+// LOGIN
 // =============================================================================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email y contraseña requeridos' });
-    }
+    if (!email || !password) return res.status(400).json({ message: 'Email y contraseña requeridos' });
 
     // 1. Buscar usuario
-    const userQuery = await db.collection('usuarios')
-      .where('email', '==', email)
-      .limit(1)
-      .get();
-    
+    const user = await User.findByEmail(email);
     const errorMsg = 'Credenciales inválidas'; 
 
-    if (userQuery.empty) {
-      return res.status(401).json({ message: errorMsg });
-    }
+    if (!user) return res.status(401).json({ message: errorMsg });
 
-    const userDoc = userQuery.docs[0];
-    const userData = userDoc.data();
-
-    // [NUEVO] VALIDACIÓN DE ACCESO: ¿El usuario está activo?
-    // Verificamos explícitamente si es false. Si es undefined (usuarios viejos), los dejamos pasar.
-    if (userData.activo === false) {
-      return res.status(403).json({ 
-        message: 'Acceso denegado. Tu cuenta ha sido inhabilitada por el administrador.' 
-      });
+    // Validar Estatus
+    if (!user.activo) {
+      LoggerService.log(
+        { id: user.id, nombre: user.nombre, role: user.role },
+        'ACCESO_DENEGADO', 'SESION', `Login bloqueado (Usuario Inactivo): ${email}`
+      );
+      return res.status(403).json({ message: 'Acceso denegado. Cuenta inhabilitada.' });
     }
 
     // 2. Comparar contraseña
-    const isMatch = await bcrypt.compare(password, userData.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: errorMsg });
-    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: errorMsg });
 
-    // 3. Modelo limpio
-    const currentUser = new User(userDoc.id, userData);
+    // 3. Token
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: '12h' });
 
-    // 4. Generar Token
-    const tokenPayload = { 
-        id: currentUser.id, 
-        email: currentUser.email, 
-        role: currentUser.role 
-    };
+    LoggerService.log(
+      { id: user.id, nombre: user.nombre, role: user.role },
+      'LOGIN', 'SESION', `Inicio de sesión exitoso`
+    );
 
-    const token = jwt.sign(tokenPayload, SECRET_KEY, { expiresIn: '12h' });
-
-    // 5. Responder
     res.json({
       message: 'Inicio de sesión exitoso',
       token,
-      user: {
-        ...currentUser.toSafeJSON(),
-        // [NUEVO] Enviamos esta bandera para que el Frontend sepa si sugerir cambio de contraseña
-        mustChangePassword: userData.mustChangePassword || false
-      }
+      user: user.toSafeJSON()
     });
 
   } catch (error) {
@@ -130,150 +99,118 @@ exports.login = async (req, res) => {
 };
 
 // =============================================================================
-// CAMBIAR CONTRASEÑA (El usuario cambia SU propia contraseña)
+// CAMBIAR CONTRASEÑA (Usuario Propio)
 // =============================================================================
 exports.changePassword = async (req, res) => {
   try {
     const { email, currentPassword, newPassword } = req.body;
 
-    // Validación básica
-    if (!email || !currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Faltan datos.' });
-    }
+    if (!email || !currentPassword || !newPassword) return res.status(400).json({ message: 'Faltan datos.' });
 
-    const userQuery = await db.collection('usuarios').where('email', '==', email).limit(1).get();
+    const user = await User.findByEmail(email);
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    if (userQuery.empty) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
-    }
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(401).json({ message: 'La contraseña actual es incorrecta' });
 
-    const userDoc = userQuery.docs[0];
-    const userData = userDoc.data();
-
-    // 1. Verificar contraseña actual
-    const isMatch = await bcrypt.compare(currentPassword, userData.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'La contraseña actual es incorrecta' });
-    }
-
-    // 2. Hashear nueva contraseña
     const salt = await bcrypt.genSalt(10);
     const newHashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // 3. Actualizar
-    await db.collection('usuarios').doc(userDoc.id).update({
-      password: newHashedPassword,
-      // [NUEVO] Si el usuario la cambia voluntariamente, quitamos la bandera de obligatoriedad
-      mustChangePassword: false 
+    // Usar Modelo para actualizar
+    await User.update(user.id, { 
+        password: newHashedPassword, 
+        mustChangePassword: false 
     });
+
+    const logUser = req.user || { id: user.id, nombre: user.nombre, role: user.role };
+    LoggerService.log(logUser, 'ACTUALIZAR', 'SEGURIDAD', 'Cambió su propia contraseña');
 
     res.json({ message: 'Contraseña actualizada correctamente' });
 
   } catch (error) {
-    console.error("Error cambiando password:", error);
-    res.status(500).json({ message: 'Error al actualizar la contraseña' });
+    console.error("Error password:", error);
+    res.status(500).json({ message: 'Error al actualizar contraseña' });
   }
 };
 
 // =============================================================================
-// ZONA DE ADMINISTRACIÓN (Funciones exclusivas para el Admin)
+// ZONA DE ADMINISTRACIÓN
 // =============================================================================
 
-// 1. OBTENER TODOS LOS USUARIOS (Para llenar tu tabla en React)
+// 1. GET ALL
 exports.getAllUsers = async (req, res) => {
   try {
-    const snapshot = await db.collection('usuarios').get();
-    
-    const users = snapshot.docs.map(doc => {
-      const d = doc.data();
-      return { 
-        id: doc.id, 
-        nombre: d.nombre, 
-        email: d.email, 
-        role: d.role, 
-        // Si 'activo' no existe (usuarios viejos), asumimos que es true
-        activo: d.activo !== false, 
-        createdAt: d.createdAt 
-        // ⚠️ IMPORTANTE: Nunca devolvemos el password aquí
-      };
-    });
-
+    const users = await User.getAll(); // El modelo ya devuelve el JSON limpio
     res.json(users);
   } catch (error) {
-    console.error("Error obteniendo usuarios:", error);
     res.status(500).json({ message: 'Error al obtener usuarios' });
   }
 };
 
-// 2. INTERRUPTOR DE ACCESO (Banear / Activar)
+// 2. TOGGLE STATUS
 exports.toggleUserStatus = async (req, res) => {
   try {
-    const { id } = req.params; // ID del usuario a modificar
-    const { activo } = req.body; // true o false
+    const { id } = req.params; 
+    const { activo } = req.body; 
 
-    // SEGURIDAD: Evitar que el admin se bloquee a sí mismo por error
-    // (req.user viene del token decodificado en el middleware)
-    if (req.user && req.user.id === id) {
-        return res.status(400).json({ message: "No puedes desactivar tu propia cuenta." });
-    }
+    if (req.user && req.user.id === id) return res.status(400).json({ message: "No puedes desactivarte a ti mismo." });
 
-    await db.collection('usuarios').doc(id).update({ 
-      activo: activo 
-    });
+    await User.update(id, { activo });
 
-    res.json({ message: `Usuario ${activo ? 'activado' : 'inhabilitado'} correctamente` });
+    LoggerService.log(
+      req.user, 'ACTUALIZAR', 'USUARIOS', 
+      `Cambió estatus usuario ${id} a: ${activo ? 'ACTIVO' : 'INACTIVO'}`, 
+      { usuario_afectado: id }
+    );
+
+    res.json({ message: `Estatus actualizado a ${activo ? 'Activo' : 'Inactivo'}` });
   } catch (error) {
-    console.error("Error cambiando estatus:", error);
     res.status(500).json({ message: 'Error al actualizar estatus' });
   }
 };
 
-// 3. RESET DE CONTRASEÑA POR ADMIN (Cuando alguien la olvida)
+// 3. ADMIN RESET PASSWORD
 exports.adminResetPassword = async (req, res) => {
   try {
-    const { id } = req.params; // ID del usuario objetivo
+    const { id } = req.params; 
     const { newPassword, requireChange } = req.body; 
 
-    if (!newPassword) {
-        return res.status(400).json({ message: "La nueva contraseña es obligatoria" });
-    }
+    if (!newPassword) return res.status(400).json({ message: "Contraseña obligatoria" });
 
-    // Encriptar la nueva
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(newPassword, salt);
 
-    await db.collection('usuarios').doc(id).update({
-      password: hash,
-      mustChangePassword: requireChange || false // ¿Obligarlo a cambiarla al entrar?
+    await User.update(id, { 
+        password: hash, 
+        mustChangePassword: requireChange || false 
     });
 
-    res.json({ message: 'Contraseña restablecida con éxito.' });
+    LoggerService.log(req.user, 'ACTUALIZAR', 'SEGURIDAD', `Admin reseteó contraseña usuario ${id}`, { usuario_afectado: id });
+
+    res.json({ message: 'Contraseña restablecida.' });
   } catch (error) {
-    console.error("Error admin reset:", error);
     res.status(500).json({ message: 'Error al resetear contraseña' });
   }
 };
 
+// 4. UPDATE USER
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, email, role } = req.body;
 
-    // Validación básica
-    if (!nombre || !email || !role) {
-      return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
-    }
+    if (!nombre || !email || !role) return res.status(400).json({ message: 'Datos incompletos.' });
 
-    // Actualizamos solo los campos permitidos
-    await db.collection('usuarios').doc(id).update({
-      nombre,
-      email,
-      role
-    });
+    await User.update(id, { nombre, email, role });
 
-    res.json({ message: 'Usuario actualizado correctamente' });
+    LoggerService.log(
+        req.user, 'EDITAR', 'USUARIOS', 
+        `Actualizó perfil usuario ${id}`, 
+        { usuario_afectado: id, cambios: { nombre, email, role } }
+    );
+
+    res.json({ message: 'Usuario actualizado.' });
   } catch (error) {
-    console.error("Error actualizando usuario:", error);
     res.status(500).json({ message: 'Error al actualizar usuario' });
   }
 };
