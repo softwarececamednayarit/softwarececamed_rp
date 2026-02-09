@@ -295,20 +295,30 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("⚠️ ¿ESTÁS SEGURO?\n\nEsta acción eliminará PERMANENTEMENTE el expediente y todos sus detalles.\nNo se puede deshacer.")) {
+    const mensajeConfirmacion = 
+      "⚠️ ¿ESTÁS SEGURO DE ELIMINAR ESTE EXPEDIENTE?\n\n" +
+      "1. Se borrará permanentemente la información complementaria (Padrón, Gestión, Dictamen) y el registro base de este sistema.\n\n" +
+      "2. NOTA: Si el registro original permanece en la fuente de datos (Excel/Forms), podría volver a cargarse automáticamente en el futuro, pero PERDERÁS todos los avances y detalles capturados aquí.\n\n" +
+      "💡 RECOMENDACIÓN:\n" +
+      "• Usa esta función solo para eliminar duplicados o errores de sistema.\n" +
+      "• Si solo quieres corregir datos, hazlo desde la pestaña de 'Edición' en este mismo modal.\n\n" +
+      "¿Deseas proceder con la eliminación?";
+
+    if (!window.confirm(mensajeConfirmacion)) {
         return;
     }
 
     try {
         setIsDeleting(true);
+        // Llamada al servicio que borra tanto 'atendidos' como 'expedientes_detalle'
         await AtendidosService.deleteAtendido(item.id);
         
-        alert("🗑️ Expediente eliminado correctamente.");
+        alert("🗑️ Expediente y sus detalles eliminados correctamente.");
         onClose(); // Cerramos el modal
-        // Nota: Idealmente aquí deberías disparar una función para recargar la tabla padre
+        // Aquí la tabla principal debería recargarse (dependiendo de cómo manejes el estado padre)
     } catch (error) {
         console.error("Error eliminando:", error);
-        alert("❌ Error al eliminar el expediente.");
+        alert("❌ Error al eliminar el expediente. Intente nuevamente.");
     } finally {
         setIsDeleting(false);
     }
