@@ -164,6 +164,29 @@ class AtendidoModel {
      }));
   }
 
+  static async delete(id) {
+    try {
+      const batch = db.batch(); // 👈 Usamos Batch para atomicidad
+
+      // 1. Referencia a la colección base
+      const atendidoRef = db.collection('atendidos').doc(id);
+      
+      // 2. Referencia a la colección de detalles
+      const detalleRef = db.collection('expedientes_detalle').doc(id);
+
+      // 3. Preparamos las eliminaciones
+      batch.delete(atendidoRef);
+      batch.delete(detalleRef);
+
+      // 4. Ejecutamos todo junto
+      await batch.commit();
+      
+      return true;
+    } catch (error) {
+      throw new Error(`Error al eliminar expediente ${id}: ${error.message}`);
+    }
+  }
+
 }
 
 module.exports = AtendidoModel;

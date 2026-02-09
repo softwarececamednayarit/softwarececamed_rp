@@ -50,4 +50,7 @@ router.put('/:id/estatus-siremed', atendidoController.updateEstatusSiremed);
 // Obtener solo datos base (La más genérica de todas, siempre al último)
 router.get('/:id', atendidoController.getAtendidoById);
 
+// Ruta para eliminar (Cuidado: Borrado físico)
+router.delete('/:id', atendidoController.deleteExpediente);
+
 module.exports = router;

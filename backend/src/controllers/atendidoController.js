@@ -284,6 +284,40 @@ const migrarExpedientes = async (req, res) => {
     console.error(error);
     res.status(500).json({ ok: false, message: error.message });
   }
+
+  const deleteExpediente = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      // 1. Verificar existencia (y obtener nombre para el Log)
+      const existing = await Atendido.getById(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "El expediente no existe." });
+      }
+
+      // 2. Ejecutar borrado en el Modelo
+      await Atendido.delete(id);
+
+      // 3. Loguear la acción (Vital para seguridad)
+      const nombreCompleto = `${existing.nombre} ${existing.apellido_paterno}`;
+      
+      LoggerService.log(
+        req.user, 
+        'ELIMINAR', 
+        'EXPEDIENTE', 
+        `Eliminó permanentemente el expediente de: ${nombreCompleto}`,
+        { id_eliminado: id }
+      );
+
+      res.json({ success: true, message: 'Expediente y sus detalles eliminados correctamente.' });
+
+    } catch (error) {
+      console.error("Error delete:", error);
+      res.status(500).json({ ok: false, message: error.message });
+    }
+  }
+
 };
 
 module.exports = {
@@ -296,5 +330,6 @@ module.exports = {
   exportarRegistroClasico, 
   updateEstatusSiremed,
   getResumenMensual,
-  migrarExpedientes
+  migrarExpedientes,
+  deleteExpediente
 };
