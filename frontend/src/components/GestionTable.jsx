@@ -76,8 +76,9 @@ export const GestionTable = ({ onViewDetails }) => {
       observaciones_servicio: row.observaciones_servicio || '',
       
       // Usamos el valor calculado
-      foraneo: valorForaneo, 
-      
+      foraneo: valorForaneo,
+
+      diagnostico: row.diagnostico || '', 
       via_telefonica: row.via_telefonica === true || row.via_telefonica === "true",
       estado_civil: row.estado_civil || ESTADOS_CIVILES[0],
       actividad_apoyo: row.actividad_apoyo || ACTIVIDADES_APOYO[0], 
@@ -202,6 +203,7 @@ export const GestionTable = ({ onViewDetails }) => {
                   <th className="p-4 w-48 bg-slate-100">Socioeconómico</th>
                   <th className="p-4 w-48 bg-slate-100">Actividad / Prestador</th>
                   <th className="p-4 w-64 bg-slate-100">Clasificación (Motivo)</th>
+                  <th className="p-4 w-64 bg-slate-100">Diagnóstico</th>
                   <th className="p-4 w-64 bg-slate-100">Narrativa (No Editable)</th>
                   <th className="p-4 w-48 bg-slate-100">Observaciones</th>
                   <th className="p-4 w-24 text-center bg-slate-100 sticky right-0 z-20">Acciones</th>
@@ -299,6 +301,17 @@ export const GestionTable = ({ onViewDetails }) => {
                              )}
                           </td>
 
+                          <td className="p-2 align-top bg-white">
+                            <textarea 
+                                name="diagnostico" 
+                                value={editForm.diagnostico || ''} 
+                                onChange={handleChange} 
+                                rows="3" 
+                                className="w-full p-1.5 border border-indigo-200 rounded text-xs resize-none placeholder-indigo-300" 
+                                placeholder="Ingrese diagnóstico..." 
+                            />
+                          </td>
+
                           <td className="p-2 align-top bg-slate-50/50">
                              <div className="text-[10px] text-slate-500 max-h-32 overflow-y-auto leading-relaxed border border-dashed border-slate-200 p-1.5 rounded">
                                 {row.descripcion_hechos || 'Sin descripción'}
@@ -349,6 +362,12 @@ export const GestionTable = ({ onViewDetails }) => {
                           <td className="p-4 align-top">
                              <div className="font-medium text-slate-700 mb-1 leading-tight">{row.motivo_inconformidad || '-'}</div>
                              <div className="text-[10px] text-slate-400 leading-tight">↳ {row.submotivo}</div>
+                          </td>
+
+                          <td className="p-4 align-top">
+                            <div className="text-[10px] text-slate-600 font-medium leading-relaxed max-h-32 overflow-y-auto" title={row.diagnostico}>
+                                {row.diagnostico || <span className="text-slate-300 italic">Sin diagnóstico</span>}
+                            </div>
                           </td>
 
                           <td className="p-4 align-top">
