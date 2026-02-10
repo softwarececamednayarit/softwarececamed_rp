@@ -110,6 +110,7 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     municipio: '',
     localidad: '',
     domicilio: '',
+    diagnostico: '',
     
     // -- Datos Gestión / Queja --
     foraneo: false,
@@ -187,6 +188,7 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
             motivo_inconformidad: data.motivo_inconformidad || '',
             submotivo: data.submotivo || '',
             tipo_asunto: data.tipo_asunto || '',
+            diagnostico: data.diagnostico || '',
             observaciones_servicio: data.observaciones_servicio || '',
             servicio: data.servicio || '',
             no_asignado: data.no_asignado || '',
@@ -715,6 +717,9 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
                                 <Stethoscope size={14}/> Clasificación del Asunto
                              </h5>
                         </div>
+                        <div className="md:col-span-2 lg:col-span-4">
+                            <RenderField label="Diagnóstico Médico" value={displayData.diagnostico} icon={Activity} />
+                        </div>
                         <div className="md:col-span-2">
                             <RenderField label="Motivo Inconformidad" value={displayData.motivo_inconformidad} icon={AlertCircle} />
                         </div>
@@ -792,6 +797,18 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
                              <label className="text-xs font-bold text-slate-700 ml-1">Prestador de Servicio / Institución</label>
                              <input type="text" name="prestador_nombre" value={padronForm.prestador_nombre} onChange={handleInputChange} className="w-full bg-indigo-50/50 border border-indigo-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-900" placeholder="Nombre de la unidad o institución..." />
                              <p className="text-[10px] text-slate-400 ml-1">Si se deja vacío, se usará el valor original del expediente.</p>
+                        </div>
+
+                        <div className="md:col-span-2 space-y-1">
+                            <label className="text-xs font-bold text-slate-700 ml-1">Diagnóstico</label>
+                            <textarea 
+                                name="diagnostico" 
+                                value={padronForm.diagnostico} 
+                                onChange={handleInputChange} 
+                                rows="2"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none font-medium text-slate-700"
+                                placeholder="Ingrese el diagnóstico médico..." 
+                            />
                         </div>
 
                         {/* MOTIVO (Headers del Objeto) */}
