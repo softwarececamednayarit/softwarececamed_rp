@@ -116,6 +116,11 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     const { name, value, type, checked } = e.target;
     const val = type === 'checkbox' ? checked : value;
 
+    // AGREGAR ESTA CONDICIÓN PARA EL FOLIO
+    if (name === 'servicio' && typeof val === 'string') {
+        val = val.toUpperCase().trim();
+    }
+
     setPadronForm(prev => {
       const newState = { ...prev, [name]: val };
       if (name === 'motivo_inconformidad') {

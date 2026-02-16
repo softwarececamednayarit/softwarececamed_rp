@@ -39,6 +39,8 @@ export const DetailPadronTab = ({
                 <div className="md:col-span-2 lg:col-span-4 pb-2 border-b border-slate-100 mb-2 mt-4">
                      <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Briefcase size={14}/> Datos de Gestión</h5>
                 </div>
+                <RenderField label="Folio Servicio" value={displayData.servicio} icon={FileText} />
+                <RenderField label="No. Asignado" value={displayData.no_asignado} icon={FileText} />
                 <RenderField label="Foráneo" value={displayData.foraneo} isBool={true} icon={MapIcon} />
                 <RenderField label="Vía Telefónica" value={displayData.via_telefonica} isBool={true} icon={PhoneCall} />
                 <div className="md:col-span-2"><RenderField label="Representante" value={displayData.representante} icon={UserCheck} /></div>
@@ -138,6 +140,16 @@ export const DetailPadronTab = ({
                 <div className="md:col-span-2 pb-2 border-b border-indigo-100 mt-4">
                      <h5 className="text-xs font-black text-indigo-400 uppercase tracking-widest">Datos Administrativos</h5>
                 </div>
+
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 ml-1">Folio Servicio</label>
+                    <input type="text" name="servicio" value={padronForm.servicio} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-mono uppercase" placeholder="Ej: G-01" />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 ml-1">No. Asignado</label>
+                    <input type="text" name="no_asignado" value={padronForm.no_asignado} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-mono uppercase" placeholder="Ej: 1/2026" />
+                </div>
+
                 <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors w-full">
                         <input type="checkbox" name="foraneo" checked={padronForm.foraneo} onChange={handleInputChange} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"/>
