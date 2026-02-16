@@ -1,4 +1,4 @@
-import { Search, Filter, ChevronDown, Calendar, ArrowUpDown, XCircle } from 'lucide-react';
+import { Search, Filter, ChevronDown, Calendar, ArrowUpDown, X } from 'lucide-react';
 
 export const SearchFilters = ({ filters, onFilterChange, onReset }) => {
   
@@ -7,109 +7,110 @@ export const SearchFilters = ({ filters, onFilterChange, onReset }) => {
     onFilterChange({ ...filters, [field]: value });
   };
 
-  return (
-    <div className="w-full space-y-4">
-      
-      {/* --- FILA 1: BUSCADOR PRINCIPAL + RESET --- */}
-      <div className="flex flex-col md:flex-row gap-4 items-end">
-        
-        {/* Input de Texto */}
-        <div className="flex-1 w-full group">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">
-            Buscador Inteligente
-          </label>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-            <input
-              type="text"
-              value={filters.nombre}
-              placeholder="Buscar por nombre"
-              onChange={(e) => handleChange('nombre', e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 pl-12 pr-4 py-3 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-slate-700 font-bold placeholder:text-slate-400 text-sm"
-            />
-          </div>
-        </div>
+  const hasActiveFilters = filters.nombre || filters.tipo || filters.orden !== 'desc' || filters.fechaInicio || filters.fechaFin;
 
-        {/* Botón Limpiar (Reset) */}
-        <button 
-            onClick={onReset}
-            className="hidden md:flex items-center gap-2 px-4 py-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all font-bold text-xs shrink-0"
-            title="Restablecer todos los filtros"
-        >
-            <XCircle size={18} /> Limpiar
-        </button>
+  return (
+    <div className="w-full bg-slate-50/80 border border-slate-100 p-2 md:p-3 rounded-3xl flex flex-col xl:flex-row gap-3">
+      
+      {/* --- SECCIÓN 1: BUSCADOR PRINCIPAL --- */}
+      <div className="flex-1 relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={20} />
+        <input
+          type="text"
+          value={filters.nombre}
+          placeholder="Buscar por nombre, folio o institución..."
+          onChange={(e) => handleChange('nombre', e.target.value)}
+          className="w-full bg-white border-none shadow-sm pl-12 pr-10 py-3.5 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-slate-700 font-bold placeholder:text-slate-400 text-sm h-full"
+        />
+        {filters.nombre && (
+            <button 
+                onClick={() => handleChange('nombre', '')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+            >
+                <X size={16} />
+            </button>
+        )}
       </div>
 
-      {/* --- FILA 2: FILTROS AVANZADOS (Grid) --- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* --- SECCIÓN 2: FILTROS RÁPIDOS --- */}
+      <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
         
-        {/* 1. TIPO DE TRÁMITE */}
-        <div className="relative group">
-            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Tipo</label>
-            <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                <select
-                    value={filters.tipo}
-                    onChange={(e) => handleChange('tipo', e.target.value)}
-                    className="w-full bg-white border border-slate-200 pl-9 pr-8 py-2.5 rounded-xl focus:border-indigo-500 outline-none appearance-none text-xs font-bold text-slate-600 cursor-pointer shadow-sm transition-all hover:border-indigo-200"
-                >
-                    <option value="">Todos</option>
-                    <option value="ASESORÍA">Asesoría</option>
-                    <option value="QUEJA">Queja</option>
-                    <option value="GESTIÓN">Gestión</option>
-                    <option value="ORIENTACIÓN">Orientación</option>
-                    <option value="DICTAMEN">Dictamen</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
+        {/* Filtro: TIPO */}
+        <div className="relative flex-1 md:w-36">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 flex items-center gap-1.5 pointer-events-none">
+                <Filter size={14} />
             </div>
+            <select
+                value={filters.tipo}
+                onChange={(e) => handleChange('tipo', e.target.value)}
+                className="w-full bg-white border-none shadow-sm pl-8 pr-8 py-3.5 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none appearance-none text-xs font-bold text-slate-600 cursor-pointer h-full"
+            >
+                <option value="">Todos los Tipos</option>
+                <option value="ASESORÍA">Asesoría</option>
+                <option value="QUEJA">Queja</option>
+                <option value="GESTIÓN">Gestión</option>
+                <option value="ORIENTACIÓN">Orientación</option>
+                <option value="DICTAMEN">Dictamen</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
         </div>
 
-        {/* 2. ORDENAMIENTO */}
-        <div className="relative group">
-            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Orden</label>
-            <div className="relative">
-                <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                <select
-                    value={filters.orden}
-                    onChange={(e) => handleChange('orden', e.target.value)}
-                    className="w-full bg-white border border-slate-200 pl-9 pr-8 py-2.5 rounded-xl focus:border-indigo-500 outline-none appearance-none text-xs font-bold text-slate-600 cursor-pointer shadow-sm transition-all hover:border-indigo-200"
-                >
-                    <option value="desc">Más Recientes</option>
-                    <option value="asc">Más Antiguos</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
+        {/* Filtro: ORDEN */}
+        <div className="relative flex-1 md:w-40">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <ArrowUpDown size={14} />
             </div>
+            <select
+                value={filters.orden}
+                onChange={(e) => handleChange('orden', e.target.value)}
+                className="w-full bg-white border-none shadow-sm pl-8 pr-8 py-3.5 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none appearance-none text-xs font-bold text-slate-600 cursor-pointer h-full"
+            >
+                <option value="desc">Más Recientes</option>
+                <option value="asc">Más Antiguos</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
         </div>
 
-        {/* 3. FECHA INICIO */}
-        <div>
-            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Desde</label>
-            <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+        {/* Fechas Group */}
+        <div className="flex items-center gap-1 bg-white p-1 rounded-2xl shadow-sm h-full w-full md:w-auto flex-1 md:flex-none">
+            {/* Filtro: DESDE */}
+            <div className="relative flex-1">
                 <input 
                     type="date" 
                     value={filters.fechaInicio}
                     onChange={(e) => handleChange('fechaInicio', e.target.value)}
-                    className="w-full bg-white border border-slate-200 pl-9 pr-2 py-2.5 rounded-xl focus:border-indigo-500 outline-none text-xs font-bold text-slate-600 shadow-sm uppercase cursor-pointer hover:border-indigo-200"
+                    className="w-full bg-transparent border-none py-2.5 pl-3 pr-2 focus:ring-0 outline-none text-[11px] font-bold text-slate-600 uppercase cursor-pointer"
+                    title="Fecha Inicial"
                 />
             </div>
-        </div>
-
-        {/* 4. FECHA FIN */}
-        <div>
-            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Hasta</label>
-            <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+            
+            <span className="text-slate-200">-</span>
+            
+            {/* Filtro: HASTA */}
+            <div className="relative flex-1">
                 <input 
                     type="date" 
                     value={filters.fechaFin}
                     onChange={(e) => handleChange('fechaFin', e.target.value)}
-                    className="w-full bg-white border border-slate-200 pl-9 pr-2 py-2.5 rounded-xl focus:border-indigo-500 outline-none text-xs font-bold text-slate-600 shadow-sm uppercase cursor-pointer hover:border-indigo-200"
+                    className="w-full bg-transparent border-none py-2.5 pl-2 pr-3 focus:ring-0 outline-none text-[11px] font-bold text-slate-600 uppercase cursor-pointer"
+                    title="Fecha Final"
                 />
             </div>
         </div>
 
+        {/* Botón Limpiar (Solo aparece si hay filtros activos) */}
+        {hasActiveFilters && (
+            <button 
+                onClick={onReset}
+                className="flex items-center justify-center p-3.5 md:p-0 md:w-12 h-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 md:hover:bg-transparent rounded-2xl md:rounded-full transition-all shrink-0 w-full"
+                title="Limpiar todos los filtros"
+            >
+                <span className="md:hidden text-xs font-bold mr-2">Limpiar Filtros</span>
+                <X size={18} />
+            </button>
+        )}
       </div>
+
     </div>
   );
 };
