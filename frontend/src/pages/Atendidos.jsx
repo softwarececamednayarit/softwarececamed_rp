@@ -12,16 +12,14 @@ const Atendidos = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // 1. ESTADO DE FILTROS ACTUALIZADO (Con valores por defecto)
   const [filters, setFilters] = useState({ 
     nombre: '', 
     tipo: '', 
-    orden: 'desc', // 'desc' = Más recientes primero
+    orden: 'desc', 
     fechaInicio: '',
     fechaFin: ''
   });
 
-  // 2. FUNCIÓN PARA RESETEAR
   const resetFilters = () => setFilters({ 
     nombre: '', 
     tipo: '', 
@@ -46,18 +44,12 @@ const Atendidos = () => {
     }
   };
 
-  // ========================================================================
-  // 3. LÓGICA DE FILTRADO Y ORDENAMIENTO
-  // ========================================================================
   const dataFiltrada = useMemo(() => {
-    // A. FILTRADO
     let filtered = atendidos.filter(item => {
-      // --- Texto (Busca en nombre, apellidos e institución) ---
       const busqueda = normalizeText(filters.nombre);
       const textoCompleto = normalizeText(`${item.nombre} ${item.apellido_paterno} ${item.apellido_materno} ${item.institucion || ''} ${item.autoridad_responsable || ''}`);
       const coincideTexto = textoCompleto.includes(busqueda);
       
-      // --- Tipo ---
       const filtroTipo = normalizeText(filters.tipo);
       const itemTipo = normalizeText(item.tipo);
       let coincideTipo = true;
@@ -70,22 +62,18 @@ const Atendidos = () => {
           }
       }
 
-      // --- Fechas ---
       let coincideFecha = true;
       if (item.fecha_recepcion) {
-          // Convertimos la fecha del registro a objeto Date (sin hora para evitar problemas de zona horaria si es string)
           const fechaItem = new Date(item.fecha_recepcion); 
           
           if (filters.fechaInicio) {
               const inicio = new Date(filters.fechaInicio);
-              // Resetear horas para comparar solo fechas
               inicio.setHours(0, 0, 0, 0); 
               if (fechaItem < inicio) coincideFecha = false;
           }
           
           if (filters.fechaFin && coincideFecha) {
               const fin = new Date(filters.fechaFin);
-              // Ajustar fin al final del día (23:59:59)
               fin.setHours(23, 59, 59, 999); 
               if (fechaItem > fin) coincideFecha = false;
           }
@@ -94,23 +82,19 @@ const Atendidos = () => {
       return coincideTexto && coincideTipo && coincideFecha;
     });
 
-    // B. ORDENAMIENTO
     return filtered.sort((a, b) => {
         const fechaA = new Date(a.fecha_recepcion || 0).getTime();
         const fechaB = new Date(b.fecha_recepcion || 0).getTime();
         
         if (filters.orden === 'asc') {
-            return fechaA - fechaB; // Antiguo -> Reciente
+            return fechaA - fechaB; 
         } else {
-            return fechaB - fechaA; // Reciente -> Antiguo (Default)
+            return fechaB - fechaA; 
         }
     });
 
   }, [atendidos, filters]);
 
-  // ========================================================================
-  // 4. ESTADÍSTICAS (Sobre el total global, no el filtrado)
-  // ========================================================================
   const stats = useMemo(() => {
     const countByKeyword = (keyword) => 
       atendidos.filter(a => normalizeText(a.tipo).includes(normalizeText(keyword))).length;
@@ -137,42 +121,52 @@ const Atendidos = () => {
         {/* HEADER */}
         <header className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none" />
-          <div className="space-y-2 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-slate-900 rounded-xl text-white shadow-lg shadow-slate-900/20">
-                <Users size={24} /> 
-              </div>
+          
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="p-4 bg-slate-900 rounded-2xl text-white shadow-lg shadow-slate-900/20 hidden sm:block">
+              <Users size={32} /> 
+            </div>
+            <div>
               <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
                 Panel de Atendidos
               </h1>
-            </div>
-            <div className="flex items-center gap-2 pl-1">
-              <span className={`flex h-2 w-2 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></span>
-              <p className="text-slate-500 font-medium text-sm">
-                Mostrando <span className="text-slate-900 font-bold">{dataFiltrada.length}</span> registros.
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`flex h-2 w-2 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></span>
+                <p className="text-slate-500 font-medium text-sm">
+                  Mostrando <span className="text-slate-900 font-bold">{dataFiltrada.length}</span> resultados de su búsqueda.
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 relative z-10">
+
+          <div className="flex items-center gap-6 sm:gap-10 border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-10 relative z-10">
+            <div className="flex flex-col items-start md:items-center">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Histórico</span>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black text-slate-900 leading-none">{stats.total}</span>
+                    <span className="text-sm font-bold text-slate-400">Reg.</span>
+                </div>
+            </div>
+
             <button 
               onClick={fetchData} 
               disabled={loading} 
-              className="group flex items-center justify-center gap-2.5 bg-white border border-slate-200 px-6 py-3.5 rounded-2xl font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50/50 transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              className="group flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-100 px-5 py-3 rounded-xl font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50"
             >
-              <RefreshCw size={18} className={`transition-transform group-hover:rotate-180 ${loading ? 'animate-spin text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'}`} />
-              <span>{loading ? 'Actualizando...' : 'Actualizar Datos'}</span>
+              <RefreshCw size={16} className={`transition-transform ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+              <span className="hidden sm:inline">{loading ? 'Actualizar' : 'Sincronizar'}</span>
             </button>
           </div>
         </header>
 
-        {/* ESTADÍSTICAS */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-          <StatCard title="Total" count={stats.total} icon={<Users size={24} />} colorClass="bg-slate-900 shadow-xl shadow-slate-200" />
+        {/* ESTADÍSTICAS - 5 TARJETAS EN UNA SOLA FILA */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
+          
           <StatCard title="Quejas" count={stats.quejas} icon={<AlertCircle size={24} />} colorClass="bg-rose-600 shadow-xl shadow-rose-100" />
           <StatCard title="Gestiones" count={stats.gestiones} icon={<Briefcase size={24} />} colorClass="bg-emerald-600 shadow-xl shadow-emerald-100" />
           <StatCard title="Dictámenes" count={stats.dictamenes} icon={<Scale size={24} />} colorClass="bg-purple-600 shadow-xl shadow-purple-100" />
 
-          {/* Tarjeta Asesorías */}
+          {/* Tarjeta Asesorías Original (Con su Hover) */}
           <div className="group relative bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200 border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-blue-200 hover:border-blue-100 cursor-default">
             <div className="flex items-center gap-4 transition-all duration-300 group-hover:opacity-0 group-hover:scale-95">
                 <div className="p-4 bg-blue-600 rounded-2xl text-white shadow-lg shadow-blue-100 shrink-0">
@@ -188,18 +182,19 @@ const Atendidos = () => {
                   <div className="flex-1 flex flex-col items-center justify-center p-2 text-center group/item">
                       <div className="mb-1 text-blue-200 group-hover/item:text-white transition-colors"><Zap size={20} /></div>
                       <span className="text-2xl font-black text-white">{stats.asesoriaInmediata}</span>
-                      <span className="text-[9px] font-bold text-blue-200 uppercase tracking-widest">Inmediata</span>
+                      <span className="text-[9px] font-bold text-blue-200 uppercase tracking-widest mt-1">Inmediata</span>
                   </div>
                   <div className="flex-1 flex flex-col items-center justify-center p-2 text-center group/item">
                       <div className="mb-1 text-blue-200 group-hover/item:text-white transition-colors"><FileText size={20} /></div>
                       <span className="text-2xl font-black text-white">{stats.asesoriaGeneral}</span>
-                      <span className="text-[9px] font-bold text-blue-200 uppercase tracking-widest">General</span>
+                      <span className="text-[9px] font-bold text-blue-200 uppercase tracking-widest mt-1">General</span>
                   </div>
                </div>
             </div>
           </div>
 
           <StatCard title="Orientaciones" count={stats.orientaciones} icon={<Compass size={24} />} colorClass="bg-amber-500 shadow-xl shadow-amber-100" />
+          
         </section>
 
         {/* TABLA Y FILTROS */}
@@ -211,7 +206,6 @@ const Atendidos = () => {
                   <p className="text-xs text-slate-400 mt-1">Gestione y filtre los expedientes</p>
               </div>
               
-              {/* 5. PASAMOS LAS PROPS CORRECTAS AL NUEVO FILTRO */}
               <div className="flex-1 max-w-4xl">
                   <SearchFilters 
                     filters={filters} 
