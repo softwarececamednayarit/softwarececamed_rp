@@ -233,9 +233,9 @@ exports.generarReporteCompleto = async (listaDatos) => {
 // =====================================================================
 exports.generarReporteClasico = async (listaDatos) => {
   try {
-    console.log(`📄 Generando Registro Clásico ESTABLE para ${listaDatos.length} expedientes...`);
+    console.log(`📄 Generando Registro Clásico para ${listaDatos.length} expedientes...`);
 
-    // A. ORDENAR CRONOLÓGICAMENTE
+    // A. ORDENAR CRONOLÓGICAMENTE (Esto se mantiene para orden visual)
     listaDatos.sort((a, b) => {
       const fechaA = new Date(a.fecha_recepcion || 0).getTime();
       const fechaB = new Date(b.fecha_recepcion || 0).getTime();
@@ -244,33 +244,19 @@ exports.generarReporteClasico = async (listaDatos) => {
       return String(a.id).localeCompare(String(b.id));
     });
 
-    // B. INICIALIZAR CONTADORES
-    let contadorGlobal = 1; 
-    
-    const contadoresTipo = {
-      'Gestión': 0, 
-      'Orientación': 0, 
-      'Asesoría': 0, // <--- Ahora sí se usará este contador
-      'Queja': 0, 
-      'Dictamen': 0
-    };
-
-    // C. MAPEO Y CÁLCULO
+    // B. MAPEO (Sin contadores, solo cálculo de tipo para la columna visual)
     const filas = listaDatos.map(dato => {
-      const anio = obtenerAnio(dato.fecha_recepcion);
-      const mesRomano = obtenerMesRomano(dato.fecha_recepcion);
-
-      // 1. Limpieza básica
+      
+      // 1. Cálculo del Tipo (Solo para llenar la columna "TIPO DE ASUNTO")
+      // Mantenemos esta lógica para que la columna 18 (Tipo) salga correcta visualmente.
       let textoBase = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
           .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
       
       let tipoAnalisis = textoBase.charAt(0).toUpperCase() + textoBase.slice(1).toLowerCase(); 
-
-      // 2. DEFINIR TIPO FINAL (CON ACENTOS Y SIN FUSIONES FORZADAS)
-      let tipoFinal = 'Orientación'; // Default
+      let tipoFinal = 'Orientación';
 
       if (tipoAnalisis.includes('Asesoria')) {
-          tipoFinal = 'Asesoría'; // <--- SE RESPETA: Generará folio 'A-#'
+          tipoFinal = 'Asesoría';
       } else if (tipoAnalisis.includes('Orientacion')) {
           tipoFinal = 'Orientación';
       } else if (tipoAnalisis.includes('Gestion')) {
@@ -281,65 +267,43 @@ exports.generarReporteClasico = async (listaDatos) => {
           tipoFinal = 'Dictamen';
       }
 
-      // 3. Incrementar Contadores
-      if (contadoresTipo.hasOwnProperty(tipoFinal)) {
-          contadoresTipo[tipoFinal]++;
-      } else {
-          tipoFinal = 'Orientación'; // Fallback de seguridad
-          contadoresTipo['Orientación']++;
-      }
-      
-      const consecutivoTipo = contadoresTipo[tipoFinal];
-
-      // 4. Generar Folio
-      let folioServicio = '';
-      
-      // Casos especiales con fecha en el folio (Queja/Dictamen)
-      if (tipoFinal === 'Queja' || tipoFinal === 'Dictamen') {
-        const letra = tipoFinal.charAt(0); // Q o D
-        folioServicio = `${letra}${consecutivoTipo}/${mesRomano}/${anio}`;
-      } 
-      // Casos simples (Orientación, Gestión, ASESORÍA)
-      else {
-        const inicial = tipoFinal.charAt(0); // Toma la 'A' de Asesoría, 'O' de Orientación, 'G' de Gestión
-        folioServicio = `${inicial}-${consecutivoTipo}`; // Ej: A-15, O-20, G-5
-      }
-
-      const noAsignado = `${contadorGlobal}/${anio}`;
-      contadorGlobal++;
-
+      // 2. Formateo de nombres
       const nombreCompleto = formatoTitulo(`${dato.nombre || ''} ${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`);
       const prestador = formatoTitulo(dato.prestador_nombre || '');
 
+      // 3. RETORNO DE FILA
+      // NOTA: En las últimas dos posiciones ahora ponemos directamente el valor de la BD
       return [
-        dato.fecha_recepcion || '',                                  
-        dato.foraneo ? 'Si' : 'No',                                  
-        nombreCompleto,                                              
-        formatoTitulo(dato.domicilio || ''),                         
-        dato.telefono || '',                                         
-        dato.edad || '',                                             
-        formatoTitulo(dato.estado_civil || ''),                      
-        formatoTitulo(dato.sexo || ''),                              
+        dato.fecha_recepcion || '',                                      
+        dato.foraneo ? 'Si' : 'No',                                      
+        nombreCompleto,                                                      
+        formatoTitulo(dato.domicilio || ''),                             
+        dato.telefono || '',                                                 
+        dato.edad || '',                                                     
+        formatoTitulo(dato.estado_civil || ''),                              
+        formatoTitulo(dato.sexo || ''),                                      
         formatoTitulo(dato.ocupacion || dato.cargo_ocupacion || ''), 
-        (dato.curp || '').toUpperCase(),                             
+        (dato.curp || '').toUpperCase(),                                     
         formatoTitulo(dato.representante || ''),                     
-        dato.via_telefonica ? 'Si' : 'No',                           
-        prestador,                                                   
-        formatoOracion(dato.diagnostico || ''),                      
-        formatoTitulo(dato.especialidad || ''),                      
+        dato.via_telefonica ? 'Si' : 'No',                                   
+        prestador,                                                           
+        formatoOracion(dato.diagnostico || ''), 
+        formatoTitulo(dato.especialidad || ''),                              
         formatoOracion(dato.motivo_inconformidad || ''),             
-        formatoOracion(dato.submotivo || ''),                        
+        formatoOracion(dato.submotivo || ''),                                
         formatoOracion(dato.descripcion_hechos || ''),               
         
-        tipoFinal, // Asesoría, Gestión, etc.
+        tipoFinal, // Columna calculada (TIPO DE ASUNTO)
         
         formatoOracion(dato.observaciones_servicio || ''),           
-        folioServicio,                                               
-        noAsignado                                                   
+        
+        // 👇 AQUÍ YA NO SE GENERA, SE PONE LO QUE HAYA EN BD O VACÍO
+        dato.servicio || '',       // Columna "Folio Servicio"                                                
+        dato.no_asignado || ''     // Columna "No. Asignado / Interno"                                              
       ];
     });
 
-    // D. LIMPIAR Y ESCRIBIR
+    // C. LIMPIAR Y ESCRIBIR EN SHEETS
     const NOMBRE_HOJA = "Datos"; 
 
     try {
@@ -348,7 +312,7 @@ exports.generarReporteClasico = async (listaDatos) => {
         range: `${NOMBRE_HOJA}!A2:V10000`, 
       });
     } catch (e) {
-      console.warn(`Aviso: No se pudo limpiar la hoja. Verifica Excel.`);
+      console.warn(`Aviso: No se pudo limpiar la hoja o es la primera vez.`);
     }
 
     if (filas.length > 0) {
@@ -360,17 +324,13 @@ exports.generarReporteClasico = async (listaDatos) => {
       });
     }
 
-    const datosParaGuardar = listaDatos.map((dato, index) => ({
-      id: dato.id,
-      servicio: filas[index][20],    
-      no_asignado: filas[index][21]  
-    }));
-
+    // D. RETORNO
+    // Ya no devolvemos 'updates' porque no generamos nada nuevo para guardar.
     return { 
         success: true, 
         url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`, 
         count: filas.length,
-        updates: datosParaGuardar 
+        updates: [] // Enviamos vacío para no romper el controlador si espera este array
     };
 
   } catch (error) {

@@ -155,22 +155,6 @@ const exportarRegistroClasico = async (req, res) => {
 
     const resultado = await sheetsService.generarReporteClasico(fullDataList);
 
-    // Guardar folios generados (Esto sí requiere Batch, se puede quedar aquí o mover al modelo)
-    if (resultado.updates && resultado.updates.length > 0) {
-        console.log("💾 Guardando folios...");
-        // Opción A: Dejarlo aquí (está bien porque es lógica de 'post-proceso')
-        // Opción B: Moverlo a AtendidoModel.updateFoliosBatch(resultado.updates)
-        const batch = db.batch();
-        resultado.updates.forEach(item => {
-            const docRef = db.collection('expedientes_detalle').doc(item.id);
-            batch.set(docRef, {
-                servicio: item.servicio,
-                no_asignado: item.no_asignado
-            }, { merge: true });
-        });
-        await batch.commit();
-    }
-
     LoggerService.log(
         req.user, 'EXPORTAR', 'REGISTRO_CLASICO', 
         `Generó reporte Clásico y folios.`, 
