@@ -5,6 +5,8 @@ import {
 import { getStatusColor } from '../utils/formatters';
 import { AtendidosService } from '../services/atendidosService'; 
 import { ESTATUS_SIREMED_OPCIONES, ESPECIALIDADES_LISTA, MOTIVOS_CATALOGO } from '../utils/catalogs';
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 // Subcomponentes importados
 import { DetailGeneralTab } from './DetailGeneralTab';
@@ -114,7 +116,7 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   // --- HANDLERS ---
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const val = type === 'checkbox' ? checked : value;
+    let val = type === 'checkbox' ? checked : value;
 
     // AGREGAR ESTA CONDICIÓN PARA EL FOLIO
     if (name === 'servicio' && typeof val === 'string') {
@@ -140,7 +142,7 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
       setFullData(prev => ({ ...prev, estatus_siremed: newStatus }));
     } catch (error) {
       console.error("Error actualizando estatus SIREMED:", error);
-      alert("❌ No se pudo actualizar el estatus.");
+      toast.error("❌ No se pudo actualizar el estatus.");
     } finally {
       setUpdatingStatus(false);
     }
@@ -172,31 +174,56 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     try {
       setSaving(true);
       await AtendidosService.updatePadron(item.id, padronForm);
-      alert("✅ Información actualizada correctamente.");
+      toast("✅ Información actualizada correctamente.");
       setFullData(prev => ({ ...prev, ...padronForm }));
       setIsEditingPadron(false); 
     } catch (error) {
       console.error(error);
-      alert("❌ Error al guardar la información.");
+      toast.error("❌ Error al guardar la información.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    const msg = "⚠️ ¿ESTÁS SEGURO DE ELIMINAR ESTE EXPEDIENTE?\n\n1. Se borrará permanentemente la información.\n2. Si el registro original sigue en Excel/Forms, podría volver a cargarse.\n\n¿Deseas proceder?";
-    if (!window.confirm(msg)) return;
+    // 1. Configuramos la alerta moderna
+    const result = await Swal.fire({
+      title: '¿ELIMINAR ESTE EXPEDIENTE?',
+      html: `
+        <div style="text-align: left; font-size: 0.9em;">
+          <p>1. Se borrará permanentemente la información.</p>
+          <p>2. Si el registro original sigue en Excel/Forms, podría volver a cargarse.</p>
+          <br>
+          <p style="font-weight: bold; color: #ef4444;">¿Deseas proceder?</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48', // Un rojo intenso para peligro
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'rounded-3xl' // Para que combine con tus otros modales
+      }
+    });
 
+    // 2. Si el usuario cierra o cancela, detenemos la ejecución
+    if (!result.isConfirmed) return;
+
+    // 3. Si confirmó, procedemos con la lógica que ya tenías
     try {
-        setIsDeleting(true);
-        await AtendidosService.deleteAtendido(item.id);
-        alert("🗑️ Expediente eliminado correctamente.");
-        onClose(); 
+      setIsDeleting(true);
+      await AtendidosService.deleteAtendido(item.id);
+      
+      // Cambiamos el toast genérico por uno de éxito (en verde)
+      toast.success("Expediente eliminado correctamente.");
+      onClose(); 
     } catch (error) {
-        console.error("Error eliminando:", error);
-        alert("❌ Error al eliminar el expediente.");
+      console.error("Error eliminando:", error);
+      toast.error("Error al eliminar el expediente.");
     } finally {
-        setIsDeleting(false);
+      setIsDeleting(false);
     }
   };
 
@@ -205,9 +232,9 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
       document.body.style.cursor = 'wait';
       const basicData = await AtendidosService.getById(item.id);
       await navigator.clipboard.writeText(JSON.stringify(basicData.data || basicData));
-      alert("📋 Datos básicos copiados.");
+      toast("📋 Datos básicos copiados.");
     } catch (err) {
-      alert("❌ Error al copiar datos.");
+      toast.error("❌ Error al copiar datos.");
     } finally {
       document.body.style.cursor = 'default';
     }

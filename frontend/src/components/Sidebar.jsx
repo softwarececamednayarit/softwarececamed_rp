@@ -79,9 +79,26 @@ export const Sidebar = ({ currentView, onNavigate }) => {
     `;
   };
 
-  const handleLogout = () => {
-    if (window.confirm("¿Desea cerrar sesión?")) {
+  const handleLogout = async () => {
+  // 1. Lanzamos la alerta
+  const result = await Swal.fire({
+    title: '¿Cerrar sesión?',
+    text: "Deberás ingresar tus credenciales nuevamente para acceder.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#4f46e5', // Indigo para que combine con tu login
+    cancelButtonColor: '#94a3b8',
+    confirmButtonText: 'Sí, salir',
+    cancelButtonText: 'Cancelar',
+    customClass: {
+      popup: 'rounded-3xl'
+    }
+  });
+
+  // 2. Si el usuario confirma, ejecutamos el logout
+  if (result.isConfirmed) {
       logout();
+      toast.success("Sesión cerrada.");
     }
   };
 

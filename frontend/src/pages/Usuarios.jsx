@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { 
   UserPlus, 
   Search, 
@@ -44,7 +45,7 @@ const Usuarios = () => {
       const data = await getAllUsersRequest();
       setUsers(data);
     } catch (error) {
-      alert('Error al cargar usuarios: ' + error.message);
+      toast.error('Error al cargar usuarios: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ const Usuarios = () => {
     try {
       await toggleUserStatusRequest(user.id, nuevoEstado);
     } catch (error) {
-      alert('Error al cambiar estatus: ' + error.message);
+      toast.error('Error al cambiar estatus: ' + error.message);
       setUsers(oldUsers);
     }
   };
@@ -84,18 +85,18 @@ const Usuarios = () => {
       if (editingUser) {
         // MODO EDICIÓN
         await updateUserRequest(editingUser.id, formData);
-        alert('Usuario actualizado correctamente');
+        toast('Usuario actualizado correctamente');
       } else {
         // MODO CREACIÓN
         await registerUserRequest(formData);
-        alert('Usuario creado exitosamente');
+        toast('Usuario creado exitosamente');
       }
       
       await fetchUsers(); // Recargar tabla
       setIsCreateModalOpen(false);
       setEditingUser(null);
     } catch (error) {
-      alert(error.message);
+      toast(error.message);
     }
   };
 
@@ -109,9 +110,9 @@ const Usuarios = () => {
     try {
       await adminResetPasswordRequest(selectedUser.id, newPassword, requireChange);
       setIsResetModalOpen(false);
-      alert('Contraseña actualizada correctamente');
+      toast('Contraseña actualizada correctamente');
     } catch (error) {
-      alert(error.message);
+      toast(error.message);
     }
   };
 

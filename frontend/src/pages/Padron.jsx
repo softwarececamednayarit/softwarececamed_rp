@@ -3,6 +3,8 @@ import { PadronTable } from '../components/PadronTable';
 import { AtendidosService } from '../services/atendidosService'; 
 import { ShieldCheck, FileSpreadsheet, Loader2, Database } from 'lucide-react';
 import { DetailModal } from '../components/DetailModal'; // <--- 1. IMPORTAR MODAL
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 export const Padron = () => {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -10,12 +12,30 @@ export const Padron = () => {
   const [selectedItem, setSelectedItem] = useState(null); // <--- 2. ESTADO DEL MODAL
 
   const handleGenerarReporte = async () => {
-    const confirmado = window.confirm(
-      "¿Generar reporte actualizado en Google Sheets?\n\n" +
-      "⚠️ IMPORTANTE: Esto borrará el contenido actual del archivo Excel y escribirá toda la base de datos fresca."
-    );
+    // 1. Alerta de advertencia con SweetAlert2
+    const result = await Swal.fire({
+      title: '¿Generar reporte actualizado?',
+      html: `
+        <div style="text-align: left; font-size: 0.9em;">
+          <p style="color: #ef4444; font-weight: bold; margin-bottom: 10px;">
+            ⚠️ IMPORTANTE: Esto borrará el contenido actual del archivo Excel.
+          </p>
+          <p>Se escribirá toda la base de datos fresca en Google Sheets.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5', // Indigo-600
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, generar reporte',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'rounded-3xl'
+      }
+    });
 
-    if (!confirmado) return;
+    // 2. Si no confirma, cancelamos
+    if (!result.isConfirmed) return;
 
     try {
       setIsSyncing(true);
@@ -24,15 +44,19 @@ export const Padron = () => {
 
       if (resultado.ok && resultado.url) {
         window.open(resultado.url, '_blank');
-        window.alert(`¡Reporte Generado!\nSe exportaron ${resultado.total || 'todos los'} registros correctamente.`);
+        
+        // Toast de éxito con icono verde
+        toast.success(`¡Reporte Generado! Se exportaron ${resultado.total || 'todos los'} registros.`);
+        
         setRefreshKey(prev => prev + 1); 
       } else {
-        window.alert(resultado.message || "No se pudo generar el reporte.");
+        // Toast de aviso/error
+        toast.error(resultado.message || "No se pudo generar el reporte.");
       }
 
     } catch (error) {
       console.error("Error reporte:", error);
-      window.alert("Error.\nHubo un problema al generar el archivo. Intenta de nuevo.");
+      toast.error("Hubo un problema al generar el archivo. Intenta de nuevo.");
     } finally {
       setIsSyncing(false);
     }

@@ -3,6 +3,7 @@ import {
   Search, Save, X, Edit2, Loader2, AlertCircle, FileSpreadsheet, Eye 
 } from 'lucide-react';
 import { AtendidosService } from '../services/atendidosService';
+import toast from 'react-hot-toast';
 // NOTA: Eliminamos la importación de DetailModal aquí.
 
 // --- CONSTANTES ---
@@ -99,7 +100,7 @@ export const PadronTable = ({ onViewDetails }) => {
       setEditingId(null);
     } catch (error) {
       console.error(error);
-      alert("Error al guardar");
+      toast.error("error al guardar");
     } finally {
       setSaving(false);
     }

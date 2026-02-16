@@ -4,6 +4,7 @@ import {
   Briefcase, Eye, MessageSquare, Building2 
 } from 'lucide-react';
 import { AtendidosService } from '../services/atendidosService';
+import toast from 'react-hot-toast';
 
 // =============================================================================
 // CATÁLOGOS ESTÁTICOS
@@ -250,7 +251,7 @@ export const GestionTable = ({ onViewDetails }) => {
         const regexQueja = /^[A-Z]\d{1,4}\/[IVXLCDM]+\/\d{4}$/; 
 
         if (!regexBasico.test(servicioTrimmed) && !regexQueja.test(servicioTrimmed)) {
-            alert("❌ El formato del Folio de Servicio es incorrecto.\nEjemplos válidos:\n• G-01\n• O-15\n• Q1/V/2026");
+            toast.error("❌ El formato del Folio de Servicio es incorrecto.\nEjemplos válidos:\n• G-01\n• O-15\n• Q1/V/2026");
             return;
         }
 
@@ -261,7 +262,7 @@ export const GestionTable = ({ onViewDetails }) => {
             const letraIngresada = servicioTrimmed.charAt(0).toUpperCase();
 
             if (letraEsperada !== letraIngresada) {
-                alert(`❌ Inconsistencia detectada:\n\nEl Folio ingresado empieza con "${letraIngresada}", pero la actividad seleccionada es "${actividadSeleccionada}".\n\nEl folio debería empezar con la letra "${letraEsperada}".`);
+                toast.error(`❌ Inconsistencia detectada:\n\nEl Folio ingresado empieza con "${letraIngresada}", pero la actividad seleccionada es "${actividadSeleccionada}".\n\nEl folio debería empezar con la letra "${letraEsperada}".`);
                 return;
             }
         }
@@ -279,7 +280,7 @@ export const GestionTable = ({ onViewDetails }) => {
     );
 
     if (duplicadoServicio) {
-        alert(`❌ El Folio de Servicio "${servicioTrimmed}" ya está asignado a otro expediente en el año ${anioFilaActual}.\n\nExpediente conflicto:\n${duplicadoServicio.nombre} ${duplicadoServicio.apellido_paterno} (${duplicadoServicio.id})`);
+        toast.error(`❌ El Folio de Servicio "${servicioTrimmed}" ya está asignado a otro expediente en el año ${anioFilaActual}.\n\nExpediente conflicto:\n${duplicadoServicio.nombre} ${duplicadoServicio.apellido_paterno} (${duplicadoServicio.id})`);
         return;
     }
 
@@ -292,7 +293,7 @@ export const GestionTable = ({ onViewDetails }) => {
             getYearFromRow(item) === anioFilaActual
         );
         if (duplicadoAsignado) {
-            alert(`❌ El No. Asignado "${noAsignadoTrimmed}" ya existe en el año ${anioFilaActual}.`);
+            toast.error(`❌ El No. Asignado "${noAsignadoTrimmed}" ya existe en el año ${anioFilaActual}.`);
             return;
         }
     }
@@ -307,7 +308,7 @@ export const GestionTable = ({ onViewDetails }) => {
       setIsOtherSubmotivo(false);
     } catch (error) {
       console.error(error);
-      alert("❌ Error al guardar gestión. Verifique la conexión.");
+      toast.error("❌ Error al guardar gestión. Verifique la conexión.");
     } finally {
       setSaving(false);
     }

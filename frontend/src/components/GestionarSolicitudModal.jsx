@@ -4,7 +4,7 @@ import {
   MapPin, Mail, Calendar, User, Hash, Building,
   Stethoscope, AlertCircle, Users, HeartHandshake // <--- 1. AGREGAMOS ICONOS NUEVOS
 } from 'lucide-react';
-
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext'; 
 import solicitudesService from '../services/solicitudesService';
 
@@ -43,7 +43,7 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
 
   const handleSubmit = async () => {
     if (statusLlamada === 'pendiente') {
-      alert("Por favor selecciona el resultado de la llamada (No Contestó o Contactado).");
+      toast("Por favor selecciona el resultado de la llamada (No Contestó o Contactado).");
       return;
     }
 
@@ -57,7 +57,7 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
           datos_completos: solicitud 
         });
         
-        alert("✅ Solicitud procesada como ASESORÍA.");
+        toast("✅ Solicitud procesada como ASESORÍA.");
         onRefresh(); 
         onClose();   
 
@@ -70,13 +70,13 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
             nombreUsuario
         );
         
-        alert("⚠️ Seguimiento actualizado.");
+        toast("⚠️ Seguimiento actualizado.");
         onRefresh();
         onClose();
       }
     } catch (error) {
       console.error("❌ ERROR:", error);
-      alert("Ocurrió un error al guardar.");
+      toast("Ocurrió un error al guardar.");
     } finally {
       setLoading(false);
     }

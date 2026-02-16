@@ -3,6 +3,8 @@ import { GestionTable } from '../components/GestionTable';
 import { AtendidosService } from '../services/atendidosService'; 
 import { ShieldCheck, FileSpreadsheet, Loader2, Briefcase } from 'lucide-react';
 import { DetailModal } from '../components/DetailModal'; // <--- 1. IMPORTAR MODAL
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 export const Gestion = () => {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -11,13 +13,28 @@ export const Gestion = () => {
 
   // --- FUNCIÓN DE SINCRONIZACIÓN ---
   const handleSincronizar = async () => {
-    const confirmado = window.confirm(
-      "¿Generar el Registro Clásico en Google Sheets?\n\n" +
-      "⚠️ ESTO SOBRESCRIBIRÁ EL ARCHIVO.\n" +
-      "Se ordenarán los expedientes por fecha y se asignarán folios consecutivos automáticamente (G-XX, Q-XX)."
-    );
+    // 1. Reemplazamos window.confirm por Swal.fire
+    const result = await Swal.fire({
+      title: '¿Generar Registro Clásico?',
+      html: `
+        <div style="text-align: left; font-size: 0.9em;">
+          <p style="color: #ef4444; font-weight: bold;">⚠️ ESTO SOBRESCRIBIRÁ EL ARCHIVO EN GOOGLE SHEETS.</p>
+          <p>Se ordenarán los expedientes por fecha y se asignarán folios consecutivos automáticamente (G-XX, Q-XX).</p>
+        </div>
+      `,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5', // Indigo-600 para que combine con tu tema
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, generar registro',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'rounded-3xl'
+      }
+    });
 
-    if (!confirmado) return;
+    // 2. Si el usuario no confirmó, nos salimos
+    if (!result.isConfirmed) return;
 
     try {
       setIsSyncing(true);
@@ -26,15 +43,18 @@ export const Gestion = () => {
 
       if (resultado.ok && resultado.url) {
         window.open(resultado.url, '_blank');
-        window.alert(`¡Éxito!\nSe generó el registro con ${resultado.count} expedientes y folios asignados.`);
+        
+        // Cambiamos el toast genérico por uno de éxito
+        toast.success(`¡Éxito! Se generó el registro con ${resultado.count} expedientes.`);
+        
         setRefreshKey(prev => prev + 1); 
       } else {
-        window.alert(resultado.message || "No se pudo generar el reporte.");
+        toast.error(resultado.message || "No se pudo generar el reporte.");
       }
 
     } catch (error) {
       console.error("Error sync:", error);
-      window.alert("Error.\nHubo un problema al conectar con el servidor.");
+      toast.error("Hubo un problema al conectar con el servidor.");
     } finally {
       setIsSyncing(false);
     }

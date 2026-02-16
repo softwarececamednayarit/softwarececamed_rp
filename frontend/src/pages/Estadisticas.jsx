@@ -8,7 +8,7 @@ import {
   Stethoscope, AlertCircle, Filter, X, Users, Briefcase, UserCheck, HeartHandshake, Tag,
   FileText 
 } from 'lucide-react';
-
+import toast from 'react-hot-toast';
 import { generarPDFMensual } from '../utils/pdfGenerator';
 
 // --- PALETAS DE COLORES ---
@@ -220,7 +220,7 @@ export const Estadisticas = () => {
     });
 
     if (dataToExport.length === 0) {
-      alert("No hay datos para generar el reporte en este periodo.");
+      toast("No hay datos para generar el reporte en este periodo.");
       return;
     }
 
