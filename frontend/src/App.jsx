@@ -58,47 +58,38 @@ const AppContent = () => {
     </div>
   );
 
-  // --- LÓGICA DE RENDERIZADO CON SEGURIDAD ---
+  // --- LÓGICA DE RENDERIZADO CON SEGURIDAD DINÁMICA ---
   const renderView = () => {
-    // Obtenemos el rol actual (con fallback a string vacío por seguridad)
-    const myRole = user?.role || '';
+    // 1. Vistas que siempre están permitidas para cualquier usuario logueado
+    const publicViews = {
+      sitios: <SitiosInteres />,
+      perfil: <Perfil />
+    };
 
-    switch (currentView) {
-      // =================================================================
-      // 1. PÁGINAS PÚBLICAS (Sin restricción de roles)
-      // =================================================================
-      case 'atendidos':    return <Atendidos />;
-      case 'sitios':       return <SitiosInteres />;
-      case 'perfil':       return <Perfil />; // Generalmente pública para logueados
-
-      // =================================================================
-      // 2. PÁGINAS DE OPERACIÓN (Admin + Operativo)
-      // =================================================================
-      case 'padron':
-        if (['admin', 'operativo'].includes(myRole)) return <Padron />;
-        return <AccesoDenegado />;
-
-      case 'gestion':
-        if (['admin', 'operativo'].includes(myRole)) return <Gestion />;
-        return <AccesoDenegado />;
-
-      // =================================================================
-      // 3. PÁGINAS EXCLUSIVAS DE ADMINISTRADOR
-      // =================================================================
-      case 'recepcion': 
-      case 'estadisticas':
-      case 'usuarios':
-      case 'bitacora': // 2. AGREGAMOS EL CASO BITÁCORA
-        if (['admin'].includes(myRole)) {
-            if (currentView === 'recepcion')    return <Recepcion />;
-            if (currentView === 'estadisticas') return <Estadisticas />;
-            if (currentView === 'bitacora')     return <Bitacora />; // Renderizar componente
-            return <Usuarios />;
-        }
-        return <AccesoDenegado />;
-
-      default: return <Atendidos />;
+    if (publicViews[currentView]) {
+      return publicViews[currentView];
     }
+
+    // 2. Validación por Permisos Dinámicos (permises)
+    // El Admin tiene "Superpoderes": accede a todo aunque no esté en el array
+    const isSuperAdmin = user?.role === 'Desarrollador';
+    const hasPermission = user?.permises?.includes(currentView);
+
+    if (isSuperAdmin || hasPermission) {
+      switch (currentView) {
+        case 'atendidos':    return <Atendidos />;
+        case 'recepcion':    return <Recepcion />;
+        case 'padron':       return <Padron />;
+        case 'gestion':      return <Gestion />;
+        case 'estadisticas': return <Estadisticas />;
+        case 'usuarios':     return <Usuarios />;
+        case 'bitacora':     return <Bitacora />;
+        default:             return <Atendidos />;
+      }
+    }
+
+    // 3. Si no es admin ni tiene el permiso específico
+    return <AccesoDenegado />;
   };
 
   return (

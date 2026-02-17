@@ -5,6 +5,8 @@ import {
   Shield // 1. IMPORTAMOS EL ICONO SHIELD
 } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
+import Swal from 'sweetalert2';
+import { toast } from 'react-hot-toast';
 
 export const Sidebar = ({ currentView, onNavigate }) => {
   const { logout, user } = useAuth(); 
@@ -13,60 +15,29 @@ export const Sidebar = ({ currentView, onNavigate }) => {
   // 1. CONFIGURACIÓN DE ACCESOS (Aquí defines quién ve qué)
   // ===========================================================================
   const MENU_ITEMS = [
-    // --- ACCESO PÚBLICO (Sin propiedad 'roles') ---
-    { id: 'atendidos',    label: 'Atendidos',        icon: Users },
+    // Ítems sin 'isPrivate' se verán siempre (públicos)
     { id: 'sitios',       label: 'Sitios',           icon: Globe },
     
-    // --- ACCESO RESTRINGIDO ---
-    { 
-      id: 'recepcion',    
-      label: 'Recepción',        
-      icon: BookOpen, 
-      roles: ['admin'] 
-    },
-    { 
-        id: 'padron',       
-        label: 'Padrón',           
-        icon: FileSpreadsheet,
-        roles: ['admin', 'operativo']
-    },
-    { 
-        id: 'gestion',      
-        label: 'Registro Clásico', 
-        icon: Briefcase,
-        roles: ['admin', 'operativo']
-    },
-    { 
-        id: 'estadisticas', 
-        label: 'Estadísticas',     
-        icon: TrendingUp,
-        roles: ['admin'] 
-    },
-
-    // 2. AGREGAMOS LA BITÁCORA AQUÍ
-    { 
-        id: 'bitacora',     
-        label: 'Bitácora',         
-        icon: Shield,
-        roles: ['admin'] // Solo Admin puede ver auditoría
-    },
-    
-    // --- ACCESO EXCLUSIVO ---
-    { 
-        id: 'usuarios',     
-        label: 'Usuarios',         
-        icon: Users,
-        roles: ['admin'] 
-    },
+    // Ítems privados (requieren estar en el arreglo 'permises')
+    { id: 'atendidos',    label: 'Atendidos',        icon: Users ,      isPrivate: true},
+    { id: 'recepcion',    label: 'Recepción',        icon: BookOpen,      isPrivate: true },
+    { id: 'padron',       label: 'Padrón',           icon: FileSpreadsheet, isPrivate: true },
+    { id: 'gestion',      label: 'Registro Clásico', icon: Briefcase,     isPrivate: true },
+    { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp,    isPrivate: true },
+    { id: 'bitacora',     label: 'Bitácora',         icon: Shield,        isPrivate: true },
+    { id: 'usuarios',     label: 'Usuarios',         icon: Users,         isPrivate: true },
   ];
 
-  // 2. FILTRADO INTELIGENTE
   const visibleItems = MENU_ITEMS.filter(item => {
-    // Si no tiene la propiedad roles, es público -> MOSTRAR
-    if (!item.roles) return true;
-    
-    // Si tiene roles, verificamos si el rol del usuario está en la lista -> MOSTRAR SI COINCIDE
-    return item.roles.includes(user?.role);
+    // 1. Si el ítem es público, se muestra siempre
+    if (!item.isPrivate) return true;
+
+    // 2. Si el usuario es 'admin', ve TODO (comodín de seguridad)
+    if (user?.role === 'Desarrollador') return true;
+
+    // 3. Si es operativo/otro, SOLO ve si el id está en su arreglo de permises
+    // Importante: usamos 'permises' para coincidir con tu backend
+    return user?.permises?.includes(item.id);
   });
 
   // Helper de estilos

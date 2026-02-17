@@ -56,8 +56,17 @@ export const AuthProvider = ({ children }) => {
     return rolesArray.includes(user.role);
   };
 
+  const hasPermission = (permission) => {
+    if (!user) return false;
+    // Si es admin, tiene permiso a todo automáticamente (opcional)
+    if (user.role === 'admin') return true; 
+    
+    // Verificamos si el permiso está en su arreglo
+    return user.permises?.includes(permission);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, hasRole }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, hasRole, hasPermission }}>
       {!loading && children}
     </AuthContext.Provider>
   );

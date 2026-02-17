@@ -8,15 +8,24 @@ import {
   CheckCircle, 
   XCircle, 
   Loader,
-  Edit2 // <--- AGREGADO: El ícono del lápiz
+  Edit2
 } from 'lucide-react';
 import { 
   getAllUsersRequest, 
   toggleUserStatusRequest, 
   registerUserRequest, 
-  updateUserRequest, // <--- AGREGADO: La función para guardar cambios
+  updateUserRequest,
   adminResetPasswordRequest 
 } from '../services/authService';
+
+const MODULOS_SISTEMA = [
+  { id: 'recepcion', label: 'Recepción' },
+  { id: 'padron', label: 'Padrón' },
+  { id: 'gestion', label: 'Gestión' },
+  { id: 'estadisticas', label: 'Estadísticas' },
+  { id: 'bitacora', label: 'Bitácora' },
+  { id: 'usuarios', label: 'Usuarios' }
+];
 
 // Asegúrate de que tu modal acepte la prop 'userToEdit' como vimos en el paso anterior
 import CreateUserModal from '../components/CreateUserModal'; 
@@ -193,15 +202,27 @@ const Usuarios = () => {
                       <p className="text-sm text-slate-500">{user.email}</p>
                     </div>
                   </td>
+                  {/* En el tbody, dentro del map de usuarios */}
                   <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                      user.role === 'admin' 
-                        ? 'bg-purple-100 text-purple-700 border-purple-200' 
-                        : 'bg-blue-100 text-blue-700 border-blue-200'
-                    }`}>
-                      {user.role === 'admin' ? 'Administrador' : 'Operativo'}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border w-fit ${
+                        user.role === 'Desarrollador' 
+                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200' 
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        {user.role || 'Sin Puesto'}
+                      </span>
+                      {/* PEQUEÑO INDICADOR DE PERMISOS */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {user.permises?.map(p => (
+                          <span key={p} className="text-[9px] bg-slate-100 text-slate-500 px-1 rounded uppercase font-bold">
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </td>
+                  
                   <td className="p-4 text-sm text-slate-500">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
