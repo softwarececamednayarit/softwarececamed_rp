@@ -10,7 +10,7 @@ const SECRET_KEY = process.env.JWT_SECRET || 'secreto_super_seguro_dev';
 // =============================================================================
 exports.register = async (req, res) => {
   try {
-    const { email, password, nombre, role } = req.body;
+    const { email, password, nombre, role, permises } = req.body;
 
     if (!email || !password || !nombre) {
       return res.status(400).json({ message: 'Faltan datos obligatorios.' });
@@ -31,7 +31,8 @@ exports.register = async (req, res) => {
       email,
       password: hashedPassword,
       nombre,
-      role
+      role,
+      permises: permises || [] // Aseguramos que siempre tenga un array, aunque venga vacío
     });
 
     // LOG
@@ -79,8 +80,16 @@ exports.login = async (req, res) => {
     if (!isMatch) return res.status(401).json({ message: errorMsg });
 
     // 3. Token
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: '12h' });
-
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role, 
+        permisos: user.permisos || []
+      }, 
+      SECRET_KEY, 
+      { expiresIn: '12h' }
+    );
     LoggerService.log(
       { id: user.id, nombre: user.nombre, role: user.role },
       'LOGIN', 'SESION', `Inicio de sesión exitoso`
@@ -197,16 +206,16 @@ exports.adminResetPassword = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, email, role } = req.body;
+    const { nombre, email, role, permises } = req.body;
 
     if (!nombre || !email || !role) return res.status(400).json({ message: 'Datos incompletos.' });
 
-    await User.update(id, { nombre, email, role });
+    await User.update(id, { nombre, email, role, permises: permises || [] });
 
     LoggerService.log(
         req.user, 'EDITAR', 'USUARIOS', 
         `Actualizó perfil usuario ${id}`, 
-        { usuario_afectado: id, cambios: { nombre, email, role } }
+        { usuario_afectado: id, cambios: { nombre, email, role, permises } }
     );
 
     res.json({ message: 'Usuario actualizado.' });
