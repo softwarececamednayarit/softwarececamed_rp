@@ -85,7 +85,7 @@ exports.login = async (req, res) => {
         id: user.id, 
         email: user.email, 
         role: user.role, 
-        permisos: user.permisos || []
+        permises: user.permises || []
       }, 
       SECRET_KEY, 
       { expiresIn: '12h' }
