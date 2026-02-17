@@ -3,54 +3,45 @@ const router = express.Router();
 const atendidoController = require('../controllers/atendidoController');
 const { verifyToken } = require('../middleware/authMiddleware');
 
+// Aplicar autenticación a todas las rutas de este router
 router.use(verifyToken);
-// =====================================================================
-// 1. RUTAS ESTÁTICAS / ESPECÍFICAS (SIEMPRE AL PRINCIPIO)
-// =====================================================================
-// Estas rutas tienen nombres fijos. Si las pones abajo de :id, Express 
-// pensará que "resumen" o "padron" son IDs de usuarios.
+
+// Rutas estáticas / específicas — siempre antes de las dinámicas
+// Nota: si colocas rutas fijas debajo de `/:id` Express las capturará como id.
 
 // Estadísticas
 router.get('/resumen', atendidoController.getResumenMensual);
 
-// --- REPORTES Y EXPORTACIÓN ---
-
-// 1. Padrón (Excel de 4 pestañas trimestrales)
-// Cambio importante: Ahora es GET porque solo consulta y genera, no modifica la BD.
+// REPORTES / EXPORTACIÓN
+// Padrón: genera Google Sheet (GET porque no modifica la BD)
 router.get('/padron/exportar', atendidoController.exportarExpedientesAPadron);
 
-// 2. Registro Clásico (Nuevo - Excel con folios automáticos) [NUEVA RUTA]
+// Registro clásico: formato alternativo con folios
 router.get('/clasico/exportar', atendidoController.exportarRegistroClasico);
 
-// 3. Vista Previa (Tabla completa para el Frontend)
+// Vista previa completa para tablas
 router.get('/padron/completo', atendidoController.getAllExpedientes);
 
-// --- UTILIDADES ---
-// Script de migración (Solo para uso técnico)
+// UTILIDADES (uso técnico/admin)
 router.post('/migracion', atendidoController.migrarExpedientes);
 
-// Ruta base (Lista simple)
+// Lista básica (paginación/filtrado via query)
 router.get('/', atendidoController.getAtendidos);
 
-
-// =====================================================================
-// 2. RUTAS DINÁMICAS (CON PARÁMETRO :id)
-// =====================================================================
-// Estas van AL FINAL. El :id actúa como un comodín que atrapa todo lo demás.
-
-// Obtener expediente completo (Base + Detalle)
+// RUTAS DINÁMICAS (con :id) — colocar al final
+// Obtener expediente completo (base + detalle)
 router.get('/:id/completo', atendidoController.getExpedienteCompleto);
 
-// Guardar/Actualizar datos del Padrón/Gestión
+// Guardar/actualizar datos del padrón para un expediente
 router.put('/:id/padron', atendidoController.updateExpedienteDetalle);
 
-// Actualizar estatus SIREMED
+// Actualizar estatus SIREMED en el detalle
 router.put('/:id/estatus-siremed', atendidoController.updateEstatusSiremed);
 
-// Obtener solo datos base (La más genérica de todas, siempre al último)
+// Obtener datos base por id
 router.get('/:id', atendidoController.getAtendidoById);
 
-// Ruta para eliminar (Cuidado: Borrado físico)
+// Eliminar expediente (borrado físico; requiere precaución)
 router.delete('/:id', atendidoController.deleteExpediente);
 
 module.exports = router;

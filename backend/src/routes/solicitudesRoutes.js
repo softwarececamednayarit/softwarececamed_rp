@@ -1,24 +1,24 @@
 const express = require('express');
 const router = express.Router();
-// Asegúrate que el nombre del archivo coincida (solicitudesController vs solicitudController)
-const solicitudesController = require('../controllers/solicitudController'); 
+const solicitudesController = require('../controllers/solicitudController');
 const { verifyToken } = require('../middleware/authMiddleware');
+
+// Todas las rutas requieren token
 router.use(verifyToken);
 
-// 1. GET (Lista)
+// Lista por estado (query: status)
 router.get('/', solicitudesController.obtenerPorStatus);
 
-// 2. PATCH SEGUIMIENTO (ESTA ES LA QUE FALTABA) 🚨
-// Sin esta línea, el botón "Guardar Intento" no funciona.
+// Registrar seguimiento (añade intento y actualiza status)
 router.patch('/:id/seguimiento', solicitudesController.actualizarSeguimiento);
 
-// 3. POST AGENDAR
+// Agendar cita: exporta a Excel y marca como agendado
 router.post('/:id/agendar', solicitudesController.agendarCita);
 
-// 4. PATCH DESCARTAR
+// Descartar (soft delete) con motivo
 router.patch('/:id/descartar', solicitudesController.descartarSolicitud);
 
-// 5. PATCH RECUPERAR
+// Recuperar solicitud descartada
 router.patch('/:id/recuperar', solicitudesController.recuperarSolicitud);
 
 module.exports = router;
