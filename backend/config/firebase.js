@@ -1,14 +1,18 @@
+/**
+ * Inicializa Firebase Admin y exporta la instancia de Firestore.
+ * Requiere la variable de entorno `FIREBASE_CREDENTIALS` como JSON string.
+ */
 const admin = require('firebase-admin');
 require('dotenv').config();
 
 let serviceAccount;
 
 try {
-  // Parseamos el string que viene del .env a un objeto real de JS
+  // Parsear la variable de entorno a objeto JS
   serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 } catch (error) {
-  console.error("Error al leer las credenciales de Firebase:", error.message);
-  process.exit(1); // Detiene el servidor si no hay conexión
+  console.error('Error leyendo credenciales de Firebase:', error.message);
+  process.exit(1); // No iniciar sin credenciales válidas
 }
 
 admin.initializeApp({
@@ -16,6 +20,6 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-console.log("Conexión a Firestore establecida correctamente");
+console.log('Firestore conectado');
 
 module.exports = db;

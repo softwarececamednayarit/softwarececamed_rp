@@ -1,6 +1,13 @@
+/**
+ * Modelo `SolicitudModel` - operaciones sobre la colección
+ * `solicitudes_pendientes` en Firestore.
+ * Métodos estáticos para consultas,
+ * actualizaciones y manejo de intentos/seguimiento.
+ */
 const db = require('../../config/firebase');
-const admin = require('firebase-admin'); // Necesario para borrar campos (FieldValue.delete)
+const admin = require('firebase-admin'); // necesario para FieldValue.delete
 
+// Nombre de la colección usada por este modelo
 const COL_PENDIENTES = 'solicitudes_pendientes';
 
 class SolicitudModel {
@@ -96,6 +103,8 @@ class SolicitudModel {
     }
   }
 
+  // Agrega un intento/seguimiento al historial y actualiza counters.
+  // Retorna el objeto del nuevo intento.
   static async agregarSeguimiento(id, { status_llamada, notas_nuevas, usuarioNombre }) {
     try {
       // 1. Necesitamos el documento actual para obtener el historial previo
