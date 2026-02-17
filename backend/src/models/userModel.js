@@ -9,6 +9,7 @@ class User {
     this.role = data.role || 'admin';
     this.activo = data.activo !== false; // Default true
     this.mustChangePassword = data.mustChangePassword || false;
+    this.permises = data.permises || []; // Array de permisos
     this.createdAt = data.createdAt || new Date().toISOString();
   }
 
@@ -71,6 +72,7 @@ class User {
       email: this.email,
       nombre: this.nombre,
       role: this.role,
+      permises: this.permises || [],
       activo: this.activo,
       mustChangePassword: this.mustChangePassword,
       createdAt: this.createdAt
