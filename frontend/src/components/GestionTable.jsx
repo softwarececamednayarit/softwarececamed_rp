@@ -9,109 +9,11 @@ import toast from 'react-hot-toast';
 // =============================================================================
 // CATÁLOGOS ESTÁTICOS
 // =============================================================================
-
-const ESPECIALIDADES_LISTA = [
-  "Urgencias",
-  "Anestesiología",
-  "Cardiología",
-  "Cirugía cardiotorácica",
-  "Cirugía de gastroenterología",
-  "Cirugía general",
-  "Cirugía neurológica",
-  "Cirugía pediátrica",
-  "Cirugía plástica estética y reconstructiva",
-  "Cirugía vascular y angiología",
-  "Dermatología",
-  "Especialidades odontológicas",
-  "Gastroenterología",
-  "Ginecología y obstetricia",
-  "Hematología",
-  "Medicina crítica-terapia intensiva",
-  "Medicina general",
-  "Medicina interna",
-  "Nefrología",
-  "Neonatología",
-  "Neumología",
-  "Neurología",
-  "Odontología general",
-  "Oftalmología",
-  "Oncología",
-  "Otorrinolaringología",
-  "Pediatría",
-  "Psiquiatría",
-  "Reumatología",
-  "Servicios auxiliares de diagnóstico y tratamiento",
-  "Traumatología y ortopedia",
-  "Urología",
-  "Otros"
-];
-
-const MOTIVOS_CATALOGO = {
-  "Tratamiento médico": [
-    "Accidentes e incidentes",
-    "Complicaciones secundarias",
-    "Desinformación sobre el tratamiento",
-    "Falta de consentimiento",
-    "Retraso del tratamiento",
-    "Secuelas: exceso terapéutico",
-    "Tratamiento inadecuado o innecesario",
-    "Tratamiento insatisfactorio",
-    "Otro (especifique)"
-  ],
-  "Tratamiento quirúrgico": [
-    "Accidentes e incidentes",
-    "Alta prematura de los ciudadanos postoperatorios",
-    "Cirugía innecesaria",
-    "Complicaciones quirúrgicas del post operatorio",
-    "Complicaciones quirúrgicas del trans operatorio",
-    "Error quirúrgico",
-    "Falta de carta de consentimiento informado",
-    "Falta de seguimiento o seguimiento inadecuado en el postoperatorio",
-    "Falta de valoración pre quirúrgica",
-    "Retraso del tratamiento quirúrgico",
-    "Secuelas",
-    "Técnica quirúrgica inadecuada",
-    "Tratamiento quirúrgico no satisfactorio",
-    "Otro (especifique)"
-  ],
-  "Deficiencias administrativas": [
-    "Cambio de médico tratante o de unidad médica",
-    "Demora prolongada y/o diferimento para obtener el servicio",
-    "Falta de equipo médico",
-    "Falta de insumos o medicamentos",
-    "Falta de personal",
-    "Negación de la atención",
-    "Sistema de referencia y contrareferencia",
-    "Trato inadecuado por parte del personal administrativo",
-    "Otro (especifique)"
-  ],
-  "Auxiliares de diagnóstico y tratamiento": [
-    "Complicaciones secundarias de los procedimientos diagnósticos",
-    "Estudios innecesarios",
-    "Falsos positivos o negativos",
-    "Falta de información y conocimiento",
-    "Retraso del procedimiento diagnóstico",
-    "Retraso o falta de notificación de resultados",
-    "Secuelas",
-    "Otro (especifique)"
-  ],
-  "Diagnóstico": [
-    "Desinformación sobre el diagnóstico",
-    "Diagnóstico erróneo",
-    "Omisión del diagnóstico",
-    "Retraso del diagnóstico",
-    "Otro (especifique)"
-  ],
-  "Relación médico paciente": [
-    "Fallas en la comunicación",
-    "Tratamiento inadecuado",
-    "Falsas expectativas",
-    "Otro (especifique)"
-  ]
-};
-
-const ESTADOS_CIVILES = ["Soltero(a)", "Casado(a)", "Unión libre", "Viudo(a)"];
-const ACTIVIDADES_APOYO = ["Orientación", "Gestión", "Asesoría", "Queja", "Dictamen"];
+import { MOTIVOS_CATALOGO, 
+        ESTADOS_CIVILES,
+        ACTIVIDADES_APOYO,
+        ESPECIALIDADES_LISTA 
+} from '../utils/catalogs';
 
 // =============================================================================
 // COMPONENTE PRINCIPAL
