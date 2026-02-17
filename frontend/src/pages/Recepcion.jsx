@@ -3,6 +3,7 @@ import solicitudesService from '../services/solicitudesService';
 import GestionarSolicitudModal from '../components/GestionarSolicitudModal';
 import { Phone, Trash2, RefreshCw, User, ArchiveRestore, CheckCircle, Calendar, AlertCircle, BookOpen, Inbox } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 const Recepcion = () => {
   const [solicitudes, setSolicitudes] = useState([]);
@@ -17,24 +18,44 @@ const Recepcion = () => {
       setSolicitudes(data);
     } catch (error) {
       console.error(error);
+      toast.error("No se pudieron cargar las solicitudes. Revisa tu conexión."); // <--- AVISO VISUAL
     } finally {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     cargarDatos();
   }, [activeTab]);
 
   const handleDescartar = async (id) => {
-    const motivo = prompt("¿Por qué deseas descartar esta solicitud? (Opcional):");
-    if (motivo === null) return; 
+    const { value: motivo, isConfirmed } = await Swal.fire({
+      title: '¿Descartar solicitud?',
+      text: "Ingresa el motivo del descarte (opcional):",
+      input: 'text',
+      inputPlaceholder: 'Ej: Datos incompletos, duplicado...',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar descarte',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#e11d48',
+      inputAttributes: {
+        autocapitalize: 'off'
+      },
+      customClass: {
+        popup: 'rounded-3xl'
+      }
+    });
+
+    // Si el usuario canceló, no hacemos nada
+    if (!isConfirmed) return; 
 
     try {
       await solicitudesService.descartarSolicitud(id, motivo);
+      toast.success("Solicitud enviada a la papelera."); // Mejoramos el mensaje
       cargarDatos(); 
     } catch (error) {
-      toast.error("error al descartar");
+      console.error(error);
+      toast.error("Error al descartar la solicitud.");
     }
   };
 
