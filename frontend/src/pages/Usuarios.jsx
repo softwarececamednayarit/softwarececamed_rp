@@ -126,30 +126,47 @@ const Usuarios = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
-          <p className="text-slate-500">Administra el acceso al sistema CECAMED</p>
+      {/* --- HEADER TIPO TARJETA --- */}
+      <header className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden mb-8">
+        {/* Decoración de fondo (Degradado) */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none" />
+        <div className="space-y-2 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-slate-900 rounded-xl text-white shadow-lg shadow-slate-900/20">
+              <Shield size={24} /> 
+            </div>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+              Gestión de Usuarios
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 pl-1">
+            <span className="flex h-2 w-2 rounded-full bg-indigo-500"></span>
+            <p className="text-slate-500 font-medium text-sm">
+              Administra el acceso y roles del sistema CECAMED.
+            </p>
+          </div>
         </div>
-        <button 
-          onClick={openCreateModal} // <--- CAMBIADO: Usamos la función auxiliar
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-        >
-          <UserPlus size={20} />
-          Nuevo Usuario
-        </button>
-      </div>
+
+        <div className="flex items-center gap-3 relative z-10">
+          <button 
+            onClick={openCreateModal}
+            className="flex items-center justify-center gap-2.5 bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold text-sm hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 active:scale-95"
+          >
+            <UserPlus size={18} />
+            <span>Nuevo Usuario</span>
+          </button>
+        </div>
+      </header>
 
       {/* FILTROS Y TABLA */}
-      <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100">
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 bg-slate-50/30">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
               placeholder="Buscar por nombre o correo..." 
-              className="pl-10 w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="pl-12 w-full bg-white border border-slate-200 rounded-xl py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
