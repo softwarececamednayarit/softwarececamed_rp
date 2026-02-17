@@ -1,11 +1,14 @@
+/**
+ * Controlador `atendidoController` - rutas relacionadas con expedientes.
+ * Breve: listar, ver detalle, actualizar detalle, exportar reportes,
+ * migración y eliminación. Respuestas JSON con `ok`/`data` o `message`.
+ */
 const Atendido = require('../models/atendidoModel');
-const db = require('../../config/firebase'); // Necesario solo para la migración y batch de folios
+const db = require('../../config/firebase'); // solo usado en migración/batch
 const sheetsService = require('../services/googleSheetsService');
 const LoggerService = require('../services/loggerService');
 
-// =====================================================================
-// 1. Obtener lista básica (Solo datos de recepción)
-// =====================================================================
+// Obtener lista básica — filtros por query (fecha/tipo/nombre)
 const getAtendidos = async (req, res) => {
   try {
     const { fechaInicio, fechaFin, tipo, nombre } = req.query;
@@ -23,9 +26,7 @@ const getAtendidos = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 2. Obtener un solo registro BÁSICO
-// =====================================================================
+// Obtener un registro básico por ID
 const getAtendidoById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -39,9 +40,7 @@ const getAtendidoById = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 3. Obtener EXPEDIENTE COMPLETO (Base + Detalles)
-// =====================================================================
+// Obtener expediente completo (base + detalle)
 const getExpedienteCompleto = async (req, res) => {
   try {
     const { id } = req.params;
@@ -59,9 +58,7 @@ const getExpedienteCompleto = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 4. ACTUALIZAR / GUARDAR DETALLES
-// =====================================================================
+// Actualizar/guardar detalles del expediente (merge)
 const updateExpedienteDetalle = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
@@ -88,9 +85,7 @@ const updateExpedienteDetalle = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 5. OBTENER LISTA COMPLETA (Para Tablas)
-// =====================================================================
+// Obtener lista completa unificada (para tablas/reporte)
 const getAllExpedientes = async (req, res) => {
   try {
     // 👇 REFACTOR: Reutilizamos la lógica unificada del modelo
@@ -103,9 +98,7 @@ const getAllExpedientes = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 6. GENERAR REPORTE PADRÓN
-// =====================================================================
+// Exportar expedientes a Padrón (genera Google Sheet)
 const exportarExpedientesAPadron = async (req, res) => {
   try {
     console.log("📄 Generando Padrón...");
@@ -139,9 +132,7 @@ const exportarExpedientesAPadron = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 7. GENERAR REGISTRO CLÁSICO
-// =====================================================================
+// Exportar registro clásico (formato alternativo)
 const exportarRegistroClasico = async (req, res) => {
   try {
     console.log("📊 Generando Registro Clásico...");
@@ -174,9 +165,7 @@ const exportarRegistroClasico = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 8. ACTUALIZAR ESTATUS SIREMED
-// =====================================================================
+// Actualizar campo `estatus_siremed` en el detalle
 const updateEstatusSiremed = async (req, res) => {
   const { id } = req.params;
   const { estatus_siremed } = req.body; 
@@ -202,9 +191,7 @@ const updateEstatusSiremed = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 9. Resumen estadístico (Sin cambios mayores)
-// =====================================================================
+// Resumen mensual agrupado por mes y tipo
 const getResumenMensual = async (req, res) => {
   try {
     const { fechaInicio, fechaFin, tipo } = req.query;
@@ -225,9 +212,7 @@ const getResumenMensual = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 10. Script de Migración (Admin Tool)
-// =====================================================================
+// Migración: crea documentos de detalle faltantes (admin)
 const migrarExpedientes = async (req, res) => {
   try {
     console.log("Iniciando migración...");
@@ -269,44 +254,9 @@ const migrarExpedientes = async (req, res) => {
     res.status(500).json({ ok: false, message: error.message });
   }
 
-  const deleteExpediente = async (req, res) => {
-    const { id } = req.params;
-
-    try {
-      // 1. Verificar existencia (y obtener nombre para el Log)
-      const existing = await Atendido.getById(id);
-      
-      if (!existing) {
-        return res.status(404).json({ message: "El expediente no existe." });
-      }
-
-      // 2. Ejecutar borrado en el Modelo
-      await Atendido.delete(id);
-
-      // 3. Loguear la acción (Vital para seguridad)
-      const nombreCompleto = `${existing.nombre} ${existing.apellido_paterno}`;
-      
-      LoggerService.log(
-        req.user, 
-        'ELIMINAR', 
-        'EXPEDIENTE', 
-        `Eliminó permanentemente el expediente de: ${nombreCompleto}`,
-        { id_eliminado: id }
-      );
-
-      res.json({ success: true, message: 'Expediente y sus detalles eliminados correctamente.' });
-
-    } catch (error) {
-      console.error("Error delete:", error);
-      res.status(500).json({ ok: false, message: error.message });
-    }
-  }
-
 };
 
-// =====================================================================
-// 11. ELIMINAR EXPEDIENTE (Borrado físico, con Log detallado)
-// =====================================================================
+// Eliminar expediente (público) — borra expediente y detalle, registra log
 const deleteExpediente = async (req, res) => {
   const { id } = req.params;
   try {

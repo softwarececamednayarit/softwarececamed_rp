@@ -1,13 +1,13 @@
+// Controlador `authController` — autenticación y gestión de usuarios.
+// Comentarios breves en español; mantiene la lógica existente.
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel'); // Tu modelo vitaminado
+const User = require('../models/userModel');
 const LoggerService = require('../services/loggerService');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'secreto_super_seguro_dev';
 
-// =============================================================================
-// REGISTRO
-// =============================================================================
+// Registro: valida entrada, hashea contraseña y crea usuario
 exports.register = async (req, res) => {
   try {
     const { email, password, nombre, role, permises } = req.body;
@@ -51,9 +51,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// =============================================================================
-// LOGIN
-// =============================================================================
+// Login: valida credenciales, verifica estado y devuelve JWT
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -107,9 +105,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// =============================================================================
-// CAMBIAR CONTRASEÑA (Usuario Propio)
-// =============================================================================
+// Cambiar contraseña (usuario): valida actual y guarda nueva
 exports.changePassword = async (req, res) => {
   try {
     const { email, currentPassword, newPassword } = req.body;
@@ -142,11 +138,8 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// =============================================================================
-// ZONA DE ADMINISTRACIÓN
-// =============================================================================
-
-// 1. GET ALL
+// --- Zona de administración ---
+// Listar usuarios (devuelve JSON ya limpio por el modelo)
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.getAll(); // El modelo ya devuelve el JSON limpio
@@ -156,7 +149,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// 2. TOGGLE STATUS
+// Activar/desactivar usuario (evita desactivarse a sí mismo)
 exports.toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params; 
@@ -178,7 +171,7 @@ exports.toggleUserStatus = async (req, res) => {
   }
 };
 
-// 3. ADMIN RESET PASSWORD
+// Reset de contraseña por admin (genera hash y obliga cambio opcional)
 exports.adminResetPassword = async (req, res) => {
   try {
     const { id } = req.params; 
@@ -202,7 +195,7 @@ exports.adminResetPassword = async (req, res) => {
   }
 };
 
-// 4. UPDATE USER
+// Actualizar usuario (nombre, email, role, permisos)
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;

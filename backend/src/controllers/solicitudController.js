@@ -1,8 +1,13 @@
-const SolicitudModel = require('../models/solicitudModel'); 
+/**
+ * Controlador `solicitudController` — manejo de solicitudes: listar por
+ * estado, agregar seguimiento, agendar, descartar y recuperar.
+ * La lógica de BD está en `solicitudModel`.
+ */
+const SolicitudModel = require('../models/solicitudModel');
 const sheetsService = require('../services/googleSheetsService');
 const LoggerService = require('../services/loggerService');
 
-// 1. OBTENER POR STATUS
+// Obtener solicitudes por estado (query: status)
 exports.obtenerPorStatus = async (req, res) => {
   try {
     const statusSolicitado = req.query.status || 'pendiente';
@@ -18,7 +23,7 @@ exports.obtenerPorStatus = async (req, res) => {
   }
 };
 
-// 2. REGISTRAR SEGUIMIENTO (Refactorizado)
+// Registrar seguimiento: delega la construcción del intento al modelo
 exports.actualizarSeguimiento = async (req, res) => {
   const { id } = req.params;
   // 'usuario' viene del body (nombre escrito) o usamos req.user (token)
@@ -48,7 +53,7 @@ exports.actualizarSeguimiento = async (req, res) => {
   }
 };
 
-// 3. AGENDAR (Finalizar y Excel)
+// Agendar cita: exporta a Excel y marca la solicitud como 'agendado'
 exports.agendarCita = async (req, res) => {
   const { id } = req.params;
   const { tipo_asignado, fecha_cita, instrucciones, datos_completos } = req.body;
@@ -86,7 +91,7 @@ exports.agendarCita = async (req, res) => {
   }
 };
 
-// 4. DESCARTAR
+// Descartar solicitud (soft delete): guarda motivo y fecha
 exports.descartarSolicitud = async (req, res) => {
   const { id } = req.params;
   const { motivo } = req.body;
@@ -106,7 +111,7 @@ exports.descartarSolicitud = async (req, res) => {
   }
 };
 
-// 5. RECUPERAR
+// Recuperar solicitud: quitar campos de descarte y volver a 'pendiente'
 exports.recuperarSolicitud = async (req, res) => {
   const { id } = req.params;
   try {
