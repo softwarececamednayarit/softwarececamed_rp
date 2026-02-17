@@ -74,7 +74,7 @@ const Login = () => {
             <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-white/10 rounded-full border border-white/10 backdrop-blur-sm">
                 <ShieldCheck size={12} className="text-emerald-400" />
                 <p className="text-slate-200 text-[10px] font-bold uppercase tracking-widest">
-                Sistema de Gestión v2.0
+                Sistema de Administración de Casos y Reportes Estadísticos para Cecamed
                 </p>
             </div>
           </div>
@@ -100,7 +100,7 @@ const Login = () => {
                 <input 
                   type="email" 
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-700 font-medium placeholder:text-slate-300 text-sm"
-                  placeholder="usuario@cecamed.gob.mx"
+                  placeholder="usuario@dominio.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

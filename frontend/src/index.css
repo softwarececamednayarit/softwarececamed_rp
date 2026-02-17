@@ -32,3 +32,31 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Forzar que SweetAlert2 esté siempre por encima de todo */
+.swal2-container {
+  z-index: 99999 !important;
+}
+
+/* Opcional: Dale los bordes redondeados aquí para no hacerlo por JS */
+.swal2-popup {
+  border-radius: 1.5rem !important;
+  font-family: inherit;
+}
+
+/* Forzar que las notificaciones Toast estén por encima de los modales */
+div[onmouseenter] {
+  z-index: 999999 !important;
+}
+
+/* Esto asegura que el contenedor de notificaciones vuele sobre los modales */
+#root + div, 
+.react-hot-toast-container,
+div[style*="z-index: 9999"] {
+  z-index: 999999 !important;
+}
+
+/* Mejora la visibilidad: sombra más fuerte y borde definido */
+.react-hot-toast-container > div {
+  filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.04)) drop-shadow(0 4px 3px rgb(0 0 0 / 0.1));
+}

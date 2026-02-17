@@ -1,22 +1,44 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp
+  Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp,
+  Shield // 1. IMPORTAMOS EL ICONO SHIELD
 } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
+import Swal from 'sweetalert2';
+import { toast } from 'react-hot-toast';
 
 export const Sidebar = ({ currentView, onNavigate }) => {
-  const { logout } = useAuth(); 
+  const { logout, user } = useAuth(); 
 
-  // 1. DEFINICIÓN DE RUTAS
+  // ===========================================================================
+  // 1. CONFIGURACIÓN DE ACCESOS (Aquí defines quién ve qué)
+  // ===========================================================================
   const MENU_ITEMS = [
-    { id: 'atendidos',    label: 'Atendidos',        icon: Users },
-    { id: 'padron',       label: 'Padrón',           icon: FileSpreadsheet },
-    { id: 'gestion',      label: 'Registro Clásico', icon: Briefcase },
-    { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp },
-    { id: 'recepcion',    label: 'Recepción',        icon: BookOpen },
+    // Ítems sin 'isPrivate' se verán siempre (públicos)
     { id: 'sitios',       label: 'Sitios',           icon: Globe },
+    
+    // Ítems privados (requieren estar en el arreglo 'permises')
+    { id: 'atendidos',    label: 'Atendidos',        icon: Users ,      isPrivate: true},
+    { id: 'recepcion',    label: 'Recepción',        icon: BookOpen,      isPrivate: true },
+    { id: 'padron',       label: 'Padrón',           icon: FileSpreadsheet, isPrivate: true },
+    { id: 'gestion',      label: 'Registro Clásico', icon: Briefcase,     isPrivate: true },
+    { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp,    isPrivate: true },
+    { id: 'bitacora',     label: 'Bitácora',         icon: Shield,        isPrivate: true },
+    { id: 'usuarios',     label: 'Usuarios',         icon: Users,         isPrivate: true },
   ];
+
+  const visibleItems = MENU_ITEMS.filter(item => {
+    // 1. Si el ítem es público, se muestra siempre
+    if (!item.isPrivate) return true;
+
+    // 2. Si el usuario es 'admin', ve TODO (comodín de seguridad)
+    if (user?.role === 'Desarrollador') return true;
+
+    // 3. Si es operativo/otro, SOLO ve si el id está en su arreglo de permises
+    // Importante: usamos 'permises' para coincidir con tu backend
+    return user?.permises?.includes(item.id);
+  });
 
   // Helper de estilos
   const getLinkClass = (isActive) => {
@@ -28,9 +50,26 @@ export const Sidebar = ({ currentView, onNavigate }) => {
     `;
   };
 
-  const handleLogout = () => {
-    if (window.confirm("¿Desea cerrar sesión?")) {
+  const handleLogout = async () => {
+  // 1. Lanzamos la alerta
+  const result = await Swal.fire({
+    title: '¿Cerrar sesión?',
+    text: "Deberás ingresar tus credenciales nuevamente para acceder.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#4f46e5', // Indigo para que combine con tu login
+    cancelButtonColor: '#94a3b8',
+    confirmButtonText: 'Sí, salir',
+    cancelButtonText: 'Cancelar',
+    customClass: {
+      popup: 'rounded-3xl'
+    }
+  });
+
+  // 2. Si el usuario confirma, ejecutamos el logout
+  if (result.isConfirmed) {
       logout();
+      toast.success("Sesión cerrada.");
     }
   };
 
@@ -60,11 +99,10 @@ export const Sidebar = ({ currentView, onNavigate }) => {
       <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-1">
         
         <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-2 mt-2">
-            Principal
+            Navegación
         </p>
         
-        {/* Renderizado Dinámico */}
-        {MENU_ITEMS.map((item) => (
+        {visibleItems.map((item) => (
           <button 
             key={item.id}
             onClick={() => onNavigate(item.id)} 

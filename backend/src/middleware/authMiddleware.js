@@ -1,17 +1,15 @@
-// middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
-const SECRET_KEY = process.env.JWT_SECRET || 'secreto_super_seguro';
+// Asegúrate de que esta clave coincida con la del authController
+const SECRET_KEY = process.env.JWT_SECRET || 'secreto_super_seguro_dev'; 
 
+// 1. VERIFICAR TOKEN (El que ya tenías)
 const verifyToken = (req, res, next) => {
-  // 1. Buscamos el token en los headers
   const authHeader = req.headers['authorization'];
   
-  // El formato estándar es "Bearer <token>"
   if (!authHeader) {
     return res.status(403).json({ message: 'Acceso denegado. No se proporcionó token.' });
   }
 
-  // Separamos "Bearer" del token real
   const token = authHeader.split(' ')[1]; 
 
   if (!token) {
@@ -19,18 +17,23 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    // 2. Verificamos si la firma es válida usando nuestra CLAVE SECRETA
     const decoded = jwt.verify(token, SECRET_KEY);
-    
-    // 3. Guardamos los datos del usuario en la request para usarlos en el controlador si hace falta
     req.user = decoded; 
-    
-    // 4. ¡Pase usted!
     next(); 
-
   } catch (error) {
     return res.status(401).json({ message: 'Token inválido o expirado.' });
   }
 };
 
-module.exports = verifyToken;
+// 2. VERIFICAR ROL ADMIN (Nuevo)
+const isAdmin = (req, res, next) => {
+    // req.user ya existe porque verifyToken corrió antes
+    if (req.user && req.user.role === 'admin') {
+        next(); // Es admin, pase usted
+    } else {
+        res.status(403).json({ message: 'Acceso denegado. Se requieren permisos de Administrador.' });
+    }
+};
+
+// IMPORTANTE: Exportamos como objeto para poder sacar los dos
+module.exports = { verifyToken, isAdmin };

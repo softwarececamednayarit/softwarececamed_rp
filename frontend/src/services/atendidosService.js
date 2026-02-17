@@ -94,6 +94,28 @@ export const AtendidosService = {
       console.error("Error en generarReporteClasico:", error);
       throw error;
     }
+  },
+
+  // 9. ACTUALIZAR ESTATUS SIREMED
+  updateEstatusSiremed: async (id, nuevoEstatus) => {
+    try {
+      const response = await api.put(`${ENDPOINT}/${id}/estatus-siremed`, { estatus_siremed: nuevoEstatus });
+      return response.data;
+    } catch (error) {
+      console.error("Error en service updateEstatusSiremed:", error);
+      throw error;
+    }
+  },
+
+  // 10. ELIMINAR EXPEDIENTE (Borrado Físico)
+  deleteAtendido: async (id) => {
+    try {
+      const response = await api.delete(`${ENDPOINT}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error en service deleteAtendido:", error);
+      throw error;
+    }
   }
 
 };

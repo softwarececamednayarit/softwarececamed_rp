@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import solicitudesService from '../services/solicitudesService'; 
 import GestionarSolicitudModal from '../components/GestionarSolicitudModal';
 import { Phone, Trash2, RefreshCw, User, ArchiveRestore, CheckCircle, Calendar, AlertCircle, BookOpen, Inbox } from 'lucide-react';
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 const Recepcion = () => {
   const [solicitudes, setSolicitudes] = useState([]);
@@ -16,34 +18,76 @@ const Recepcion = () => {
       setSolicitudes(data);
     } catch (error) {
       console.error(error);
+      toast.error("No se pudieron cargar las solicitudes. Revisa tu conexión."); // <--- AVISO VISUAL
     } finally {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     cargarDatos();
   }, [activeTab]);
 
   const handleDescartar = async (id) => {
-    const motivo = prompt("¿Por qué deseas descartar esta solicitud? (Opcional):");
-    if (motivo === null) return; 
+    const { value: motivo, isConfirmed } = await Swal.fire({
+      title: '¿Descartar solicitud?',
+      text: "Ingresa el motivo del descarte (opcional):",
+      input: 'text',
+      inputPlaceholder: 'Ej: Datos incompletos, duplicado...',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar descarte',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#e11d48',
+      inputAttributes: {
+        autocapitalize: 'off'
+      },
+      customClass: {
+        popup: 'rounded-3xl'
+      }
+    });
+
+    // Si el usuario canceló, no hacemos nada
+    if (!isConfirmed) return; 
 
     try {
       await solicitudesService.descartarSolicitud(id, motivo);
+      toast.success("Solicitud enviada a la papelera."); // Mejoramos el mensaje
       cargarDatos(); 
     } catch (error) {
-      alert("Error al descartar");
+      console.error(error);
+      toast.error("Error al descartar la solicitud.");
     }
   };
 
   const handleRecuperar = async (id) => {
-    if (!confirm("¿Recuperar esta solicitud a la bandeja de entrada?")) return;
+    // 1. Sustituimos el confirm nativo por Swal
+    const result = await Swal.fire({
+      title: '¿Recuperar solicitud?',
+      text: "¿Deseas enviar esta solicitud de vuelta a la bandeja de entrada?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5', // Indigo
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, recuperar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'rounded-3xl'
+      }
+    });
+
+    // 2. Si no confirma, detenemos
+    if (!result.isConfirmed) return;
+
     try {
       await solicitudesService.recuperarSolicitud(id);
+      
+      // Añadimos un toast de éxito para confirmar la acción
+      toast.success("Solicitud recuperada correctamente.");
+      
       cargarDatos();
     } catch (error) {
-      alert("Error al recuperar");
+      console.error("Error al recuperar:", error);
+      toast.error("Error al intentar recuperar la solicitud.");
     }
   };
 

@@ -229,100 +229,93 @@ exports.generarReporteCompleto = async (listaDatos) => {
 };
 
 // =====================================================================
-// 3. FUNCIÓN REGISTRO CLÁSICO (CORREGIDA: SIN COMILLAS EN RANGO)
+// 3. FUNCIÓN REGISTRO CLÁSICO (Con Acentos)
 // =====================================================================
 exports.generarReporteClasico = async (listaDatos) => {
   try {
-    console.log(`📄 Generando Registro Clásico ESTABLE para ${listaDatos.length} expedientes...`);
+    console.log(`📄 Generando Registro Clásico para ${listaDatos.length} expedientes...`);
 
-    // A. ORDENAR CRONOLÓGICAMENTE (BLINDADO)
+    // A. ORDENAR CRONOLÓGICAMENTE (Esto se mantiene para orden visual)
     listaDatos.sort((a, b) => {
       const fechaA = new Date(a.fecha_recepcion || 0).getTime();
       const fechaB = new Date(b.fecha_recepcion || 0).getTime();
-      
       const diff = fechaA - fechaB;
       if (diff !== 0) return diff;
-
       return String(a.id).localeCompare(String(b.id));
     });
 
-    // B. INICIALIZAR CONTADORES
-    let contadorGlobal = 1; 
-    const contadoresTipo = {
-      'Gestion': 0, 'Orientacion': 0, 'Asesoria': 0, 'Queja': 0, 'Dictamen': 0
-    };
-
-    // C. MAPEO Y CÁLCULO
+    // B. MAPEO (Sin contadores, solo cálculo de tipo para la columna visual)
     const filas = listaDatos.map(dato => {
-      const anio = obtenerAnio(dato.fecha_recepcion);
-      const mesRomano = obtenerMesRomano(dato.fecha_recepcion);
-
-      let tipoRaw = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
+      
+      // 1. Cálculo del Tipo (Solo para llenar la columna "TIPO DE ASUNTO")
+      // Mantenemos esta lógica para que la columna 18 (Tipo) salga correcta visualmente.
+      let textoBase = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
           .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
       
-      tipoRaw = tipoRaw.charAt(0).toUpperCase() + tipoRaw.slice(1).toLowerCase(); 
-      if (!contadoresTipo.hasOwnProperty(tipoRaw)) tipoRaw = 'Orientacion';
+      let tipoAnalisis = textoBase.charAt(0).toUpperCase() + textoBase.slice(1).toLowerCase(); 
+      let tipoFinal = 'Orientación';
 
-      contadoresTipo[tipoRaw]++;
-      const consecutivoTipo = contadoresTipo[tipoRaw];
-
-      let folioServicio = '';
-      if (tipoRaw === 'Queja' || tipoRaw === 'Dictamen') {
-        const letra = tipoRaw.charAt(0); 
-        folioServicio = `${letra}${consecutivoTipo}/${mesRomano}/${anio}`;
-      } else {
-        const inicial = tipoRaw.charAt(0); 
-        folioServicio = `${inicial}-${consecutivoTipo}`;
+      if (tipoAnalisis.includes('Asesoria')) {
+          tipoFinal = 'Asesoría';
+      } else if (tipoAnalisis.includes('Orientacion')) {
+          tipoFinal = 'Orientación';
+      } else if (tipoAnalisis.includes('Gestion')) {
+          tipoFinal = 'Gestión';
+      } else if (tipoAnalisis.includes('Queja')) {
+          tipoFinal = 'Queja';
+      } else if (tipoAnalisis.includes('Dictamen')) {
+          tipoFinal = 'Dictamen';
       }
 
-      const noAsignado = `${contadorGlobal}/${anio}`;
-      contadorGlobal++;
-
+      // 2. Formateo de nombres
       const nombreCompleto = formatoTitulo(`${dato.nombre || ''} ${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`);
       const prestador = formatoTitulo(dato.prestador_nombre || '');
 
+      // 3. RETORNO DE FILA
+      // NOTA: En las últimas dos posiciones ahora ponemos directamente el valor de la BD
       return [
-        dato.fecha_recepcion || '',                                  
-        dato.foraneo ? 'Si' : 'No',                                  
-        nombreCompleto,                                              
-        formatoTitulo(dato.domicilio || ''),                         
-        dato.telefono || '',                                         
-        dato.edad || '',                                             
-        formatoTitulo(dato.estado_civil || ''),                      
-        formatoTitulo(dato.sexo || ''),                              
+        dato.fecha_recepcion || '',                                      
+        dato.foraneo ? 'Si' : 'No',                                      
+        nombreCompleto,                                                      
+        formatoTitulo(dato.domicilio || ''),                             
+        dato.telefono || '',                                                 
+        dato.edad || '',                                                     
+        formatoTitulo(dato.estado_civil || ''),                              
+        formatoTitulo(dato.sexo || ''),                                      
         formatoTitulo(dato.ocupacion || dato.cargo_ocupacion || ''), 
-        (dato.curp || '').toUpperCase(),                             
+        (dato.curp || '').toUpperCase(),                                     
         formatoTitulo(dato.representante || ''),                     
-        dato.via_telefonica ? 'Si' : 'No',                           
-        prestador,                                                   
-        formatoOracion(dato.diagnostico || ''),                      
-        formatoTitulo(dato.especialidad || ''),                      
+        dato.via_telefonica ? 'Si' : 'No',                                   
+        prestador,                                                           
+        formatoOracion(dato.diagnostico || ''), 
+        formatoTitulo(dato.especialidad || ''),                              
         formatoOracion(dato.motivo_inconformidad || ''),             
-        formatoOracion(dato.submotivo || ''),                        
+        formatoOracion(dato.submotivo || ''),                                
         formatoOracion(dato.descripcion_hechos || ''),               
-        formatoTitulo(dato.actividad_apoyo || dato.tipo_asunto || ''), 
+        
+        tipoFinal, // Columna calculada (TIPO DE ASUNTO)
+        
         formatoOracion(dato.observaciones_servicio || ''),           
-        folioServicio,                                               
-        noAsignado                                                   
+        
+        // 👇 AQUÍ YA NO SE GENERA, SE PONE LO QUE HAYA EN BD O VACÍO
+        dato.servicio || '',       // Columna "Folio Servicio"                                                
+        dato.no_asignado || ''     // Columna "No. Asignado / Interno"                                              
       ];
     });
 
-    // D. LIMPIAR Y ESCRIBIR
+    // C. LIMPIAR Y ESCRIBIR EN SHEETS
     const NOMBRE_HOJA = "Datos"; 
 
     try {
-      // CORRECCIÓN: Quitamos las comillas simples '' alrededor de NOMBRE_HOJA
-      // Antes: `'${NOMBRE_HOJA}'!A2:V10000` (Error) -> Ahora: `${NOMBRE_HOJA}!A2:V10000` (Correcto)
       await sheets.spreadsheets.values.clear({
         spreadsheetId: SPREADSHEET_CLASICO_ID,
         range: `${NOMBRE_HOJA}!A2:V10000`, 
       });
     } catch (e) {
-      console.warn(`Aviso: No se pudo limpiar la hoja '${NOMBRE_HOJA}'. Verifica que la pestaña exista en el Excel.`);
+      console.warn(`Aviso: No se pudo limpiar la hoja o es la primera vez.`);
     }
 
     if (filas.length > 0) {
-      // CORRECCIÓN: Quitamos las comillas aquí también
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_CLASICO_ID,
         range: `${NOMBRE_HOJA}!A2`,
@@ -331,24 +324,17 @@ exports.generarReporteClasico = async (listaDatos) => {
       });
     }
 
-    // --- PREPARAR DATOS PARA GUARDAR EN BD ---
-    const datosParaGuardar = listaDatos.map((dato, index) => ({
-      id: dato.id,
-      servicio: filas[index][20],    
-      no_asignado: filas[index][21]  
-    }));
-
-    const webLink = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`;
-    
+    // D. RETORNO
+    // Ya no devolvemos 'updates' porque no generamos nada nuevo para guardar.
     return { 
         success: true, 
-        url: webLink, 
+        url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`, 
         count: filas.length,
-        updates: datosParaGuardar 
+        updates: [] // Enviamos vacío para no romper el controlador si espera este array
     };
 
   } catch (error) {
-    console.error("❌ Error en Registro Clásico:", error.message); // .message para ver el error limpio
+    console.error("❌ Error en Registro Clásico:", error.message); 
     throw new Error("Falló la generación del Registro Clásico.");
   }
 };

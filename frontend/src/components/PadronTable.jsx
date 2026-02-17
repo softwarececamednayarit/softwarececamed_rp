@@ -3,38 +3,9 @@ import {
   Search, Save, X, Edit2, Loader2, AlertCircle, FileSpreadsheet, Eye 
 } from 'lucide-react';
 import { AtendidosService } from '../services/atendidosService';
-// NOTA: Eliminamos la importación de DetailModal aquí.
+import toast from 'react-hot-toast';
+import { ESTADOS_CIVILES, TIPOS_BENEFICIARIO, PARENTESCOS, ACTIVIDADES_APOYO, TIPOS_APOYO, MUNICIPIOS_NAYARIT} from '../utils/catalogs';
 
-// --- CONSTANTES ---
-const MUNICIPIOS = [
-  "Acaponeta","Ahuacatlán","Amatlán de Cañas","Bahía de Banderas",
-  "Compostela","Del Nayar","Huajicori","Ixtlán del Río",
-  "Jala","La Yesca","Rosamorada","Ruiz","San Blas",
-  "San Pedro Lagunillas","Santa María del Oro",
-  "Santiago Ixcuintla","Tecuala","Tepic","Tuxpan","Xalisco"
-];
-
-const ESTADOS_CIVILES = [
-  "Soltero(a)", "Casado(a)", "Unión libre", "Viudo(a)", 
-  "Divorciado(a)", "Separado(a)", "No Aplica"
-];
-
-const TIPOS_BENEFICIARIO = ["Directo", "Indirecto"];
-
-const PARENTESCOS = [
-  "Beneficiario", "Cónyuge o Compañero(a)", "Padre o Madre", "Hijo(a)",
-  "Abuelo(a)", "Hermano(a)", "Nieto(a)", "Suegro(a)", 
-  "Sobrino(a)", "Yerno o Nuera", "Hijastro(a) / Entendado(a)", 
-  "No Tiene Parentesco", "Otro Parentesco"
-];
-
-const TIPOS_APOYO = [
-  "Servicio", "Especie", "Monetario", "Producto Subsidiado", "Mixto", "Estatal"
-];
-
-const ACTIVIDADES_APOYO = [
-  "Orientación", "Gestión", "Asesoría", "Queja", "Dictamen"
-];
 
 // RECIBIMOS LA PROP onViewDetails
 export const PadronTable = ({ onViewDetails }) => {
@@ -44,9 +15,8 @@ export const PadronTable = ({ onViewDetails }) => {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isOtherMunicipio, setIsOtherMunicipio] = useState(false);
   
-  // ELIMINADO: const [selectedItem, setSelectedItem] = useState(null);
-
   // --- CARGA ---
   const loadData = async () => {
     try {
@@ -67,6 +37,11 @@ export const PadronTable = ({ onViewDetails }) => {
   // --- EDICIÓN ---
   const startEditing = (row) => {
     setEditingId(row.id);
+    // Lógica para detectar municipio personalizado
+    const munViene = (row.municipio || '').trim().toUpperCase();
+    const esMunicipioEstandar = MUNICIPIOS_NAYARIT.map(m => m.toUpperCase()).includes(munViene);
+    setIsOtherMunicipio(!!munViene && !esMunicipioEstandar);
+
     setEditForm({
       municipio: row.municipio || '',
       localidad: row.localidad || '',
@@ -99,7 +74,7 @@ export const PadronTable = ({ onViewDetails }) => {
       setEditingId(null);
     } catch (error) {
       console.error(error);
-      alert("Error al guardar");
+      toast.error("error al guardar");
     } finally {
       setSaving(false);
     }
@@ -192,12 +167,49 @@ export const PadronTable = ({ onViewDetails }) => {
                       {isEditing ? (
                         /* --- MODO EDICIÓN --- */
                         <>
+                          {/* Busca la sección de MODO EDICIÓN -> Ubicación */}
                           <td className="p-2 align-top space-y-2">
-                             <select name="municipio" value={editForm.municipio} onChange={handleChange} className="w-full p-1.5 border border-indigo-300 rounded text-xs bg-white">
-                               <option value="">Mpio...</option>
-                               {MUNICIPIOS.map(m => <option key={m} value={m}>{m}</option>)}
-                             </select>
-                             <input name="localidad" value={editForm.localidad} onChange={handleChange} className="w-full p-1.5 border border-indigo-300 rounded text-xs" placeholder="Loc." />
+                            <select 
+                              name="municipio" 
+                              // Si es personalizado, el select muestra la opción "OTRO"
+                              value={isOtherMunicipio ? 'OTRO (ESPECIFIQUE)' : (editForm.municipio || '')} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'OTRO (ESPECIFIQUE)') {
+                                  setIsOtherMunicipio(true);
+                                  setEditForm(prev => ({ ...prev, municipio: '' }));
+                                } else {
+                                  setIsOtherMunicipio(false);
+                                  setEditForm(prev => ({ ...prev, municipio: val }));
+                                }
+                              }} 
+                              className="w-full p-1.5 border border-indigo-300 rounded text-xs bg-white"
+                            >
+                              <option value="">Mpio...</option>
+                              {MUNICIPIOS_NAYARIT.map(m => (
+                                <option key={m} value={m.toUpperCase()}>{m}</option>
+                              ))}
+                            </select>
+
+                            {/* Input manual que aparece solo si eliges OTRO */}
+                            {isOtherMunicipio && (
+                              <input 
+                                name="municipio" 
+                                value={editForm.municipio || ''} 
+                                onChange={handleChange} 
+                                className="w-full p-1.5 border border-indigo-300 rounded text-xs bg-indigo-50 animate-in fade-in" 
+                                placeholder="Especifique municipio..." 
+                                autoFocus 
+                              />
+                            )}
+
+                            <input 
+                              name="localidad" 
+                              value={editForm.localidad || ''} 
+                              onChange={handleChange} 
+                              className="w-full p-1.5 border border-indigo-300 rounded text-xs" 
+                              placeholder="Loc." 
+                            />
                           </td>
                           
                           <td className="p-2 align-top space-y-2">

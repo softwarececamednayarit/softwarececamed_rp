@@ -1,36 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 const authController = require('../controllers/authController');
 
 // ==========================================================
 // 1. RUTAS PÚBLICAS (Cualquiera puede entrar)
 // ==========================================================
-
-// El Login SIEMPRE debe ser público (aquí es donde te dan el token)
 router.post('/login', authController.login);
 
-// NOTA: Normalmente el registro es público si es una red social. 
-// Pero en un sistema administrativo como CECAMED, a veces se protege 
-// para que solo un Admin logueado pueda crear otros usuarios.
-// Si es público, déjalo aquí. Si es privado, bájalo después del verifyToken.
-// router.post('/register', authController.register); 
-
-
 // ==========================================================
-// 2. ACTIVAR EL PORTERO (Middleware)
+// 2. ACTIVAR EL PORTERO (Middleware de Autenticación)
 // ==========================================================
-// A partir de esta línea, todas las rutas de abajo requieren Token.
+// 🛑 A partir de aquí, NADIE pasa sin un Token válido.
 router.use(verifyToken);
 
 // ==========================================================
-// 3. RUTAS PROTEGIDAS (Solo usuarios logueados)
+// 3. RUTAS DE USUARIO (Cualquier rol logueado)
 // ==========================================================
-
-// Solo alguien que ya entró puede cambiar su contraseña
+// Un usuario normal puede cambiar SU propia contraseña
 router.post('/change-password', authController.changePassword);
 
-// Si decides que solo un usuario logueado (Admin) puede crear nuevos usuarios:
-router.post('/register', authController.register);
+// ==========================================================
+// 4. RUTAS DE ADMINISTRADOR (La "Zona VIP")
+// ==========================================================
+
+// A. Crear nuevos usuarios (Solo el admin debe poder crear gente)
+router.post('/register', authController.register); 
+
+// B. Ver la tabla completa de usuarios
+// Ruta final: GET /api/auth/users
+router.get('/users', authController.getAllUsers); 
+
+// C. Banear o Activar usuarios (El interruptor)
+// Ruta final: PATCH /api/auth/users/:id/status
+router.patch('/users/:id/status', authController.toggleUserStatus);
+
+// D. Resetear contraseña de OTRO usuario (Cuando la olvidan)
+// Ruta final: PATCH /api/auth/users/:id/reset-password
+router.patch('/users/:id/reset-password', authController.adminResetPassword);
+
+// E. Editar usuario existente
+router.put('/users/:id', authController.updateUser);
 
 module.exports = router;

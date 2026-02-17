@@ -49,8 +49,24 @@ export const AuthProvider = ({ children }) => {
     // window.location.href = '/'; 
   };
 
+  const hasRole = (allowedRoles) => {
+    if (!user) return false;
+    // Si pasas un string único, lo convierte en array para comparar
+    const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    return rolesArray.includes(user.role);
+  };
+
+  const hasPermission = (permission) => {
+    if (!user) return false;
+    // Si es admin, tiene permiso a todo automáticamente (opcional)
+    if (user.role === 'admin') return true; 
+    
+    // Verificamos si el permiso está en su arreglo
+    return user.permises?.includes(permission);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, hasRole, hasPermission }}>
       {!loading && children}
     </AuthContext.Provider>
   );

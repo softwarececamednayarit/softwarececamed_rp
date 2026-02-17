@@ -95,6 +95,43 @@ class SolicitudModel {
       throw new Error(`Error restaurando solicitud: ${error.message}`);
     }
   }
+
+  static async agregarSeguimiento(id, { status_llamada, notas_nuevas, usuarioNombre }) {
+    try {
+      // 1. Necesitamos el documento actual para obtener el historial previo
+      const docRef = db.collection(COL_PENDIENTES).doc(id);
+      const docSnap = await docRef.get();
+      
+      if (!docSnap.exists) throw new Error("Solicitud no encontrada");
+
+      const data = docSnap.data();
+      let historial = data.intentos || [];
+
+      // 2. Creamos el nuevo intento
+      const nuevoIntento = {
+        fecha: new Date().toISOString(),
+        usuario: usuarioNombre || 'Sistema',
+        status: status_llamada,
+        notas: notas_nuevas || ''
+      };
+
+      // 3. Lo ponemos al principio
+      historial.unshift(nuevoIntento);
+
+      // 4. Actualizamos todo de una vez
+      await docRef.update({
+        status: status_llamada, // Actualizamos el status general también
+        intentos_llamada: (data.intentos_llamada || 0) + 1,
+        intentos: historial,
+        fecha_ultima_gestion: new Date()
+      });
+
+      return nuevoIntento; // Retornamos el intento para que el front lo pinte
+
+    } catch (error) {
+      throw new Error(`Error agregando seguimiento: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SolicitudModel;
