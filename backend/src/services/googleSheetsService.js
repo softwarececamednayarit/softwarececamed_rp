@@ -1,32 +1,39 @@
 const { google } = require('googleapis');
 
-// 1. CARGA Y PARSEO DE CREDENCIALES
-let serviceAccount;
+/*
+ * Servicio `googleSheetsService`
+ * Helpers para generar/actualizar Google Sheets usados por el backend
+ * - Agenda (append)
+ * - Padrón (limpiar y pegar por trimestres)
+ * - Registro clásico (formato visual)
+ * Requiere `FIREBASE_CREDENTIALS` en el entorno (JSON stringificado).
+ */
 
+// Carga y parseo de credenciales desde env
+let serviceAccount;
 try {
   if (!process.env.FIREBASE_CREDENTIALS) {
-    throw new Error("No se encontró la variable FIREBASE_CREDENTIALS en .env");
+    throw new Error('No se encontró la variable FIREBASE_CREDENTIALS en .env');
   }
   serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 } catch (error) {
-  console.error("❌ Error crítico leyendo credenciales:", error.message);
-  throw error; 
+  console.error('❌ Error crítico leyendo credenciales:', error.message);
+  throw error;
 }
 
-// 2. CONFIGURACIÓN DEL SERVICIO
+// Configurar cliente de Google Sheets
 const auth = new google.auth.GoogleAuth({
   credentials: serviceAccount,
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
-
 const sheets = google.sheets({ version: 'v4', auth });
 
-// --- CONSTANTES DE ID ---
-const SPREADSHEET_AGENDA_ID = process.env.GOOGLE_SHEET_ID; 
+// IDs de hojas en entorno
+const SPREADSHEET_AGENDA_ID = process.env.GOOGLE_SHEET_ID;
 const SPREADSHEET_PADRON_ID = process.env.GOOGLE_SHEET_PADRON_ID;
-const SPREADSHEET_CLASICO_ID = process.env.GOOGLE_SHEET_CLASICO_ID; 
+const SPREADSHEET_CLASICO_ID = process.env.GOOGLE_SHEET_CLASICO_ID;
 
-// --- FUNCIONES DE FORMATO (HELPERS) ---
+// Helpers de formato
 const formatoTitulo = (texto) => {
   if (!texto) return '';
   return texto.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
@@ -39,6 +46,7 @@ const formatoOracion = (texto) => {
   return res.replace(/(\. \w)/g, (match) => match.toUpperCase());
 };
 
+// Determina pestaña de trimestre según fecha
 const obtenerHojaTrimestre = (fechaStr) => {
   if (!fechaStr) return '1er trimestre'; 
   const fecha = new Date(fechaStr);
@@ -51,25 +59,7 @@ const obtenerHojaTrimestre = (fechaStr) => {
   return '1er trimestre';
 };
 
-// --- NUEVOS HELPERS PARA FOLIOS ---
-const ROMANOS = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-
-const obtenerMesRomano = (fechaStr) => {
-  if (!fechaStr) return 'X'; 
-  const fecha = new Date(fechaStr);
-  if (isNaN(fecha.getTime())) return 'X';
-  return ROMANOS[fecha.getMonth() + 1] || 'X';
-};
-
-const obtenerAnio = (fechaStr) => {
-  if (!fechaStr) return new Date().getFullYear();
-  const fecha = new Date(fechaStr);
-  return isNaN(fecha.getTime()) ? new Date().getFullYear() : fecha.getFullYear();
-};
-
-// =====================================================================
-// 1. FUNCIÓN AGENDA (INTACTA)
-// =====================================================================
+// Agenda: añade una fila a la hoja de Agenda
 exports.agregarAAgenda = async (datos) => {
   try {
     const nombreRaw = `${datos.nombre || ''} ${datos.apellido_paterno || ''} ${datos.apellido_materno || ''}`.trim();
@@ -116,14 +106,12 @@ exports.agregarAAgenda = async (datos) => {
   }
 };
 
-// =====================================================================
-// 2. FUNCIÓN PADRÓN (MODO LIMPIAR Y PEGAR) - CORREGIDA
-// =====================================================================
+// Padrón: limpia y escribe registros clasificados por trimestres
 exports.generarReporteCompleto = async (listaDatos) => {
   try {
     console.log(`📄 Iniciando reporte Padrón en hoja existente con ${listaDatos.length} registros...`);
 
-    // --- NUEVO: ORDENAR (MÁS VIEJOS ARRIBA) ---
+    // Ordenar cronológicamente (más antiguos arriba)
     listaDatos.sort((a, b) => {
       // Usamos fecha_beneficio porque es la clave de este reporte
       const fechaA = new Date(a.fecha_beneficio || 0).getTime();
@@ -138,7 +126,7 @@ exports.generarReporteCompleto = async (listaDatos) => {
       return String(a.id).localeCompare(String(b.id));
     });
 
-    // 1. CLASIFICAR DATOS EN LOS 4 TRIMESTRES
+    // Clasificar en 4 trimestres (pestañas)
     const lotes = {
       '1er trimestre': [],
       '2do trimestre': [],
@@ -175,7 +163,7 @@ exports.generarReporteCompleto = async (listaDatos) => {
       }
     });
 
-    // 2. EJECUTAR LIMPIEZA Y ESCRITURA
+    // Ejecutar limpieza y escritura por cada hoja
     const promesas = Object.keys(lotes).map(async (nombreHoja) => {
       const filasNuevas = lotes[nombreHoja];
 
@@ -184,7 +172,7 @@ exports.generarReporteCompleto = async (listaDatos) => {
       const rango = `'${nombreHoja}'!A12`; 
       const rangoLimpieza = `'${nombreHoja}'!A12:P2000`;
 
-      // A. LIMPIAR RANGO
+      // A. Limpiar rango objetivo
       try {
         await sheets.spreadsheets.values.clear({
           spreadsheetId: SPREADSHEET_PADRON_ID,
@@ -196,7 +184,7 @@ exports.generarReporteCompleto = async (listaDatos) => {
         return; // Si no encuentra la hoja, saltamos al siguiente trimestre
       }
 
-      // B. ESCRIBIR DATOS NUEVOS (Solo si hay)
+      // B. Escribir datos nuevos (si existen)
       if (filasNuevas.length > 0) {
         try {
           await sheets.spreadsheets.values.update({
@@ -228,14 +216,12 @@ exports.generarReporteCompleto = async (listaDatos) => {
   }
 };
 
-// =====================================================================
-// 3. FUNCIÓN REGISTRO CLÁSICO (Con Acentos)
-// =====================================================================
+// Registro clásico: formato visual con columnas específicas
 exports.generarReporteClasico = async (listaDatos) => {
   try {
     console.log(`📄 Generando Registro Clásico para ${listaDatos.length} expedientes...`);
 
-    // A. ORDENAR CRONOLÓGICAMENTE (Esto se mantiene para orden visual)
+    // Ordenar cronológicamente
     listaDatos.sort((a, b) => {
       const fechaA = new Date(a.fecha_recepcion || 0).getTime();
       const fechaB = new Date(b.fecha_recepcion || 0).getTime();
@@ -244,11 +230,10 @@ exports.generarReporteClasico = async (listaDatos) => {
       return String(a.id).localeCompare(String(b.id));
     });
 
-    // B. MAPEO (Sin contadores, solo cálculo de tipo para la columna visual)
+    // Mapear cada expediente a la fila esperada por la hoja
     const filas = listaDatos.map(dato => {
       
-      // 1. Cálculo del Tipo (Solo para llenar la columna "TIPO DE ASUNTO")
-      // Mantenemos esta lógica para que la columna 18 (Tipo) salga correcta visualmente.
+      // 1. Cálculo del tipo para la columna "TIPO DE ASUNTO"
       let textoBase = (dato.actividad_apoyo || dato.tipo_asunto || 'Orientacion')
           .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
       
@@ -271,8 +256,7 @@ exports.generarReporteClasico = async (listaDatos) => {
       const nombreCompleto = formatoTitulo(`${dato.nombre || ''} ${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`);
       const prestador = formatoTitulo(dato.prestador_nombre || '');
 
-      // 3. RETORNO DE FILA
-      // NOTA: En las últimas dos posiciones ahora ponemos directamente el valor de la BD
+      // 3. Retorno de fila (últimas columnas toman valores de la BD)
       return [
         dato.fecha_recepcion || '',                                      
         dato.foraneo ? 'Si' : 'No',                                      
@@ -303,16 +287,15 @@ exports.generarReporteClasico = async (listaDatos) => {
       ];
     });
 
-    // C. LIMPIAR Y ESCRIBIR EN SHEETS
-    const NOMBRE_HOJA = "Datos"; 
-
+    // Limpiar y escribir en la hoja "Datos"
+    const NOMBRE_HOJA = 'Datos';
     try {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: SPREADSHEET_CLASICO_ID,
-        range: `${NOMBRE_HOJA}!A2:V10000`, 
+        range: `${NOMBRE_HOJA}!A2:V10000`,
       });
     } catch (e) {
-      console.warn(`Aviso: No se pudo limpiar la hoja o es la primera vez.`);
+      console.warn('Aviso: No se pudo limpiar la hoja o es la primera vez.');
     }
 
     if (filas.length > 0) {
@@ -324,8 +307,7 @@ exports.generarReporteClasico = async (listaDatos) => {
       });
     }
 
-    // D. RETORNO
-    // Ya no devolvemos 'updates' porque no generamos nada nuevo para guardar.
+    // Retorno (mantener compatibilidad con controlador)
     return { 
         success: true, 
         url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`, 
