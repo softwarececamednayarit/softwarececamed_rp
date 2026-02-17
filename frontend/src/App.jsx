@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LogOut, Loader2, Menu, X, AlertCircle } from 'lucide-react'; 
+import { Toaster } from 'react-hot-toast';
 
 // Importar componentes
 import Login from './pages/Login';
@@ -155,6 +156,41 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
+      {/* Configuración del Toaster: 
+          - position: donde quieres que aparezcan (top-right es estándar).
+          - toastOptions: le damos un estilo acorde a la app (bordes redondeados).
+      */}
+      <Toaster 
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          className: '',
+          duration: 4000,
+          style: {
+            background: '#ffffff',
+            color: '#1e293b',
+            padding: '16px',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0', // Borde gris claro para que resalte
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', // Sombra para profundidad
+            fontSize: '14px',
+            fontWeight: '600'
+          },
+          // Colores específicos para éxito y error
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <AppContent />
     </AuthProvider>
   );
