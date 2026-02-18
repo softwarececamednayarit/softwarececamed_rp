@@ -71,7 +71,7 @@ const AppContent = () => {
     }
 
     // 2. Validación por Permisos Dinámicos (permises)
-    // El Admin tiene "Superpoderes": accede a todo aunque no esté en el array
+    // El Desarrollador tiene "Superpoderes": accede a todo aunque no esté en el array
     const isSuperAdmin = user?.role === 'Desarrollador';
     const hasPermission = user?.permises?.includes(currentView);
 
@@ -88,7 +88,7 @@ const AppContent = () => {
       }
     }
 
-    // 3. Si no es admin ni tiene el permiso específico
+    // 3. Si no es Desarrollador ni tiene el permiso específico
     return <AccesoDenegado />;
   };
 
@@ -147,10 +147,6 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      {/* Configuración del Toaster: 
-          - position: donde quieres que aparezcan (top-right es estándar).
-          - toastOptions: le damos un estilo acorde a la app (bordes redondeados).
-      */}
       <Toaster 
         position="top-right"
         reverseOrder={false}
