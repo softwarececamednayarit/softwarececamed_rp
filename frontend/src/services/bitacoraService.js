@@ -1,4 +1,3 @@
-// src/services/bitacoraService.js
 import api from './axiosConfig';
 
 // Obtener el historial completo para la tabla

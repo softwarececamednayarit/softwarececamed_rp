@@ -75,8 +75,6 @@ export const AtendidosService = {
   // 7. EXPORTAR PADRÓN (Excel)
   generarReporte: async (params = {}) => {
     try {
-      // Nota: Si el backend devuelve un archivo binario (blob) directamente, 
-      // podrías necesitar agregar { responseType: 'blob', params }
       const response = await api.get(`${ENDPOINT}/padron/exportar`, { params });
       return response.data;
     } catch (error) {
@@ -85,7 +83,7 @@ export const AtendidosService = {
     }
   },
 
-  // 8. [NUEVO] EXPORTAR REGISTRO CLÁSICO
+  // 8. EXPORTAR REGISTRO CLÁSICO
   generarReporteClasico: async (params = {}) => {
     try {
       const response = await api.get(`${ENDPOINT}/clasico/exportar`, { params });

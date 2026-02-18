@@ -35,7 +35,6 @@ const registrarIntentoLlamada = async (id, status, notas, usuario) => {
 // 3. AGENDAR CITA
 const agendarCita = async (id, datosCita) => {
   try {
-    // datosCita: { tipo_asignado, fecha_cita, instrucciones, datos_completos }
     const response = await api.post(`${ENDPOINT}/${id}/agendar`, datosCita);
     return response.data;
   } catch (error) {

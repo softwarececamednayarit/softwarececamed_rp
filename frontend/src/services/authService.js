@@ -2,7 +2,7 @@
 import api from './axiosConfig';
 
 // ==========================================================
-// 1. FUNCIONES GENERALES (Para todos)
+// 1. FUNCIONES GENERALES
 // ==========================================================
 
 export const loginRequest = async (email, password) => {
