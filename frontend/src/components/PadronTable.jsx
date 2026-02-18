@@ -42,12 +42,15 @@ export const PadronTable = ({ onViewDetails }) => {
   const startEditing = (row) => {
     setEditingId(row.id);
     // Lógica para detectar municipio personalizado
-    const munViene = (row.municipio || '').trim().toUpperCase();
-    const esMunicipioEstandar = MUNICIPIOS_NAYARIT.map(m => m.toUpperCase()).includes(munViene);
-    setIsOtherMunicipio(!!munViene && !esMunicipioEstandar);
+    const rawMun = (row.municipio || '').trim();
+    const munViene = rawMun.toUpperCase();
+    const esMunicipioEstandar = rawMun && MUNICIPIOS_NAYARIT.map(m => m.toUpperCase()).includes(munViene);
+    // Si es estándar, usar la capitalización del catálogo; si no, conservar el valor original
+    const municipioValor = esMunicipioEstandar ? (MUNICIPIOS_NAYARIT.find(m => m.toUpperCase() === munViene) || rawMun) : rawMun;
+    setIsOtherMunicipio(!!rawMun && !esMunicipioEstandar);
 
     setEditForm({
-      municipio: row.municipio || '',
+      municipio: municipioValor || '',
       localidad: row.localidad || '',
       estado_civil: row.estado_civil || 'Soltero(a)',
       cargo_ocupacion: row.cargo_ocupacion || '',
@@ -188,7 +191,7 @@ export const PadronTable = ({ onViewDetails }) => {
                             >
                               <option value="">Mpio...</option>
                               {MUNICIPIOS_NAYARIT.map(m => (
-                                <option key={m} value={m.toUpperCase()}>{m}</option>
+                                <option key={m} value={m}>{m}</option>
                               ))}
                             </select>
 
