@@ -331,14 +331,13 @@ export const Estadisticas = () => {
                     </div>
                 </div>
 
-                {/* 2. Rangos de Edad (CORRECCIÓN MARGEN) */}
+                {/* 2. Rangos de Edad */}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-amber-900/5 lg:col-span-2">
                     <h3 className="font-bold text-slate-700 mb-6 text-sm uppercase tracking-wider flex items-center gap-2">
                         <Calendar size={16} className="text-amber-500"/> Rangos de Edad
                     </h3>
                     <div className="h-56 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            {/* AUMENTO MARGIN TOP A 25 */}
                             <BarChart data={metrics.porRangoEdad} margin={{ top: 25, right: 30, left: 20, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#fff7ed" />
                                 <XAxis dataKey="name" tick={{fontSize: 11, fill:'#92400e', fontWeight:'bold'}} axisLine={false} tickLine={false} />
@@ -384,7 +383,6 @@ export const Estadisticas = () => {
                     </h3>
                     <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            {/* AUMENTO MARGIN TOP */}
                             <BarChart data={metrics.porMunicipio} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                                 <XAxis type="number" hide />
@@ -434,7 +432,6 @@ export const Estadisticas = () => {
                     </h3>
                     <div className="h-48 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            {/* AUMENTO MARGIN TOP */}
                             <BarChart data={metrics.porActividad} margin={{ top: 25, right: 30, left: 20, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e7ff" />
                                 <XAxis dataKey="name" tick={{fontSize: 11, fill:'#4f46e5', fontWeight:'bold'}} axisLine={false} tickLine={false} />
@@ -445,7 +442,7 @@ export const Estadisticas = () => {
                     </div>
                 </div>
 
-                {/* Instituciones (YA CORREGIDO CON TU LÓGICA) */}
+                {/* Instituciones*/}
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-indigo-900/5">
                     <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wider">
                         <Building2 size={16} className="text-indigo-500"/> Instituciones

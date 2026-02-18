@@ -74,7 +74,7 @@ const Perfil = () => {
     <div className="flex-1 overflow-y-auto bg-slate-50/50">
       <div className="max-w-screen-2xl mx-auto px-6 md:px-12 py-10 md:py-16 space-y-8">
         
-        {/* --- HEADER TIPO TARJETA (Idéntico al de Sitios de Interés) --- */}
+        {/* --- HEADER TIPO TARJETA --- */}
         <header className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
           
           {/* Decoración de fondo */}

@@ -13,7 +13,6 @@ export const Gestion = () => {
 
   // --- FUNCIÓN DE SINCRONIZACIÓN ---
   const handleSincronizar = async () => {
-    // 1. Reemplazamos window.confirm por Swal.fire
     const result = await Swal.fire({
       title: '¿Generar Registro Clásico?',
       html: `
@@ -24,7 +23,7 @@ export const Gestion = () => {
       `,
       icon: 'info',
       showCancelButton: true,
-      confirmButtonColor: '#4f46e5', // Indigo-600 para que combine con tu tema
+      confirmButtonColor: '#4f46e5',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Sí, generar registro',
       cancelButtonText: 'Cancelar',
@@ -63,7 +62,7 @@ export const Gestion = () => {
   // --- 3. CERRAR MODAL Y REFRESCAR ---
   const handleCloseModal = () => {
     setSelectedItem(null);
-    setRefreshKey(prev => prev + 1); // Refresca la tabla por si editaste algo en el modal
+    setRefreshKey(prev => prev + 1); // Refresca la tabla por si se edita algo en el modal
   };
 
   return (
@@ -127,7 +126,7 @@ export const Gestion = () => {
 
       </div>
 
-      {/* 5. MODAL FUERA DE LA ESTRUCTURA DE LA TABLA (Arregla el z-index) */}
+      {/* 5. MODAL FUERA DE LA ESTRUCTURA DE LA TABLA */}
       {selectedItem && (
         <DetailModal 
             item={selectedItem} 

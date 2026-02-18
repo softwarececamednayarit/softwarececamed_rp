@@ -131,7 +131,7 @@ export const Padron = () => {
 
       </div>
 
-      {/* 5. MODAL FUERA DE LA ESTRUCTURA (Para arreglar z-index) */}
+      {/* 5. MODAL FUERA DE LA ESTRUCTURA */}
       {selectedItem && (
         <DetailModal 
             item={selectedItem} 

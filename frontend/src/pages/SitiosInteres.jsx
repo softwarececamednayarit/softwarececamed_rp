@@ -30,13 +30,6 @@ const sitios = [
     icon: <ClipboardList size={24} className="text-white" />,
     color: "bg-purple-500" 
   },
-  // {
-  //   titulo: "CONAMED Nacional",
-  //   descripcion: "Comisión Nacional de Arbitraje Médico. Marco normativo federal.",
-  //   url: "https://www.gob.mx/conamed",
-  //   icon: <Scale size={24} className="text-white" />, 
-  //   color: "bg-amber-600"
-  // },
   {
     titulo: "Padrón de Beneficiarios",
     descripcion: "Acceso al padrón de beneficiarios trimestral del Programa de Atención Médica.",

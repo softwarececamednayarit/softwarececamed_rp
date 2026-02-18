@@ -202,7 +202,6 @@ const Usuarios = () => {
                       <p className="text-sm text-slate-500">{user.email}</p>
                     </div>
                   </td>
-                  {/* En el tbody, dentro del map de usuarios */}
                   <td className="p-4">
                     <div className="flex flex-col gap-1">
                       <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border w-fit ${
@@ -241,7 +240,7 @@ const Usuarios = () => {
                   </td>
                   <td className="p-4">
                     <div className="flex justify-center gap-2">
-                      {/* BOTÓN DE EDITAR (AGREGADO) */}
+                      {/* BOTÓN DE EDITAR */}
                       <button 
                         onClick={() => openEditModal(user)}
                         title="Editar Usuario"

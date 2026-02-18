@@ -4,6 +4,15 @@ import { loginRequest } from '../services/authService';
 import { Fingerprint, Lock, Mail, ArrowRight, Loader2, AlertCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 
+// Página de login del sistema.
+// Comportamiento principal:
+// - Recoge `email` y `password` del usuario
+// - Llama a `loginRequest` para obtener token / usuario
+// - Usa `login()` del contexto para guardar sesión en el cliente
+// Estados clave:
+// - `loading`: controla el estado de envío
+// - `error`: muestra errores de autenticación / red
+// - `showPassword`: alterna visibilidad del campo contraseña
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +22,7 @@ const Login = () => {
   
   const { login } = useAuth();
 
+  // handleSubmit: valida credenciales y delega sesión al AuthContext
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -20,6 +30,7 @@ const Login = () => {
 
     try {
       const data = await loginRequest(email, password);
+      // login guarda token + user en el contexto y redirige según implementación
       login(data.token, data.user); 
     } catch (error) {
       console.error("Error de autenticación", error);
@@ -33,7 +44,6 @@ const Login = () => {
     // Contenedor principal con el nuevo fondo llamativo pero formal
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-slate-900">
       
-      {/* --- NUEVO FONDO --- */}
       {/* Capa 1: Patrón de cuadrícula sutil (Grid pattern) */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       
@@ -85,10 +95,11 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {error && (
-              <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-xs font-bold flex items-center gap-3 border border-rose-100 animate-in slide-in-from-top-2">
-                <AlertCircle size={20} className="shrink-0" />
-                {error}
-              </div>
+                <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-xs font-bold flex items-center gap-3 border border-rose-100 animate-in slide-in-from-top-2">
+                  {/* Mensaje de error enviado desde el backend o por fallo de red */}
+                  <AlertCircle size={20} className="shrink-0" />
+                  {error}
+                </div>
             )}
 
             <div className="space-y-2">
@@ -128,6 +139,7 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                 >
+                  {/* Alterna visibilidad de la contraseña para facilitar entrada en dispositivos */}
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
@@ -144,6 +156,7 @@ const Login = () => {
                 </>
               ) : (
                 <>
+                  {/* Texto principal del CTA */}
                   Ingresar al Sistema 
                   <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                 </>
