@@ -1,50 +1,79 @@
 # Software CECAMED
 
-## Descripción General
+Sistema de administración de casos, padrón y reportes estadísticos para la Comisión Estatal de Conciliación y Arbitraje Médico (CECAMED).
 
-Este proyecto es una herramienta que automatiza la generación de reportes estadisticos sobre los datos de las personas que acuden a CECAMED Nayarit. Está construido con **[Vite React]** y utiliza **[Firebase]**.
+## Resumen
+- Frontend: React + Vite + Tailwind (carpeta `frontend`).
+- Backend: Node.js + Express (carpeta `backend`).
+- Integraciones: Firebase Admin, Google Sheets.
 
-## Tecnologías Utilizadas
+## Estructura principal
+- `frontend/` — aplicación React (componentes en `frontend/src/components`, páginas en `frontend/src/pages`).
+- `backend/` — API Express (rutas en `backend/src/routes`, controladores en `backend/src/controllers`).
 
-* **Frontend:** [React Vite, HTML5/CSS3]
-* **Backend:** [Node.js]
-* **Base de Datos:** [Firebase]
-* **Otros:** [Git, Google Sheets]
+## Requisitos
+- Node.js 18+ (recomendado)
+- npm (o yarn)
+- Cuenta de servicio de Google Cloud si se usa integración con Google Sheets / Firebase
 
-## Instalación y Configuración
+## Variables de entorno (backend)
+Revisa `backend/.env.example` y crea `backend/.env` con valores reales (no subir credenciales al repo).
 
-### Requisitos Previos
+Variables importantes en `backend/.env` (ejemplo):
+```
+# FIREBASE_CREDENTIALS: JSON del service account (no subir JSON a git)
+FIREBASE_CREDENTIALS='{"type":"service_account","project_id":"<PROJECT_ID>","client_email":"<CLIENT_EMAIL>"}'
+GOOGLE_SHEET_ID=<GOOGLE_SHEET_ID>
+GOOGLE_SHEET_PADRON_ID=<GOOGLE_SHEET_PADRON_ID>
+GOOGLE_SHEET_CLASICO_ID=<GOOGLE_SHEET_CLASICO_ID>
+JWT_SECRET=<RANDOM_SECRET>
+```
 
-Asegúrate de tener instalado lo siguiente:
+## Instalación (local)
+1. Instalar dependencias del backend:
+```powershell
+cd backend
+npm install
+```
+2. Instalar dependencias del frontend:
+```powershell
+cd ..\frontend
+npm install
+```
 
-* [Ej: Node.js v16+]
-* [Ej: Git]
+## Ejecución en desarrollo
+- Backend (dev):
+```powershell
+cd backend
+node src/app.js
+```
+- Frontend (dev):
+```powershell
+cd frontend
+npm run dev
+```
 
-### Pasos
+## Comandos útiles
+- Frontend: `npm run dev`, `npm run build`, `npm run preview`, `npm run lint`.
+- Backend: `node src/app.js`, `npm start`.
 
-1.  **Clonar el repositorio:**
-    ```bash
-    git clone git@github.com:tu-usuario/nombre-del-repo.git
-    cd nombre-del-repo
-    ```
-2.  **Instalar dependencias:**
-    ```bash
-    # Siendo un proyecto JavaScript/Node.js
-    npm install
-    ```
-3.  **Configurar variables de entorno:**
-    Crea un archivo llamado `.env` en la raíz del proyecto y añadir las credenciales.
-    ```
-    # Ejemplo de archivo .env
-    DB_HOST=localhost
-    DB_USER=root
-    DB_PASSWORD=secret
-    ```
-4.  **Ejecutar la aplicación:**
-    ```bash
-    npm start 
-    ```
+## Seguridad
+- Nunca subir `FIREBASE_CREDENTIALS` ni `JWT_SECRET` a git.
+- Mantener `backend/.env` fuera del control de versiones.
 
-## Licencia
+## Despliegue (resumen)
+- Backend: desplegar en plataforma Node-compatible (Render, Heroku, Azure, DigitalOcean, VPS). Configurar variables de entorno en la plataforma.
+- Frontend: construir con `npm run build` y servir en Netlify, Vercel o servidor estático.
 
-Este proyecto está bajo la Licencia **[Software Cecamed]**.
+## Testing y calidad
+- Ejecutar `npm run lint` en `frontend`.
+- Recomendado: añadir tests con Jest + React Testing Library (frontend) y Jest + supertest (backend).
+
+## Contribución
+- Mensajes de commit: seguir Conventional Commits (ej: `feat(...)`, `fix(...)`, `docs(...)`).
+- Abrir PRs con descripción clara y pasos para probar.
+
+## Archivos clave
+- Frontend entry: `frontend/src/main.jsx`
+- Backend entry: `backend/src/app.js`
+- Variables de ejemplo: `backend/.env.example`
