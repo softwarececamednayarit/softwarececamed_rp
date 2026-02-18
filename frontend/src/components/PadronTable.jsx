@@ -59,7 +59,7 @@ export const PadronTable = ({ onViewDetails }) => {
       actividad_apoyo: row.actividad_apoyo || 'Orientación',
       tipo_asunto: row.tipo_asunto || 'Servicio',
       criterio_seleccion: row.criterio_seleccion || 'Servidor Público Estatal', 
-      monto_apoyo: row.monto_apoyo || ''
+      monto_apoyo: row.monto_apoyo ?? 0
     });
   };
 
@@ -76,8 +76,9 @@ export const PadronTable = ({ onViewDetails }) => {
   const saveRow = async (id) => {
     try {
       setSaving(true);
-      await AtendidosService.updatePadron(id, editForm);
-      setData(prevData => prevData.map(item => item.id === id ? { ...item, ...editForm } : item));
+      const payload = { ...editForm, monto_apoyo: Number(editForm.monto_apoyo) };
+      await AtendidosService.updatePadron(id, payload);
+      setData(prevData => prevData.map(item => item.id === id ? { ...item, ...payload } : item));
       setEditingId(null);
     } catch (error) {
       console.error(error);
@@ -304,9 +305,9 @@ export const PadronTable = ({ onViewDetails }) => {
                           <td className="p-4 align-top">
                              <div className="text-slate-600 font-medium">{row.tipo_asunto || '-'}</div>
                           </td>
-                          <td className="p-4 align-top font-mono text-slate-600 font-bold">
-                             {row.monto_apoyo ? `$${row.monto_apoyo}` : '-'}
-                          </td>
+                            <td className="p-4 align-top font-mono text-slate-600 font-bold">
+                              {row.monto_apoyo != null && row.monto_apoyo !== '' ? `$${row.monto_apoyo}` : '-'}
+                            </td>
                           <td className="p-4 text-center sticky right-0 bg-inherit z-10">
                             <div className="flex justify-center gap-1">
                               <button onClick={() => handleViewDetails(row)} className="p-1.5 text-indigo-500 bg-indigo-50 hover:bg-indigo-100 rounded transition border border-indigo-100" title="Ver Detalle">
