@@ -8,11 +8,16 @@ import logoCecamed from '../assets/images/logoCecamed.png';
 import Swal from 'sweetalert2';
 import { toast } from 'react-hot-toast';
 
+// Barra lateral de navegación principal del panel.
+// Props:
+// - currentView: id de la vista actual (destaca el item activo)
+// - onNavigate: callback para cambiar vista (recibe id)
+// Nota: la visibilidad de items se controla con `user.permises` y roles.
 export const Sidebar = ({ currentView, onNavigate }) => {
   const { logout, user } = useAuth(); 
 
   // ===========================================================================
-  // 1. CONFIGURACIÓN DE ACCESOS (Aquí defines quién ve qué)
+  // 1. CONFIGURACIÓN DE ACCESOS (Aquí se define quién ve qué)
   // ===========================================================================
   const MENU_ITEMS = [
     // Ítems sin 'isPrivate' se verán siempre (públicos)
@@ -57,7 +62,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
     text: "Deberás ingresar tus credenciales nuevamente para acceder.",
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#4f46e5', // Indigo para que combine con tu login
+    confirmButtonColor: '#4f46e5',
     cancelButtonColor: '#94a3b8',
     confirmButtonText: 'Sí, salir',
     cancelButtonText: 'Cancelar',

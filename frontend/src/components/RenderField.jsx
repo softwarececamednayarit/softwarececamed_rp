@@ -1,5 +1,11 @@
 import React from 'react';
 
+// Pequeño componente de presentación para mostrar un campo con label e icono.
+// Props:
+// - label: texto del label
+// - value: valor a renderizar (string o boolean)
+// - icon: componente Icon opcional (lucide)
+// - isBool: si true, renderiza 'SÍ'/'NO'
 export const RenderField = ({ label, value, icon: Icon, isBool }) => (
   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 h-full">
       <span className="text-[10px] uppercase text-slate-400 font-bold mb-1 flex items-center gap-1">

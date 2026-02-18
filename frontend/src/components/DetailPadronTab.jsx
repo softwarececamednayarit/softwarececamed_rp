@@ -3,6 +3,18 @@ import { FileText, Pencil, Stethoscope, AlertCircle, AlertTriangle, Tag, Buildin
 import { RenderField } from './RenderField';
 import { ESPECIALIDADES_LISTA, MOTIVOS_CATALOGO } from '../utils/catalogs';
 
+// DetailPadronTab
+// Muestra y edita la sección de 'Padrón y Clasificación' dentro del modal de detalle.
+// Diseño:
+// - Modo lectura: presenta datos agrupados por bloques (clasificación, gestión, socioeconómico, ubicación).
+// - Modo edición: renderiza un formulario controlado usando `padronForm` y handlers del padre.
+// Props:
+// - isEditingPadron: boolean (si true muestra el formulario de edición)
+// - setIsEditingPadron: función para alternar el modo edición
+// - padronForm: estado controlado con valores del formulario
+// - displayData: datos de visualización (combina base + datos completos)
+// - handleInputChange / handleSpecialtyChange / handleSubmotivoSelectorChange: handlers delegados
+// - isOtherSpecialty / isOtherSubmotivo: flags que activan inputs de texto para valores personalizados
 export const DetailPadronTab = ({ 
   isEditingPadron, setIsEditingPadron, padronForm, displayData, 
   handleInputChange, handleSpecialtyChange, handleSubmotivoSelectorChange,
@@ -12,6 +24,7 @@ export const DetailPadronTab = ({
     <div className="animate-in fade-in slide-in-from-right-4 duration-300 h-full">
       {!isEditingPadron ? (
         <div className="space-y-6">
+            {/* Resumen y botón para entrar en modo edición */}
             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600 shrink-0"><FileText size={20} /></div>
@@ -25,6 +38,7 @@ export const DetailPadronTab = ({
                 </button>
             </div>
 
+            {/* Bloques de lectura: cada bloque es independiente y reutiliza `RenderField` cuando aplica */}
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="md:col-span-2 lg:col-span-4 pb-2 border-b border-slate-100 mb-2">
                      <h5 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><Stethoscope size={14}/> Clasificación del Asunto</h5>
@@ -66,6 +80,7 @@ export const DetailPadronTab = ({
         </div>
       ) : (
         <div className="space-y-6">
+            {/* Banner que aclara el propósito del modo edición */}
             <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
                 <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600 shrink-0"><FileText size={20} /></div>
                 <div>
@@ -74,11 +89,13 @@ export const DetailPadronTab = ({
                 </div>
             </div>
 
+            {/* Formulario controlado: los valores vienen de `padronForm` y los cambios se delegan al padre */}
             <form className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm border-2 border-indigo-50 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2 pb-2 border-b border-indigo-100">
                      <h5 className="text-xs font-black text-indigo-400 uppercase tracking-widest">Clasificación Médica / Técnica</h5>
                 </div>
 
+                {/* Prestador y diagnóstico: valores libres (input/textarea) */}
                 <div className="md:col-span-2 space-y-1">
                      <label className="text-xs font-bold text-slate-700 ml-1">Prestador de Servicio / Institución</label>
                      <input type="text" name="prestador_nombre" value={padronForm.prestador_nombre} onChange={handleInputChange} className="w-full bg-indigo-50/50 border border-indigo-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-900" placeholder="Nombre de la unidad o institución..." />
@@ -88,6 +105,7 @@ export const DetailPadronTab = ({
                     <textarea name="diagnostico" value={padronForm.diagnostico} onChange={handleInputChange} rows="2" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none font-medium text-slate-700" placeholder="Ingrese el diagnóstico médico..." />
                 </div>
 
+                {/* Motivo / Submotivo: submotivo depende del motivo; si es 'OTRO' se muestra input libre */}
                 <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-700 ml-1">Motivo Inconformidad</label>
                     <select name="motivo_inconformidad" value={padronForm.motivo_inconformidad} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
@@ -110,6 +128,7 @@ export const DetailPadronTab = ({
                     </div>
                 )}
 
+                {/* Especialidad: lista estándar + opción 'OTROS' que habilita input libre */}
                 <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-700 ml-1">Especialidad</label>
                     <select value={isOtherSpecialty ? 'OTROS' : padronForm.especialidad} onChange={handleSpecialtyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
@@ -124,6 +143,7 @@ export const DetailPadronTab = ({
                      </div>
                 )}
 
+                {/* Tipo de asunto y secciones administrativas */}
                 <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-700 ml-1">Tipo de Asunto</label>
                     <select name="tipo_asunto" value={padronForm.tipo_asunto} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
@@ -141,6 +161,7 @@ export const DetailPadronTab = ({
                      <h5 className="text-xs font-black text-indigo-400 uppercase tracking-widest">Datos Administrativos</h5>
                 </div>
 
+                {/* Folios: formato controlado y validaciones (ver lógica en el padre) */}
                 <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-700 ml-1">Folio Servicio</label>
                     <input type="text" name="servicio" value={padronForm.servicio} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-mono uppercase" placeholder="Ej: G-01" />
@@ -150,6 +171,7 @@ export const DetailPadronTab = ({
                     <input type="text" name="no_asignado" value={padronForm.no_asignado} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-mono uppercase" placeholder="Ej: 1/2026" />
                 </div>
 
+                {/* Flags y datos auxiliares */}
                 <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors w-full">
                         <input type="checkbox" name="foraneo" checked={padronForm.foraneo} onChange={handleInputChange} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"/>

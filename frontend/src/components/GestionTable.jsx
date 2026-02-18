@@ -19,6 +19,10 @@ import { MOTIVOS_CATALOGO,
 // COMPONENTE PRINCIPAL
 // =============================================================================
 
+// Tabla de gestión para edición rápida y validación de folios.
+// Props:
+// - onViewDetails: callback para abrir el detalle completo de un registro
+// Funcionalidad clave: validaciones de formato/duplicados y edición inline.
 export const GestionTable = ({ onViewDetails }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);

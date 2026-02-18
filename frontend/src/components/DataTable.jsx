@@ -1,6 +1,10 @@
 import { formatDate, formatName } from '../utils/formatters';
 import { Eye, FileText, Scale } from 'lucide-react';
 
+// Tabla principal para listar expedientes/atendidos.
+// Props:
+// - data: array de registros a mostrar
+// - onDetailClick: callback cuando se solicita ver detalle (recibe el item)
 export const DataTable = ({ data, onDetailClick }) => {
 
   const getBadgeStyle = (tipoRaw) => {

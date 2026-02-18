@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
+// Modal para que un administrador restablezca la contraseña de un usuario.
+// Props:
+// - isOpen: muestra/oculta el modal
+// - user: objeto usuario (se usa `user.nombre` para mostrar)
+// - onClose: cierra el modal
+// - onSubmit: callback (newPassword, requireChange)
+
 const AdminResetPasswordModal = ({ isOpen, user, onClose, onSubmit }) => {
   const [newPassword, setNewPassword] = useState('');
+  // Contraseña que se asignará al usuario
   const [requireChange, setRequireChange] = useState(true); // Marcado por defecto
 
+  // Flag que obliga al usuario a cambiar la contraseña en su próximo inicio de sesión
+
+  // Enviar datos al componente padre y prevenir comportamiento por defecto del form
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(newPassword, requireChange);
   };
 
+  // No renderizar nada si el modal está cerrado
   if (!isOpen) return null;
 
   return (
@@ -23,6 +35,7 @@ const AdminResetPasswordModal = ({ isOpen, user, onClose, onSubmit }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Aviso visual: indica el usuario cuya contraseña se va a restablecer */}
           <div className="bg-amber-50 p-3 rounded-lg flex gap-3 text-sm text-amber-800 mb-4">
             <AlertTriangle className="shrink-0" size={20} />
             <p>Estás cambiando la contraseña para <strong>{user.nombre}</strong>.</p>

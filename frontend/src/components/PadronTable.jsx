@@ -8,6 +8,10 @@ import { ESTADOS_CIVILES, TIPOS_BENEFICIARIO, PARENTESCOS, ACTIVIDADES_APOYO, TI
 
 
 // RECIBIMOS LA PROP onViewDetails
+// Tabla del padrón para edición y complementación de datos.
+// Props:
+// - onViewDetails: callback para abrir el detalle completo desde el padre
+// Comportamiento: soporta edición inline y guardado via `AtendidosService`.
 export const PadronTable = ({ onViewDetails }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,14 +84,12 @@ export const PadronTable = ({ onViewDetails }) => {
     }
   };
 
-  // --- NUEVA LÓGICA DE VER DETALLES ---
+  // ---- LÓGICA DE VER DETALLES ---
   const handleViewDetails = (item) => {
     if (onViewDetails) {
-        onViewDetails(item); // Avisamos al padre (Padron.jsx)
+        onViewDetails(item); // Aviso al padre (Padron.jsx)
     }
   };
-
-  // ELIMINADO: handleCloseModal (Lo maneja el padre)
 
   const filteredData = data.filter(item => 
     item.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -167,7 +169,6 @@ export const PadronTable = ({ onViewDetails }) => {
                       {isEditing ? (
                         /* --- MODO EDICIÓN --- */
                         <>
-                          {/* Busca la sección de MODO EDICIÓN -> Ubicación */}
                           <td className="p-2 align-top space-y-2">
                             <select 
                               name="municipio" 
@@ -191,7 +192,7 @@ export const PadronTable = ({ onViewDetails }) => {
                               ))}
                             </select>
 
-                            {/* Input manual que aparece solo si eliges OTRO */}
+                            {/* Input manual que aparece solo si se elige OTRO */}
                             {isOtherMunicipio && (
                               <input 
                                 name="municipio" 

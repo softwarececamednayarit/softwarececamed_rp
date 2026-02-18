@@ -8,6 +8,12 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext'; 
 import solicitudesService from '../services/solicitudesService';
 
+// Modal para gestionar una solicitud (llamadas, asignaciones, notas).
+// Props:
+// - solicitud: objeto con la información de la solicitud
+// - onClose: cierra el modal
+// - onRefresh: callback para recargar la lista tras cambios
+// Comportamiento: registra intentos de llamada o agenda una cita según el resultado.
 const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth(); 

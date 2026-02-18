@@ -1,8 +1,13 @@
 import { Search, Filter, ChevronDown, Calendar, ArrowUpDown, X } from 'lucide-react';
 
+// Barra de búsqueda y filtros rápidos para las tablas.
+// Props:
+// - filters: objeto con valores actuales
+// - onFilterChange: callback para actualizar filtros
+// - onReset: limpiar filtros
 export const SearchFilters = ({ filters, onFilterChange, onReset }) => {
-  
-  // Helper para actualizar un solo campo manteniendo los demás
+
+    // Helper para actualizar un solo campo manteniendo los demás
   const handleChange = (field, value) => {
     onFilterChange({ ...filters, [field]: value });
   };

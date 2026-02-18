@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, UserPlus, ShieldCheck } from 'lucide-react';
 
+// Modal para crear/editar usuarios desde el panel de administración.
+// Props:
+// - isOpen: boolean para mostrar/ocultar
+// - onClose: función para cerrar el modal
+// - onSubmit: callback con los datos del formulario
+// - userToEdit: objeto opcional para edición (si se pasa, el modal está en modo editar)
+// Nota: usa `permises` (como en backend) para gestionar accesos por módulo.
+
 // 1. Módulos disponibles que coinciden con tu Sidebar
 const MODULOS_SISTEMA = [
   { id: 'atendidos', label: 'Atendidos' },

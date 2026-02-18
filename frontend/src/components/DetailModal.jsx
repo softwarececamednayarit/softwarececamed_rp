@@ -12,6 +12,12 @@ import Swal from 'sweetalert2';
 import { DetailGeneralTab } from './DetailGeneralTab';
 import { DetailPadronTab } from './DetailPadronTab';
 
+// Modal de detalle completo de expediente.
+// Props:
+// - item: registro base (necesita `id`) para cargar datos completos
+// - onClose: función para cerrar el modal
+// - initialTab: 'general' | 'padron' (pestaña inicial)
+// Comportamiento: carga datos completos desde el servicio, permite editar padrón y administrar estado.
 export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   if (!item) return null;
 
@@ -43,6 +49,9 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   });
 
   // --- EFECTO: CARGAR DATOS ---
+  // Carga el expediente completo desde la API cuando se monta el modal
+  // y normaliza valores para el formulario de padrón (`padronForm`).
+  // Se usa `isMounted` para evitar actualizaciones después del unmount.
   useEffect(() => {
     let isMounted = true;
     const fetchFullData = async () => {
@@ -114,6 +123,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   }, [item.id]);
 
   // --- HANDLERS ---
+  // handleInputChange: actualiza el estado controlado `padronForm`.
+  // Convierte checks a booleanos y normaliza folios a mayúsculas.
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     let val = type === 'checkbox' ? checked : value;
@@ -133,6 +144,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     });
   };
 
+  // handleStatusChange: actualiza el estatus SIREMED en backend
+  // y refleja el resultado en `statusSiremed` y `fullData`.
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     try {
@@ -148,6 +161,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
+  // handleSpecialtyChange: si el usuario elige 'OTROS' activa el input libre
+  // para escribir una especialidad no listada.
   const handleSpecialtyChange = (e) => {
     const val = e.target.value;
     if (val === 'OTROS') {
@@ -159,6 +174,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
+  // handleSubmotivoSelectorChange: similar a specialty, activa el input
+  // 'OTRO (ESPECIFIQUE)' cuando corresponde.
   const handleSubmotivoSelectorChange = (e) => {
     const val = e.target.value;
     if (val === 'OTRO (ESPECIFIQUE)') {
@@ -170,6 +187,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
+  // handleSavePadron: persiste los cambios del formulario `padronForm`.
+  // Actualiza `fullData` localmente y cierra el modo edición en caso de éxito.
   const handleSavePadron = async () => {
     try {
       setSaving(true);
@@ -185,6 +204,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
+  // handleDelete: muestra confirmación y, si confirma, elimina el expediente.
+  // Notifica al usuario con toasts y cierra el modal tras eliminar.
   const handleDelete = async () => {
     // 1. Configuramos la alerta moderna
     const result = await Swal.fire({
@@ -227,6 +248,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
+  // handleCopyForPlatform: copia los datos básicos del expediente al portapapeles
+  // (útil para pegar en otras plataformas o reportes rápidos).
   const handleCopyForPlatform = async () => {
     try {
       document.body.style.cursor = 'wait';

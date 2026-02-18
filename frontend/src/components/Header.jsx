@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 
+// Header simple usado en páginas públicas (Inicio/Acerca de).
+// Mantener minimal para coherencia con el layout actual.
 function Header() {
   return (
     <header style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>

@@ -1,3 +1,10 @@
+// Tarjeta estadística reutilizable usada en el dashboard.
+// Props:
+// - title: etiqueta descriptiva (string)
+// - count: número mostrado (number)
+// - icon: componente React del icono (ej. <SomeIcon />)
+// - colorClass: clases tailwind para el fondo del icono (string)
+// Uso: se coloca en filas de indicadores para mostrar métricas principales.
 export const StatCard = ({ title, count, icon, colorClass }) => (
   <div className="bg-white p-7 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex items-center gap-6 group hover:scale-[1.02] transition-transform duration-300">
     {/* Contenedor del Icono con efecto de profundidad */}

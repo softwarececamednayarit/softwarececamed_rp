@@ -3,6 +3,10 @@ import { User, Phone, Mail, MapPin, Globe, IdCard, Activity, Building2, FileText
 import { formatName, formatDate } from '../utils/formatters';
 import { RenderField } from './RenderField';
 
+// Pestaña que muestra la vista general de un expediente.
+// Props:
+// - displayData: objeto con los datos combinados a mostrar
+// - isDictamen: boolean para incluir sección de dictamen
 export const DetailGeneralTab = ({ displayData, isDictamen }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
