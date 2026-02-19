@@ -15,6 +15,7 @@ export const ESPECIALIDADES_LISTA = [
   "Ginecología y obstetricia",
   "Hematología",
   "Medicina crítica-terapia intensiva",
+  "Medicina familiar",
   "Medicina general",
   "Medicina interna",
   "Nefrología",
