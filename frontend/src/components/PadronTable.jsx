@@ -38,22 +38,47 @@ export const PadronTable = ({ onViewDetails }) => {
 
   useEffect(() => { loadData(); }, []);
 
-  // --- EDICIÓN ---
   const startEditing = (row) => {
     setEditingId(row.id);
-    // Lógica para detectar municipio personalizado
-    const rawMun = (row.municipio || '').trim();
-    const munViene = rawMun.toUpperCase();
-    const esMunicipioEstandar = rawMun && MUNICIPIOS_NAYARIT.map(m => m.toUpperCase()).includes(munViene);
-    // Si es estándar, usar la capitalización del catálogo; si no, conservar el valor original
-    const municipioValor = esMunicipioEstandar ? (MUNICIPIOS_NAYARIT.find(m => m.toUpperCase() === munViene) || rawMun) : rawMun;
+
+    // Normalizamos los nombres para una búsqueda robusta
+    const nombreCompleto = (r) => `${r.nombre}${r.apellido_paterno}${r.apellido_materno}`.replace(/\s+/g, '').toLowerCase();
+    const identidadActual = nombreCompleto(row);
+
+    // Buscamos el registro más reciente/completo de la misma persona
+    const registroPrevio = data.find(item => 
+      item.id !== row.id && 
+      nombreCompleto(item) === identidadActual &&
+      (item.municipio || item.localidad) // Aseguramos que el registro encontrado tenga datos útiles
+    );
+
+    // Definimos los valores base (Prioridad: Registro actual > Registro previo > Default)
+    const valMunicipio = row.municipio || registroPrevio?.municipio || '';
+    const valLocalidad = row.localidad || registroPrevio?.localidad || '';
+    const valEstadoCivil = row.estado_civil || registroPrevio?.estado_civil || 'Soltero(a)';
+    const valOcupacion = row.cargo_ocupacion || registroPrevio?.cargo_ocupacion || '';
+
+    // Lógica de validación de Catálogo para Municipio
+    const rawMun = valMunicipio.trim();
+    const munUpper = rawMun.toUpperCase();
+    const esMunicipioEstandar = rawMun && MUNICIPIOS_NAYARIT.some(m => m.toUpperCase() === munUpper);
+    
+    const municipioFinal = esMunicipioEstandar 
+      ? (MUNICIPIOS_NAYARIT.find(m => m.toUpperCase() === munUpper)) 
+      : rawMun;
+
     setIsOtherMunicipio(!!rawMun && !esMunicipioEstandar);
 
+    // Feedback visual opcional
+    if (!row.municipio && registroPrevio) {
+      toast('Datos recuperados de otro registro', { icon: '🔄', position: 'bottom-right' });
+    }
+
     setEditForm({
-      municipio: municipioValor || '',
-      localidad: row.localidad || '',
-      estado_civil: row.estado_civil || 'Soltero(a)',
-      cargo_ocupacion: row.cargo_ocupacion || '',
+      municipio: municipioFinal,
+      localidad: valLocalidad,
+      estado_civil: valEstadoCivil,
+      cargo_ocupacion: valOcupacion,
       tipo_beneficiario: row.tipo_beneficiario || 'Directo',
       parentesco: row.parentesco || 'Beneficiario',
       actividad_apoyo: row.actividad_apoyo || 'Orientación',
