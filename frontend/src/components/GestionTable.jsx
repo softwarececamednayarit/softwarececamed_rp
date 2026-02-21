@@ -12,7 +12,8 @@ import toast from 'react-hot-toast';
 import { MOTIVOS_CATALOGO, 
         ESTADOS_CIVILES,
         ACTIVIDADES_APOYO,
-        ESPECIALIDADES_LISTA 
+        ESPECIALIDADES_LISTA,
+        obtenerEspecialidadSugerida
 } from '../utils/catalogs';
 
 // =============================================================================
@@ -62,16 +63,39 @@ export const GestionTable = ({ onViewDetails }) => {
   const startEditing = (row) => {
     setEditingId(row.id);
     
-    const espViene = row.especialidad || '';
-    const esEspecialidadEstandar = ESPECIALIDADES_LISTA.includes(espViene);
-    setIsOtherSpecialty(!!espViene && !esEspecialidadEstandar);
+    // 1. ESPECIALIDAD
+    const espOriginal = row.especialidad_medica || row.especialidad || '';
+    const espSugerida = obtenerEspecialidadSugerida(espOriginal);
+    const esEspecialidadEstandar = ESPECIALIDADES_LISTA.includes(espSugerida);
+    setIsOtherSpecialty(!!espSugerida && !esEspecialidadEstandar);
 
+    // 2. SUBMOTIVO (Lógica con llave nueva)
     const mot = row.motivo_inconformidad || '';
-    const sub = row.submotivo || '';
     const catalogoSub = MOTIVOS_CATALOGO[mot] || [];
-    const esSubmotivoEstandar = catalogoSub.includes(sub);
-    setIsOtherSubmotivo(!!sub && !esSubmotivoEstandar);
+    
+    let finalSubmotivo = '';
+    let isOtherSub = false;
 
+    // ¿Ya lo habíamos clasificado con el sistema nuevo?
+    if (row.submotivo_catalogo) {
+        if (catalogoSub.includes(row.submotivo_catalogo)) {
+            // Es un elemento estándar de la lista
+            finalSubmotivo = row.submotivo_catalogo;
+            isOtherSub = false;
+        } else {
+            // No está en la lista, significa que el usuario eligió "OTRO" y escribió texto libre
+            finalSubmotivo = row.submotivo_catalogo;
+            isOtherSub = true;
+        }
+    } else {
+        // No tiene clasificación nueva. Ignoramos el viejo por completo en el formulario.
+        finalSubmotivo = '';
+        isOtherSub = false;
+    }
+
+    setIsOtherSubmotivo(isOtherSub);
+
+    // 3. FORÁNEO
     let valorForaneo = row.foraneo === true || row.foraneo === "true";
     const municipio = (row.municipio || '').trim().toUpperCase();
     if (municipio && municipio !== 'TEPIC') {
@@ -89,11 +113,12 @@ export const GestionTable = ({ onViewDetails }) => {
       via_telefonica: row.via_telefonica === true || row.via_telefonica === "true",
       estado_civil: row.estado_civil || ESTADOS_CIVILES[0],
       actividad_apoyo: row.actividad_apoyo || ACTIVIDADES_APOYO[0], 
-      especialidad: row.especialidad || '',
-      motivo_inconformidad: row.motivo_inconformidad || '',
-      submotivo: row.submotivo || '',
       
-      // Folios Manuales
+      especialidad: espSugerida, 
+      motivo_inconformidad: mot,
+      
+      submotivo_catalogo: finalSubmotivo, 
+      
       servicio: row.servicio || '',
       no_asignado: row.no_asignado || ''
     });
@@ -118,7 +143,7 @@ export const GestionTable = ({ onViewDetails }) => {
     setEditForm(prev => {
       const newState = { ...prev, [name]: val };
       if (name === 'motivo_inconformidad') {
-        newState.submotivo = '';
+        newState.submotivo_catalogo = '';
         setIsOtherSubmotivo(false); 
       }
       return newState;
@@ -138,12 +163,13 @@ export const GestionTable = ({ onViewDetails }) => {
 
   const handleSubmotivoSelect = (e) => {
     const val = e.target.value;
-    if (val === 'OTRO (ESPECIFIQUE)') {
+    
+    if (val && val.toUpperCase().includes('OTRO')) {
       setIsOtherSubmotivo(true);
-      setEditForm(prev => ({ ...prev, submotivo: '' }));
+      setEditForm(prev => ({ ...prev, submotivo_catalogo: '' }));
     } else {
       setIsOtherSubmotivo(false);
-      setEditForm(prev => ({ ...prev, submotivo: val }));
+      setEditForm(prev => ({ ...prev, submotivo_catalogo: val }));
     }
   };
 
@@ -420,18 +446,39 @@ export const GestionTable = ({ onViewDetails }) => {
                                <option value="">Motivo...</option>
                                {Object.keys(MOTIVOS_CATALOGO).map(m => <option key={m} value={m}>{m}</option>)}
                              </select>
-                             <select value={isOtherSubmotivo ? 'OTRO (ESPECIFIQUE)' : (editForm.submotivo || '')} onChange={handleSubmotivoSelect} disabled={!editForm.motivo_inconformidad} className="w-full p-1.5 border border-indigo-200 rounded text-xs disabled:bg-slate-100">
+                             
+                             <select 
+                                name="submotivo_catalogo" 
+                                value={isOtherSubmotivo ? 'OTRO (ESPECIFIQUE)' : (editForm.submotivo_catalogo || '')} 
+                                onChange={handleSubmotivoSelect} 
+                                disabled={!editForm.motivo_inconformidad} 
+                                className="w-full p-1.5 border border-indigo-200 rounded text-xs disabled:bg-slate-100"
+                             >
                                <option value="">Submotivo...</option>
                                {editForm.motivo_inconformidad && MOTIVOS_CATALOGO[editForm.motivo_inconformidad]?.map(s => <option key={s} value={s}>{s}</option>)}
                              </select>
+                             
                              {isOtherSubmotivo && (
-                                <input name="submotivo" value={editForm.submotivo || ''} onChange={handleChange} className="w-full p-1.5 border border-indigo-200 rounded text-xs bg-indigo-50 animate-in fade-in" placeholder="Especifique..." autoFocus />
+                                <input 
+                                  name="submotivo_catalogo" 
+                                  value={editForm.submotivo_catalogo || ''} 
+                                  onChange={handleChange} 
+                                  className="w-full p-1.5 border border-indigo-200 rounded text-xs bg-indigo-50 animate-in fade-in" 
+                                  placeholder="Especifique el submotivo..." 
+                                  autoFocus 
+                                />
                              )}
                           </td>
                       ) : (
                           <td className="p-4 align-top">
                              <div className="font-medium text-slate-700 mb-1 leading-tight">{row.motivo_inconformidad || '-'}</div>
-                             <div className="text-[10px] text-slate-400 leading-tight">↳ {row.submotivo}</div>
+                             <div className="text-[10px] leading-tight">
+                                ↳ {row.submotivo_catalogo ? (
+                                    <span className="text-emerald-600 font-bold">{row.submotivo_catalogo}</span>
+                                ) : (
+                                    <span className="text-slate-400">Sin clasificar</span>
+                                )}
+                             </div>
                           </td>
                       )}
 
