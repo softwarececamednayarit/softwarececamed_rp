@@ -274,7 +274,7 @@ exports.generarReporteClasico = async (listaDatos) => {
         formatoOracion(dato.diagnostico || ''), 
         formatoTitulo(dato.especialidad || ''),                              
         formatoOracion(dato.motivo_inconformidad || ''),             
-        formatoOracion(dato.submotivo || ''),                                
+        formatoOracion(dato.submotivo_catalogo || ''),                                
         formatoOracion(dato.descripcion_hechos || ''),               
         
         tipoFinal, // Columna calculada (TIPO DE ASUNTO)
