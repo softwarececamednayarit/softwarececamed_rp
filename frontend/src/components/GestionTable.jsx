@@ -102,6 +102,16 @@ export const GestionTable = ({ onViewDetails }) => {
         valorForaneo = true;
     }
 
+    // 4. VÍA TELEFÓNICA (Auto-check basado en forma de recepción)
+    let valorTelefonico = row.via_telefonica === true || row.via_telefonica === "true";
+    const formaRecepcion = (row.forma_recepcion || '').trim().toLowerCase();
+    
+    // Validamos si la forma de recepción contiene la palabra "telefónica" o "telefonica"
+    if (formaRecepcion.includes('telefónica') || formaRecepcion.includes('telefonica')) {
+        valorTelefonico = true;
+    }
+
+    // 5. SETEAR ESTADO DEL FORMULARIO
     setEditForm({
       domicilio: row.domicilio || '', 
       ocupacion: row.cargo_ocupacion || row.ocupacion || '', 
@@ -110,7 +120,7 @@ export const GestionTable = ({ onViewDetails }) => {
       observaciones_servicio: row.observaciones_servicio || '',
       foraneo: valorForaneo, 
       diagnostico: row.diagnostico || '', 
-      via_telefonica: row.via_telefonica === true || row.via_telefonica === "true",
+      via_telefonica: valorTelefonico, // <--- Aquí se asigna el valor dinámico
       estado_civil: row.estado_civil || ESTADOS_CIVILES[0],
       actividad_apoyo: row.actividad_apoyo || ACTIVIDADES_APOYO[0], 
       
