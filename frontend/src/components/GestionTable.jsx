@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Save, X, Edit2, Loader2, AlertCircle, 
-  Briefcase, Eye, MessageSquare, Building2 
+  Briefcase, Eye, MessageSquare, Building2, Filter, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { AtendidosService } from '../services/atendidosService';
 import toast from 'react-hot-toast';
@@ -17,13 +17,61 @@ import { MOTIVOS_CATALOGO,
 } from '../utils/catalogs';
 
 // =============================================================================
+// HELPER PARA CLASIFICAR INSTITUCIÓN (BASADO EN TUS ESTADÍSTICAS)
+// =============================================================================
+const getInstitucionGroupName = (nombreRaw) => {
+  const nombre = (nombreRaw || '').toUpperCase();
+  
+  if (
+      nombre.includes('IMSS') || 
+      nombre.includes('HGZ') || 
+      nombre.includes('UMF') || 
+      nombre.includes('HGR') ||
+      nombre.includes('HOSPITAL GENERAL') || 
+      nombre.includes('BIENESTAR')
+  ) {
+      return 'IMSS';
+  } else if (
+      nombre.includes('ISSSTE') || 
+      nombre.includes('FOVISSSTE') ||
+      nombre.includes('CH ') || 
+      nombre.includes('CLINICA HOSPITAL')
+  ) {
+      return 'ISSSTE';
+  } else if (
+      nombre.includes('SSN') || 
+      nombre.includes('SSA') || 
+      nombre.includes('SERVICIOS DE SALUD') || 
+      nombre.includes('HOSPITAL CIVIL') || 
+      nombre.includes('CENTRO DE SALUD') ||
+      nombre.includes('CESSA') ||
+      nombre.includes('UNEME') ||
+      nombre.includes('INSABI') ||
+      nombre.includes('REINSERCION') ||
+      nombre.includes('CERESO')
+  ) {
+      return 'SSN';
+  } else if (
+      nombre.includes('PRIV') || 
+      nombre.includes('PARTICULAR') || 
+      nombre.includes('CONSULTORIO') || 
+      nombre.includes('FARMACIA') || 
+      nombre.includes('SANATORIO') ||
+      nombre.includes('CLINICA SAN') || 
+      nombre.includes('PUERTA DE HIERRO') ||
+      nombre.includes('CMQ') ||
+      nombre.includes('HOSPITAL REAL')
+  ) {
+      return 'PRIVADO';
+  } else {
+      return 'OTROS';
+  }
+};
+
+// =============================================================================
 // COMPONENTE PRINCIPAL
 // =============================================================================
 
-// Tabla de gestión para edición rápida y validación de folios.
-// Props:
-// - onViewDetails: callback para abrir el detalle completo de un registro
-// Funcionalidad clave: validaciones de formato/duplicados y edición inline.
 export const GestionTable = ({ onViewDetails }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +82,20 @@ export const GestionTable = ({ onViewDetails }) => {
   
   const [isOtherSpecialty, setIsOtherSpecialty] = useState(false);
   const [isOtherSubmotivo, setIsOtherSubmotivo] = useState(false);
+
+  // --- ESTADO DE FILTROS AVANZADOS ---
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    estado_civil: '',
+    especialidad: '',
+    foraneo: '', 
+    municipio: '',
+    motivo_inconformidad: '',
+    institucion: '',
+    fecha_inicio: '',   // NUEVO
+    fecha_fin: '',      // NUEVO
+    orden: 'reciente'   // NUEVO (Default: más recientes primero)
+  });
 
   // --- CARGA ---
   const loadData = async () => {
@@ -52,11 +114,25 @@ export const GestionTable = ({ onViewDetails }) => {
 
   useEffect(() => { loadData(); }, []);
 
-  // --- HELPER: OBTENER AÑO ---
+  // --- EXTRACCIÓN DINÁMICA DE OPCIONES (MUNICIPIOS) ---
+  const uniqueMunicipios = useMemo(() => {
+    const list = data.map(item => item.municipio?.trim().toUpperCase()).filter(Boolean);
+    return [...new Set(list)].sort();
+  }, [data]);
+
+  const INSTITUCIONES_LISTA = ['IMSS', 'ISSSTE', 'SSN', 'PRIVADO', 'OTROS'];
+
+  // --- HELPER: OBTENER AÑO Y FECHA EXACTA ---
   const getYearFromRow = (row) => {
       if (row.fecha_recepcion) return new Date(row.fecha_recepcion).getFullYear();
       if (row.created_at) return new Date(row.created_at).getFullYear();
       return new Date().getFullYear();
+  };
+
+  const getExactDateFromRow = (row) => {
+      if (row.fecha_recepcion) return new Date(row.fecha_recepcion + 'T00:00:00');
+      if (row.created_at) return new Date(row.created_at);
+      return new Date(0); 
   };
 
   // --- EDICIÓN ---
@@ -69,26 +145,22 @@ export const GestionTable = ({ onViewDetails }) => {
     const esEspecialidadEstandar = ESPECIALIDADES_LISTA.includes(espSugerida);
     setIsOtherSpecialty(!!espSugerida && !esEspecialidadEstandar);
 
-    // 2. SUBMOTIVO (Lógica con llave nueva)
+    // 2. SUBMOTIVO
     const mot = row.motivo_inconformidad || '';
     const catalogoSub = MOTIVOS_CATALOGO[mot] || [];
     
     let finalSubmotivo = '';
     let isOtherSub = false;
 
-    // ¿Ya lo habíamos clasificado con el sistema nuevo?
     if (row.submotivo_catalogo) {
         if (catalogoSub.includes(row.submotivo_catalogo)) {
-            // Es un elemento estándar de la lista
             finalSubmotivo = row.submotivo_catalogo;
             isOtherSub = false;
         } else {
-            // No está en la lista, significa que el usuario eligió "OTRO" y escribió texto libre
             finalSubmotivo = row.submotivo_catalogo;
             isOtherSub = true;
         }
     } else {
-        // No tiene clasificación nueva. Ignoramos el viejo por completo en el formulario.
         finalSubmotivo = '';
         isOtherSub = false;
     }
@@ -102,11 +174,10 @@ export const GestionTable = ({ onViewDetails }) => {
         valorForaneo = true;
     }
 
-    // 4. VÍA TELEFÓNICA (Auto-check basado en forma de recepción)
+    // 4. VÍA TELEFÓNICA
     let valorTelefonico = row.via_telefonica === true || row.via_telefonica === "true";
     const formaRecepcion = (row.forma_recepcion || '').trim().toLowerCase();
     
-    // Validamos si la forma de recepción contiene la palabra "telefónica" o "telefonica"
     if (formaRecepcion.includes('telefónica') || formaRecepcion.includes('telefonica')) {
         valorTelefonico = true;
     }
@@ -120,7 +191,7 @@ export const GestionTable = ({ onViewDetails }) => {
       observaciones_servicio: row.observaciones_servicio || '',
       foraneo: valorForaneo, 
       diagnostico: row.diagnostico || '', 
-      via_telefonica: valorTelefonico, // <--- Aquí se asigna el valor dinámico
+      via_telefonica: valorTelefonico, 
       estado_civil: row.estado_civil || ESTADOS_CIVILES[0],
       actividad_apoyo: row.actividad_apoyo || ACTIVIDADES_APOYO[0], 
       
@@ -145,7 +216,6 @@ export const GestionTable = ({ onViewDetails }) => {
     const { name, value, type, checked } = e.target;
     let val = type === 'checkbox' ? checked : value;
     
-    // Forzamos formato para el folio
     if (name === 'servicio' && typeof val === 'string') {
         val = val.toUpperCase().trim();
     }
@@ -185,10 +255,8 @@ export const GestionTable = ({ onViewDetails }) => {
 
   // --- GUARDADO Y VALIDACIÓN ---
   const saveRow = async (id) => {
-    // 1. VALIDACIÓN DE FORMATO 'servicio'
     const servicioTrimmed = (editForm.servicio || '').trim();
     if (servicioTrimmed) {
-        // 1.1 Validar estructura (Regex)
         const regexBasico = /^[A-Z]-\d{1,4}$/;
         const regexQueja = /^[A-Z]\d{1,4}\/[IVXLCDM]+\/\d{4}$/; 
 
@@ -197,10 +265,9 @@ export const GestionTable = ({ onViewDetails }) => {
             return;
         }
 
-        // 1.2 Validar correspondencia de Letra Inicial vs Actividad
         const actividadSeleccionada = editForm.actividad_apoyo || '';
         if (actividadSeleccionada) {
-            const letraEsperada = actividadSeleccionada.charAt(0).toUpperCase(); // 'O' de Orientación, 'A' de Asesoría...
+            const letraEsperada = actividadSeleccionada.charAt(0).toUpperCase(); 
             const letraIngresada = servicioTrimmed.charAt(0).toUpperCase();
 
             if (letraEsperada !== letraIngresada) {
@@ -210,7 +277,6 @@ export const GestionTable = ({ onViewDetails }) => {
         }
     }
 
-    // 2. VALIDACIÓN DE DUPLICADOS POR AÑO
     const filaActual = data.find(item => item.id === id);
     const anioFilaActual = getYearFromRow(filaActual);
 
@@ -240,7 +306,6 @@ export const GestionTable = ({ onViewDetails }) => {
         }
     }
 
-    // 3. GUARDAR
     try {
       setSaving(true);
       await AtendidosService.updatePadron(id, editForm);
@@ -248,6 +313,7 @@ export const GestionTable = ({ onViewDetails }) => {
       setEditingId(null);
       setIsOtherSpecialty(false);
       setIsOtherSubmotivo(false);
+      toast.success("Registro actualizado correctamente");
     } catch (error) {
       console.error(error);
       toast.error("❌ Error al guardar gestión. Verifique la conexión.");
@@ -262,39 +328,208 @@ export const GestionTable = ({ onViewDetails }) => {
     }
   };
 
+  // --- MANEJO DE FILTROS ---
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      estado_civil: '', especialidad: '', foraneo: '', 
+      municipio: '', motivo_inconformidad: '', institucion: '',
+      fecha_inicio: '', fecha_fin: '', orden: 'reciente'
+    });
+    setSearchTerm('');
+  };
+
+  // --- LÓGICA DE FILTRADO COMBINADO Y ORDENAMIENTO ---
   const filteredData = data.filter(item => {
+    // 1. Filtro de Búsqueda de texto libre
     const nombre = (item.nombre || '').toLowerCase();
     const apellido = (item.apellido_paterno || '').toLowerCase();
     const diagnostico = (item.diagnostico || '').toLowerCase();
     const servicio = (item.servicio || '').toLowerCase(); 
     const termino = searchTerm.toLowerCase();
     
-    return nombre.includes(termino) || 
-           apellido.includes(termino) || 
-           diagnostico.includes(termino) || 
-           servicio.includes(termino);
+    const matchSearch = nombre.includes(termino) || 
+                        apellido.includes(termino) || 
+                        diagnostico.includes(termino) || 
+                        servicio.includes(termino);
+
+    // 2. Filtros Avanzados
+    const matchEstadoCivil = filters.estado_civil ? item.estado_civil === filters.estado_civil : true;
+    const matchEspecialidad = filters.especialidad ? item.especialidad === filters.especialidad : true;
+    const matchMunicipio = filters.municipio ? item.municipio?.trim().toUpperCase() === filters.municipio : true;
+    const matchMotivo = filters.motivo_inconformidad ? item.motivo_inconformidad === filters.motivo_inconformidad : true;
+    
+    // Validar foráneo
+    let matchForaneo = true;
+    if (filters.foraneo !== '') {
+        const isForaneo = item.foraneo === true || item.foraneo === 'true';
+        matchForaneo = filters.foraneo === 'true' ? isForaneo : !isForaneo;
+    }
+
+    // Validar Institución
+    let matchInstitucion = true;
+    if (filters.institucion) {
+        const itemInstGroup = getInstitucionGroupName(item.prestador_nombre || item.institucion);
+        matchInstitucion = itemInstGroup === filters.institucion;
+    }
+
+    // Validar Fechas (Inicio y Fin)
+    let matchFecha = true;
+    if (filters.fecha_inicio || filters.fecha_fin) {
+        const itemDate = getExactDateFromRow(item);
+        const start = filters.fecha_inicio ? new Date(filters.fecha_inicio + 'T00:00:00') : null;
+        const end = filters.fecha_fin ? new Date(filters.fecha_fin + 'T23:59:59') : null;
+
+        if (start && Math.sign(itemDate.getTime() - start.getTime()) === -1) matchFecha = false;
+        if (end && Math.sign(itemDate.getTime() - end.getTime()) === 1) matchFecha = false;
+    }
+
+    return matchSearch && matchEstadoCivil && matchEspecialidad && matchMunicipio && matchMotivo && matchInstitucion && matchForaneo && matchFecha;
+  }).sort((a, b) => {
+    // Lógica de Ordenamiento
+    const dateA = getExactDateFromRow(a).getTime();
+    const dateB = getExactDateFromRow(b).getTime();
+    
+    if (filters.orden === 'antiguo') {
+        return dateA - dateB;
+    } else {
+        return dateB - dateA;
+    }
   });
+
+  // Contador de filtros activos
+  const activeFiltersCount = Object.keys(filters).reduce((acc, key) => {
+    if (key === 'orden') return filters[key] !== 'reciente' ? acc + 1 : acc;
+    return filters[key] !== '' ? acc + 1 : acc;
+  }, 0);
 
   return (
     <>
       <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col h-full max-h-[85vh]">
         
         {/* HEADER */}
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
-          <div>
-            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-              <Briefcase className="text-indigo-600" /> Tabla de Gestión y Quejas
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">Clasificación técnica y seguimiento de asuntos</p>
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                <Briefcase className="text-indigo-600" /> Tabla de Gestión y Quejas
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">Clasificación técnica y seguimiento de asuntos</p>
+            </div>
+            
+            <div className="flex w-full md:w-auto items-center gap-2">
+              <div className="relative flex-1 md:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="text" placeholder="Buscar por nombre" value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+              
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${showFilters || activeFiltersCount !== 0 ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Filter size={16} />
+                <span className="hidden sm:inline">Filtros</span>
+                {activeFiltersCount !== 0 && (
+                  <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{activeFiltersCount}</span>
+                )}
+                {showFilters ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+              </button>
+            </div>
           </div>
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" placeholder="Buscar por nombre, folio o diagnóstico..." value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-            />
-          </div>
+
+          {/* PANEL DE FILTROS */}
+          {showFilters && (
+            <div className="mt-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm animate-in slide-in-from-top-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Estado Civil</label>
+                  <select name="estado_civil" value={filters.estado_civil} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todos</option>
+                    {ESTADOS_CIVILES.map(e => <option key={e} value={e}>{e}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Especialidad</label>
+                  <select name="especialidad" value={filters.especialidad} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todas</option>
+                    {ESPECIALIDADES_LISTA.map(e => <option key={e} value={e}>{e}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Motivo</label>
+                  <select name="motivo_inconformidad" value={filters.motivo_inconformidad} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todos</option>
+                    {Object.keys(MOTIVOS_CATALOGO).map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Municipio</label>
+                  <select name="municipio" value={filters.municipio} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todos</option>
+                    {uniqueMunicipios.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Institución</label>
+                  <select name="institucion" value={filters.institucion} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todas</option>
+                    {INSTITUCIONES_LISTA.map(i => <option key={i} value={i}>{i}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Origen</label>
+                  <select name="foraneo" value={filters.foraneo} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todos</option>
+                    <option value="true">Foráneo</option>
+                    <option value="false">Local</option>
+                  </select>
+                </div>
+
+                {/* NUEVOS FILTROS DE FECHAS Y ORDEN */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Fecha Inicio</label>
+                  <input type="date" name="fecha_inicio" value={filters.fecha_inicio} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Fecha Fin</label>
+                  <input type="date" name="fecha_fin" value={filters.fecha_fin} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Orden</label>
+                  <select name="orden" value={filters.orden} onChange={handleFilterChange} className="p-2 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="reciente">Más recientes primero</option>
+                    <option value="antiguo">Más antiguos primero</option>
+                  </select>
+                </div>
+
+              </div>
+              
+              {/* Limpiar Filtros */}
+              {(activeFiltersCount !== 0 || searchTerm !== '') && (
+                <div className="mt-3 flex justify-end">
+                  <button onClick={clearFilters} className="text-xs text-rose-500 hover:text-rose-700 font-bold flex items-center gap-1 transition-colors">
+                    <X size={14} /> Limpiar filtros
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* TABLA SCROLLABLE */}
@@ -558,8 +793,13 @@ export const GestionTable = ({ onViewDetails }) => {
             </table>
           )}
         </div>
-        <div className="p-4 border-t border-slate-100 bg-slate-50 text-right text-xs text-slate-400">Mostrando {filteredData.length} registros</div>
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-xs text-slate-400">
+          <span>Total en base: {data.length}</span>
+          <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Mostrando {filteredData.length} registros</span>
+        </div>
       </div>
     </>
   );
 };
+
+export default GestionTable;
