@@ -456,7 +456,7 @@ export const GestionTable = ({ onViewDetails }) => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                <Briefcase className="text-indigo-600" /> Tabla de Gestión y Quejas
+                <Briefcase className="text-indigo-600" /> Tabla de Registro Clásico
               </h2>
               <p className="text-xs text-slate-500 mt-1">Clasificación técnica y seguimiento de asuntos</p>
             </div>
