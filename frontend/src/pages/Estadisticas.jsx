@@ -145,7 +145,9 @@ export const Estadisticas = () => {
             nombre.includes('CENTRO DE SALUD') ||
             nombre.includes('CESSA') ||
             nombre.includes('UNEME') ||
-            nombre.includes('INSABI')
+            nombre.includes('INSABI')||
+            nombre.includes('REINSERCION') ||
+            nombre.includes('CERESO')
         ) {
             instMap['SSN']++;
         }
