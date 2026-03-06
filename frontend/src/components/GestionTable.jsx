@@ -154,7 +154,7 @@ export const GestionTable = ({ onViewDetails }) => {
     if (servicioTrimmed) {
         // 1.1 Validar estructura (Regex)
         const regexBasico = /^[A-Z]-\d{1,4}$/;
-        const regexQueja = /^[A-Z]\d{1,4}\/[IVXLCDM]+\/\d{4}$/; 
+        const regexQueja = /^[A-Z]\d{1,4}\/(?:[ivxlcdmIVXLCDM]+|\d{1,4})\/\d{4}$/;
 
         if (!regexBasico.test(servicioTrimmed) && !regexQueja.test(servicioTrimmed)) {
             toast.error("❌ El formato del Folio de Servicio es incorrecto.\nEjemplos válidos:\n• G-01\n• O-15\n• Q1/V/2026");
