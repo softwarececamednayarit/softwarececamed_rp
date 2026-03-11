@@ -138,70 +138,100 @@ export const GestionTable = ({ onViewDetails }) => {
   // --- EDICIÓN ---
   const startEditing = (row) => {
     setEditingId(row.id);
+
+    // --- LÓGICA DE SUGERENCIA DE NÚMEROS ---
+    const anioActual = getYearFromRow(row);
+    const registrosDelAnio = data.filter(item => getYearFromRow(item) === anioActual);
+
+    // 1. Sugerencia No. Asignado (Correlativo anual simple)
+    // Formato: "1/2026", "2/2026"...
+    const numerosAsignados = registrosDelAnio
+      .filter(item => item.no_asignado && item.no_asignado.includes('/'))
+      .map(item => {
+        const parteNumerica = item.no_asignado.split('/')[0];
+        return parseInt(parteNumerica) || 0;
+      });
+
+    const maxNoAsignado = numerosAsignados.length > 0 ? Math.max(...numerosAsignados) : 0;
+    const sig_no_asignado = `${maxNoAsignado + 1}/${anioActual}`;
     
-    // 1. ESPECIALIDAD
+    // 2. Sugerencia Folio de Servicio (Por Actividad y Regex)
+    const actividadActual = row.actividad_apoyo || ACTIVIDADES_APOYO[0];
+    const letraActividad = actividadActual.charAt(0).toUpperCase();
+    let sig_servicio = "";
+
+    // Identificamos el tipo de formato por la letra
+    if (letraActividad === 'Q' || letraActividad === 'D') {
+      // FORMATO CON BARRAS: Letra + Numero / (Numero o Romano) / Año
+      // Buscamos el número correlativo inicial (ej: el "12" en Q12/05/2026)
+      const registrosTipoBarras = registrosDelAnio.filter(item => 
+        item.servicio && item.servicio.startsWith(letraActividad) && item.servicio.includes('/')
+      );
+
+      const numerosCorrelativos = registrosTipoBarras.map(item => {
+        const match = item.servicio.match(/^[A-Z](\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      });
+
+      const maxCorrelativo = numerosCorrelativos.length > 0 ? Math.max(...numerosCorrelativos) : 0;
+      const nuevoNumero = maxCorrelativo + 1;
+
+      // Determinamos qué poner en medio (el "mes" o "identificador")
+      // Si es Dictamen (D), podríamos sugerir Romano, si es Queja (Q), número normal.
+      const identificadorMedio = letraActividad === 'D' ? "I" : (new Date().getMonth() + 1).toString().padStart(2, '0');
+      
+      sig_servicio = `${letraActividad}${nuevoNumero}/${identificadorMedio}/${anioActual}`;
+
+    } else {
+      // FORMATO BÁSICO: G-01, O-05 (Gestiones, Orientaciones, etc.)
+      const numerosServicio = registrosDelAnio
+        .filter(item => item.servicio && item.servicio.startsWith(`${letraActividad}-`))
+        .map(item => {
+          const partes = item.servicio.split('-');
+          return parseInt(partes[1]) || 0;
+        });
+
+      const maxNumero = numerosServicio.length > 0 ? Math.max(...numerosServicio) : 0;
+      sig_servicio = `${letraActividad}-${(maxNumero + 1).toString().padStart(2, '0')}`;
+    }
+
+    // --- RESTO DE LÓGICA DE ESPECIALIDAD Y MOTIVOS ---
     const espOriginal = row.especialidad_medica || row.especialidad || '';
     const espSugerida = obtenerEspecialidadSugerida(espOriginal);
     const esEspecialidadEstandar = ESPECIALIDADES_LISTA.includes(espSugerida);
     setIsOtherSpecialty(!!espSugerida && !esEspecialidadEstandar);
 
-    // 2. SUBMOTIVO
     const mot = row.motivo_inconformidad || '';
     const catalogoSub = MOTIVOS_CATALOGO[mot] || [];
-    
-    let finalSubmotivo = '';
-    let isOtherSub = false;
+    let finalSubmotivo = row.submotivo_catalogo || '';
+    setIsOtherSubmotivo(finalSubmotivo && !catalogoSub.includes(finalSubmotivo));
 
-    if (row.submotivo_catalogo) {
-        if (catalogoSub.includes(row.submotivo_catalogo)) {
-            finalSubmotivo = row.submotivo_catalogo;
-            isOtherSub = false;
-        } else {
-            finalSubmotivo = row.submotivo_catalogo;
-            isOtherSub = true;
-        }
-    } else {
-        finalSubmotivo = '';
-        isOtherSub = false;
-    }
+    // --- LÓGICA DE CONTACTO AUTOMÁTICA ---
+    let valorForaneo = (row.foraneo === true || row.foraneo === "true") || 
+                      ((row.municipio || '').trim().toUpperCase() !== 'TEPIC');
 
-    setIsOtherSubmotivo(isOtherSub);
+    let valorTelefonico = (row.via_telefonica === true || row.via_telefonica === "true") || 
+                        (row.forma_recepcion || '').trim().toLowerCase().includes('telef');
 
-    // 3. FORÁNEO
-    let valorForaneo = row.foraneo === true || row.foraneo === "true";
-    const municipio = (row.municipio || '').trim().toUpperCase();
-    if (municipio && municipio !== 'TEPIC') {
-        valorForaneo = true;
-    }
-
-    // 4. VÍA TELEFÓNICA
-    let valorTelefonico = row.via_telefonica === true || row.via_telefonica === "true";
-    const formaRecepcion = (row.forma_recepcion || '').trim().toLowerCase();
-    
-    if (formaRecepcion.includes('telefónica') || formaRecepcion.includes('telefonica')) {
-        valorTelefonico = true;
-    }
-
-    // 5. SETEAR ESTADO DEL FORMULARIO
+    // --- SETEAR ESTADO DEL FORMULARIO ---
     setEditForm({
       domicilio: row.domicilio || '', 
       ocupacion: row.cargo_ocupacion || row.ocupacion || '', 
       representante: row.representante || '',
       prestador_nombre: row.prestador_nombre || '',
       observaciones_servicio: row.observaciones_servicio || '',
-      foraneo: valorForaneo, 
       diagnostico: row.diagnostico || '', 
+      foraneo: valorForaneo, 
       via_telefonica: valorTelefonico, 
       estado_civil: row.estado_civil || ESTADOS_CIVILES[0],
-      actividad_apoyo: row.actividad_apoyo || ACTIVIDADES_APOYO[0], 
-      
+      actividad_apoyo: actividadActual, 
       especialidad: espSugerida, 
       motivo_inconformidad: mot,
-      
       submotivo_catalogo: finalSubmotivo, 
       
-      servicio: row.servicio || '',
-      no_asignado: row.no_asignado || ''
+      // Sugerencias inteligentes: solo si el campo está vacío en la base de datos
+      servicio: row.servicio || sig_servicio,
+      no_asignado: row.no_asignado || sig_no_asignado
     });
   };
 
@@ -215,16 +245,26 @@ export const GestionTable = ({ onViewDetails }) => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     let val = type === 'checkbox' ? checked : value;
-    
-    if (name === 'servicio' && typeof val === 'string') {
-        val = val.toUpperCase().trim();
-    }
 
     setEditForm(prev => {
       const newState = { ...prev, [name]: val };
-      if (name === 'motivo_inconformidad') {
-        newState.submotivo_catalogo = '';
-        setIsOtherSubmotivo(false); 
+
+      if (name === 'actividad_apoyo') {
+        const letra = val.charAt(0).toUpperCase();
+        const anio = getYearFromRow(prev);
+        const registrosAnio = data.filter(item => getYearFromRow(item) === anio);
+
+        if (letra === 'Q') {
+          const maxQ = Math.max(0, ...registrosAnio
+            .filter(i => /^Q\d+/.test(i.servicio))
+            .map(i => parseInt(i.servicio.match(/\d+/)[0]) || 0));
+          newState.servicio = `Q${maxQ + 1}/I/${anio}`;
+        } else {
+          const maxNum = Math.max(0, ...registrosAnio
+            .filter(i => i.servicio?.startsWith(`${letra}-`))
+            .map(i => parseInt(i.servicio.split('-')[1]) || 0));
+          newState.servicio = `${letra}-${(maxNum + 1).toString().padStart(2, '0')}`;
+        }
       }
       return newState;
     });
@@ -258,7 +298,7 @@ export const GestionTable = ({ onViewDetails }) => {
     const servicioTrimmed = (editForm.servicio || '').trim();
     if (servicioTrimmed) {
         const regexBasico = /^[A-Z]-\d{1,4}$/;
-        const regexQueja = /^[A-Z]\d{1,4}\/[IVXLCDM]+\/\d{4}$/; 
+        const regexQueja = /^[A-Z]\d{1,4}\/(?:[ivxlcdmIVXLCDM]+|\d{1,4})\/\d{4}$/;
 
         if (!regexBasico.test(servicioTrimmed) && !regexQueja.test(servicioTrimmed)) {
             toast.error("❌ El formato del Folio de Servicio es incorrecto.\nEjemplos válidos:\n• G-01\n• O-15\n• Q1/V/2026");
@@ -416,7 +456,7 @@ export const GestionTable = ({ onViewDetails }) => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                <Briefcase className="text-indigo-600" /> Tabla de Gestión y Quejas
+                <Briefcase className="text-indigo-600" /> Tabla de Registro Clásico
               </h2>
               <p className="text-xs text-slate-500 mt-1">Clasificación técnica y seguimiento de asuntos</p>
             </div>

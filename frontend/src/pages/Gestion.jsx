@@ -79,7 +79,7 @@ export const Gestion = () => {
                 <Briefcase size={24} /> 
               </div>
               <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-                Gestión y Quejas
+                Registro Clásico de Atendidos
               </h1>
             </div>
             <div className="flex items-center gap-2 pl-1">
