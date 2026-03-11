@@ -221,14 +221,30 @@ exports.generarReporteClasico = async (listaDatos) => {
   try {
     console.log(`📄 Generando Registro Clásico para ${listaDatos.length} expedientes...`);
 
-    // Ordenar cronológicamente
+    // --- NUEVA LÓGICA DE ORDENAMIENTO ---
     listaDatos.sort((a, b) => {
+      const valA = a.no_asignado ? String(a.no_asignado) : '';
+      const valB = b.no_asignado ? String(b.no_asignado) : '';
+
+      // 1. Si ambos tienen "No. Asignado", compararlos
+      if (valA !== '' && valB !== '') {
+        // localeCompare con 'numeric: true' ayuda a que "2" vaya antes que "10"
+        return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+
+      // 2. Si solo uno tiene valor, ese va primero
+      if (valA !== '' && valB === '') return -1;
+      if (valA === '' && valB !== '') return 1;
+
+      // 3. Si ambos están vacíos (o son idénticos), usar el criterio cronológico original
       const fechaA = new Date(a.fecha_recepcion || 0).getTime();
       const fechaB = new Date(b.fecha_recepcion || 0).getTime();
       const diff = fechaA - fechaB;
+      
       if (diff !== 0) return diff;
       return String(a.id).localeCompare(String(b.id));
     });
+    // ------------------------------------
 
     // Mapear cada expediente a la fila esperada por la hoja
     const filas = listaDatos.map(dato => {
@@ -252,15 +268,13 @@ exports.generarReporteClasico = async (listaDatos) => {
           tipoFinal = 'Dictamen';
       }
 
-      // 2. Formateo de nombres
       const nombreCompleto = formatoTitulo(`${dato.nombre || ''} ${dato.apellido_paterno || ''} ${dato.apellido_materno || ''}`);
       const prestador = formatoTitulo(dato.prestador_nombre || '');
 
-      // 3. Retorno de fila (últimas columnas toman valores de la BD)
       return [
         dato.fecha_recepcion || '',                                      
         dato.foraneo ? 'Si' : 'No',                                      
-        nombreCompleto,                                                      
+        nombreCompleto,                                                  
         formatoTitulo(dato.domicilio || ''),                             
         dato.telefono || '',                                                 
         dato.edad || '',                                                     
@@ -274,20 +288,19 @@ exports.generarReporteClasico = async (listaDatos) => {
         formatoOracion(dato.diagnostico || ''), 
         formatoTitulo(dato.especialidad || ''),                              
         formatoOracion(dato.motivo_inconformidad || ''),             
-        formatoOracion(dato.submotivo_catalogo || ''),                                
+        formatoOracion(dato.submotivo_catalogo || ''),                               
         formatoOracion(dato.descripcion_hechos || ''),               
         
-        tipoFinal, // Columna calculada (TIPO DE ASUNTO)
+        tipoFinal, 
         
         formatoOracion(dato.observaciones_servicio || ''),           
         
-        // 👇 AQUÍ YA NO SE GENERA, SE PONE LO QUE HAYA EN BD O VACÍO
-        dato.servicio || '',       // Columna "Folio Servicio"                                                
-        dato.no_asignado || ''     // Columna "No. Asignado / Interno"                                              
+        dato.servicio || '',       
+        dato.no_asignado || ''     
       ];
     });
 
-    // Limpiar y escribir en la hoja "Datos"
+    // Escritura en Google Sheets (se mantiene igual)
     const NOMBRE_HOJA = 'Datos';
     try {
       await sheets.spreadsheets.values.clear({
@@ -307,12 +320,11 @@ exports.generarReporteClasico = async (listaDatos) => {
       });
     }
 
-    // Retorno (mantener compatibilidad con controlador)
     return { 
         success: true, 
         url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_CLASICO_ID}/edit`, 
         count: filas.length,
-        updates: [] // Enviamos vacío para no romper el controlador si espera este array
+        updates: [] 
     };
 
   } catch (error) {
