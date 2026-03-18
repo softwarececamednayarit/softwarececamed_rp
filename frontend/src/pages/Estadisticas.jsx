@@ -487,7 +487,7 @@ export const Estadisticas = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
-                
+
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-indigo-900/5 lg:col-span-2">
                     <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wider">
                         <AlertCircle size={16} className="text-rose-500"/> Principales Motivos de Inconformidad
@@ -502,7 +502,7 @@ export const Estadisticas = () => {
                                     angle={-15} 
                                     textAnchor="end"
                                     interval={0}
-                                    height={60}
+                                    height={80}  // Aumenta un poco el alto si los nombres son muy largos
                                 />
                                 <YAxis tick={{fontSize: 11}} axisLine={false} tickLine={false} />
                                 <Tooltip cursor={{fill: '#fff1f2'}} contentStyle={{borderRadius: '12px'}} />
