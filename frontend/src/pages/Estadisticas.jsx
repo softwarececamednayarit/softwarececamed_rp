@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { AtendidosService } from '../services/atendidosService'; 
 import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+  PieChart, Pie, Rectangle, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import { 
   Loader2, Activity, Calendar, MapPin, Building2, 
@@ -71,6 +71,9 @@ export const Estadisticas = () => {
         .sort((a, b) => b.value - a.value)
         .slice(0, top);
     };
+
+    // Añade esta línea:
+    const porInconformidad = groupBy('motivo_inconformidad', 6);
 
     // --- C. PROCESAMIENTO DEMOGRÁFICO ---
     const edadMap = { '0-17 (Menores)': 0, '18-29 (Jóvenes)': 0, '30-59 (Adultos)': 0, '60+ (Mayores)': 0, 'No Especificado': 0 };
@@ -201,6 +204,7 @@ export const Estadisticas = () => {
       porTipoGeneral,
       porActividad,  
       porEspecialidad,
+      porInconformidad,
       porInstitucion,
       porMotivo,
       porSemana
@@ -479,6 +483,42 @@ export const Estadisticas = () => {
                                 <YAxis dataKey="name" type="category" width={130} tick={{fontSize: 9, fontWeight: 700, fill:'#64748b'}} />
                                 <Tooltip cursor={{fill: '#eef2ff'}} contentStyle={{borderRadius: '12px'}} />
                                 <Bar dataKey="value" fill="#a5b4fc" radius={[0, 6, 6, 0]} barSize={20} label={{ position: 'right', fill: '#4f46e5', fontSize: 10, fontWeight: 'bold' }} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+                
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-indigo-900/5 lg:col-span-2">
+                    <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <AlertCircle size={16} className="text-rose-500"/> Principales Motivos de Inconformidad
+                    </h3>
+                    <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={metrics.porInconformidad} margin={{ top: 10, right: 30, left: 40, bottom: 40 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    tick={{fontSize: 10, fill:'#475569', fontWeight:'bold'}} 
+                                    angle={-15} 
+                                    textAnchor="end"
+                                    interval={0}
+                                    height={60}
+                                />
+                                <YAxis tick={{fontSize: 11}} axisLine={false} tickLine={false} />
+                                <Tooltip cursor={{fill: '#fff1f2'}} contentStyle={{borderRadius: '12px'}} />
+                                
+                                {/* Refactorización: Se elimina el mapeo de Cell y se usa shape */}
+                                <Bar 
+                                    dataKey="value" 
+                                    barSize={50}
+                                    radius={[10, 10, 0, 0]}
+                                    shape={(props) => {
+                                        const { index } = props;
+                                        const colors = ['#e11d48', '#fb7185', '#fda4af', '#fecdd3', '#be123c'];
+                                        // Retornamos un Rectangle con el color dinámico basado en el índice
+                                        return <Rectangle {...props} fill={colors[index % colors.length]} />;
+                                    }}
+                                />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
