@@ -14,6 +14,7 @@ import Recepcion from './pages/Recepcion';
 import Perfil from './pages/Perfil';
 import Padron from './pages/Padron'; 
 import Gestion from './pages/Gestion';
+import Archivos from './pages/Archivos';
 import Estadisticas from './pages/Estadisticas';
 import Usuarios from './pages/Usuarios';
 import Bitacora from './pages/Bitacora'; // 1. IMPORTAR BITÁCORA
@@ -81,6 +82,7 @@ const AppContent = () => {
         case 'recepcion':    return <Recepcion />;
         case 'padron':       return <Padron />;
         case 'gestion':      return <Gestion />;
+        case 'archivos':     return <Archivos />;
         case 'estadisticas': return <Estadisticas />;
         case 'usuarios':     return <Usuarios />;
         case 'bitacora':     return <Bitacora />;

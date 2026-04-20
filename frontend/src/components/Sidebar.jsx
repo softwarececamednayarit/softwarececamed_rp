@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp,
-  Shield // 1. IMPORTAMOS EL ICONO SHIELD
+  FolderOpen, Shield 
 } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 import Swal from 'sweetalert2';
@@ -28,6 +28,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
     { id: 'recepcion',    label: 'Recepción',        icon: BookOpen,      isPrivate: true },
     { id: 'padron',       label: 'Padrón',           icon: FileSpreadsheet, isPrivate: true },
     { id: 'gestion',      label: 'Registro Clásico', icon: Briefcase,     isPrivate: true },
+    { id: 'archivos',     label: 'Archivos',         icon: FolderOpen,    isPrivate: true },
     { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp,    isPrivate: true },
     { id: 'bitacora',     label: 'Bitácora',         icon: Shield,        isPrivate: true },
     { id: 'usuarios',     label: 'Usuarios',         icon: Users,         isPrivate: true },
