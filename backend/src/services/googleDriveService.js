@@ -2,17 +2,31 @@ const { google } = require('googleapis');
 const path = require('path');
 const { Readable } = require('stream');
 
-// Autenticación reutilizando Service Account
 const auth = new google.auth.GoogleAuth({
   keyFile: path.join(__dirname, '../../config/serviceAccountKey.json'),
-  scopes: ['https://www.googleapis.com/auth/drive.file'],
+  scopes: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive'],
 });
 
 const drive = google.drive({ version: 'v3', auth });
 
 /**
- * Busca una carpeta por nombre dentro de una carpeta padre.
+ * Establece permisos de lectura para cualquier persona con el enlace.
  */
+const setFilePublic = async (fileId) => {
+  try {
+    await drive.permissions.create({
+      fileId: fileId,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    });
+  } catch (error) {
+    console.error('Error al establecer permisos públicos:', error);
+    throw error;
+  }
+};
+
 const findFolder = async (folderName, parentId) => {
   const response = await drive.files.list({
     q: `name = '${folderName}' and '${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
@@ -21,9 +35,6 @@ const findFolder = async (folderName, parentId) => {
   return response.data.files[0] || null;
 };
 
-/**
- * Crea una carpeta nueva.
- */
 const createFolder = async (folderName, parentId) => {
   const fileMetadata = {
     name: folderName,
@@ -38,25 +49,72 @@ const createFolder = async (folderName, parentId) => {
 };
 
 /**
- * Sube el archivo al destino final.
+ * Sube el archivo y lo configura como público para lectura inmediatamente.
  */
 const uploadFile = async (fileObject, folderId) => {
-  const bufferStream = new Readable();
-  bufferStream.push(fileObject.buffer);
-  bufferStream.push(null);
+  try {
+    const bufferStream = new Readable();
+    bufferStream.push(fileObject.buffer);
+    bufferStream.push(null);
 
-  const response = await drive.files.create({
-    requestBody: {
-      name: fileObject.originalname,
-      parents: [folderId],
-    },
-    media: {
-      mimeType: fileObject.mimetype,
-      body: bufferStream,
-    },
-    fields: 'id, webViewLink',
-  });
-  return response.data;
+    const response = await drive.files.create({
+      requestBody: {
+        name: fileObject.originalname,
+        parents: [folderId],
+      },
+      media: {
+        mimeType: fileObject.mimetype,
+        body: bufferStream,
+      },
+      fields: 'id, webViewLink',
+    });
+
+    // Hacer el archivo público justo después de subirlo
+    await setFilePublic(response.data.id);
+
+    return response.data;
+  } catch (error) {
+    console.error('Error en la subida a Drive:', error);
+    throw error;
+  }
 };
 
-module.exports = { findFolder, createFolder, uploadFile };
+/**
+ * Obtiene el flujo de datos del archivo para descarga directa desde el backend.
+ */
+const getFileStream = async (fileId) => {
+  try {
+    const response = await drive.files.get(
+      { fileId: fileId, alt: 'media' },
+      { responseType: 'stream' }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener el stream del archivo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Implementa el borrado lógico enviando el archivo a la papelera de Drive.
+ */
+const deleteFileLogical = async (fileId) => {
+  try {
+    await drive.files.update({
+      fileId: fileId,
+      resource: { trashed: true }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error en el borrado lógico de Drive:', error);
+    throw error;
+  }
+};
+
+module.exports = { 
+  findFolder, 
+  createFolder, 
+  uploadFile, 
+  getFileStream, 
+  deleteFileLogical 
+};
