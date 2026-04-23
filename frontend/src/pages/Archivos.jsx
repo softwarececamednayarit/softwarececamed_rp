@@ -8,8 +8,7 @@ import {
   Filter
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-// El componente que crearemos a continuación
-// import UploadModal from '../components/Archivos/UploadModal'; 
+import UploadModal from '../components/UploadModal'; 
 
 const Archivos = () => {
   const [loading, setLoading] = useState(false);
@@ -119,13 +118,12 @@ const Archivos = () => {
         </div>
       </footer>
 
-      {/* RENDERIZADO CONDICIONAL DEL MODAL (Lo crearemos a continuación) */}
-      {/* {isUploadModalOpen && (
+      {isUploadModalOpen && (
         <UploadModal 
           isOpen={isUploadModalOpen} 
           onClose={() => setIsUploadModalOpen(false)} 
         />
-      )} */}
+      )}
     </div>
   );
 };
