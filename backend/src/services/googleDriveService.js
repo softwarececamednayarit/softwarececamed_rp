@@ -95,26 +95,10 @@ const getFileStream = async (fileId) => {
   }
 };
 
-/**
- * Implementa el borrado lógico enviando el archivo a la papelera de Drive.
- */
-const deleteFileLogical = async (fileId) => {
-  try {
-    await drive.files.update({
-      fileId: fileId,
-      resource: { trashed: true }
-    });
-    return { success: true };
-  } catch (error) {
-    console.error('Error en el borrado lógico de Drive:', error);
-    throw error;
-  }
-};
 
 module.exports = { 
   findFolder, 
   createFolder, 
   uploadFile, 
-  getFileStream, 
-  deleteFileLogical 
+  getFileStream 
 };
