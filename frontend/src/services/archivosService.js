@@ -52,7 +52,8 @@ const subirArchivo = async (formData) => {
 
 // Exportamos el objeto con todas las funciones para mantener la consistencia
 export default {
-  subirArchivo,
-  getArchivosPorPuesto,
-  actualizarEstado
-};
+  subirArchivo
+  // ,
+  // getArchivosPorPuesto,
+  // actualizarEstado
+  };

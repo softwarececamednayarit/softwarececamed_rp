@@ -6,13 +6,13 @@ import {
 } from 'lucide-react';
 import { optimizePDF, generateFileHash } from '../utils/pdfOptimizer';
 import { toast } from 'react-hot-toast';
+import archivosService from '../services/archivosService'; // <--- Importamos el servicio
 
 const UploadModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
   const [hash, setHash] = useState('');
   
-  // Estados para la comparativa de peso
   const [stats, setStats] = useState({ original: 0, optimized: 0, percent: 0 });
 
   const inputStyles = "w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400 text-slate-700 font-medium";
@@ -47,7 +47,6 @@ const UploadModal = ({ isOpen, onClose }) => {
       const optimized = await optimizePDF(selectedFile);
       const fileHash = await generateFileHash(optimized);
       
-      // Cálculo de reducción
       const s1 = selectedFile.size;
       const s2 = optimized.size;
       const reduction = ((s1 - s2) / s1 * 100).toFixed(1);
@@ -71,17 +70,37 @@ const UploadModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return toast.error("Debes seleccionar un archivo.");
+    
     setLoading(true);
-    const toastId = toast.loading("Registrando documento...");
+    const toastId = toast.loading("Registrando documento en el SACRE...");
+
     try {
-      const payload = { ...formData, hash, fechaRegistroInterno: new Date().toISOString() };
-      console.log("Enviando al SACRE:", payload);
-      setTimeout(() => {
-        toast.success("Oficio registrado correctamente", { id: toastId });
-        onClose();
-      }, 1500);
+      // 1. Crear el objeto FormData para enviar el archivo y los datos
+      const data = new FormData();
+      
+      // Adjuntamos el archivo optimizado. 
+      // El nombre 'archivo' debe coincidir con upload.single('archivo') en el backend
+      data.append('archivo', file);
+      
+      // Adjuntamos el hash y los campos del formulario
+      data.append('hash', hash);
+      Object.keys(formData).forEach(key => {
+        data.append(key, formData[key]);
+      });
+
+      // 2. Llamada al servicio
+      const response = await archivosService.subirArchivo(data);
+
+      if (response.success) {
+        toast.success("Oficio registrado y guardado en Drive", { id: toastId });
+        onClose(); // Cerramos el modal tras el éxito
+      } else {
+        throw new Error(response.message || "Error al subir");
+      }
+
     } catch (error) {
-      toast.error("Error en la subida.", { id: toastId });
+      console.error("Error en handleSubmit:", error);
+      toast.error(error.response?.data?.error || "Error en la subida al servidor.", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -101,13 +120,13 @@ const UploadModal = ({ isOpen, onClose }) => {
           <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-indigo-600 rounded-lg text-white"><Upload size={20} /></div>
-              <h2 className="text-xl font-black text-slate-800 tracking-tight">Registro de Documentación</h2>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight text-left">Registro de Documentación</h2>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8 text-left">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
               
               {/* COLUMNA 1 */}
               <div className="space-y-5">
@@ -163,7 +182,7 @@ const UploadModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className={`relative border-2 border-dashed rounded-[2rem] p-10 transition-all flex flex-col items-center justify-center ${file ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200 hover:border-indigo-300'}`}>
-                  <input type="file" accept=".pdf" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <input type="file" accept=".pdf" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" disabled={loading} />
                   
                   {loading ? <Loader2 className="animate-spin text-indigo-500 mb-2" size={32} /> : 
                    file ? <div className="bg-emerald-500 p-3 rounded-2xl text-white mb-2 shadow-lg shadow-emerald-200"><FileText size={32} /></div> : 
@@ -171,8 +190,6 @@ const UploadModal = ({ isOpen, onClose }) => {
                   
                   <div className="text-center">
                     <p className="text-sm font-bold text-slate-600">{file ? file.name : "Adjuntar Oficio (PDF)"}</p>
-                    
-                    {/* VISUALIZACIÓN DE REDUCCIÓN */}
                     {file && (
                       <div className="flex flex-col items-center gap-2 mt-3">
                         <div className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
@@ -182,7 +199,6 @@ const UploadModal = ({ isOpen, onClose }) => {
                         <p className="text-[10px] text-slate-400 font-medium">
                           De <span className="line-through">{stats.original} KB</span> a <span className="text-slate-600 font-bold">{stats.optimized} KB</span>
                         </p>
-                        <p className="text-[8px] text-slate-300 font-mono mt-1">HASH: {hash.substring(0, 32)}...</p>
                       </div>
                     )}
                   </div>
@@ -198,7 +214,7 @@ const UploadModal = ({ isOpen, onClose }) => {
 
           <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end items-center gap-6">
             <span className="text-[10px] text-slate-400 font-bold uppercase mr-auto ml-2">Registro: {new Date().toLocaleDateString()}</span>
-            <button onClick={onClose} className="px-6 py-2.5 font-bold text-slate-500 hover:text-slate-700 transition-colors">Cancelar</button>
+            <button onClick={onClose} disabled={loading} className="px-6 py-2.5 font-bold text-slate-500 hover:text-slate-700 transition-colors">Cancelar</button>
             <button onClick={handleSubmit} disabled={loading || !file}
               className="bg-slate-900 text-white px-10 py-3 rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50 flex items-center gap-2">
               {loading && <Loader2 size={18} className="animate-spin" />}
