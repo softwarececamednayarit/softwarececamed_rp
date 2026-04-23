@@ -1,30 +1,44 @@
 const driveService = require('../services/googleDriveService');
 const ArchivoModel = require('../models/archivoModel');
+const LoggerService = require('../services/LoggerService');
 
-const subirArchivo = async (req, res) => {
+exports.subirArchivo = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ success: false, message: 'Falta el archivo PDF' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'Falta el archivo PDF' });
+    }
 
     const mainFolderId = process.env.DRIVE_MAIN_FOLDER_ID;
     const puesto = req.user.role || 'General';
 
-    // 1. Interacción con el Service de Google Drive
+    // 1. Gestión en Google Drive (Service)
     const folderId = await driveService.getOrCreateFolder(puesto, mainFolderId);
     const driveFile = await driveService.uploadFile(req.file, folderId);
 
-    // 2. Interacción con el Modelo (que a su vez toca la DB)
+    // 2. Persistencia en base de datos (Modelo)
     const resultado = await ArchivoModel.crearYGuardar(req.body, req.file, driveFile, req.user);
 
-    res.status(201).json({ 
+    // 3. Registro en Bitácora
+    LoggerService.log(
+      req.user, 
+      'SUBIDA', 
+      'ARCHIVOS', 
+      `Subió el oficio ${req.body.noOficio || 'S/N'} al repositorio de ${puesto}`, 
+      { 
+        archivo_id: resultado.id, 
+        drive_id: driveFile.id,
+        hash: req.body.hash 
+      }
+    );
+
+    res.json({ 
       success: true, 
-      message: 'Oficio registrado correctamente',
-      data: resultado 
+      id: resultado.id,
+      driveUrl: driveFile.webViewLink 
     });
 
   } catch (error) {
     console.error("Error en subirArchivo:", error);
-    res.status(500).json({ success: false, message: 'Error interno al procesar el archivo' });
+    res.status(500).json({ error: error.message });
   }
 };
-
-module.exports = { subirArchivo };
