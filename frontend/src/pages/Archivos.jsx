@@ -2,70 +2,32 @@ import React, { useState } from 'react';
 import { 
   FolderOpen, 
   RefreshCw, 
-  Construction,
-  Upload,
-  FileCheck,
-  Download,
-  HardDrive
+  Plus,
+  FileText,
+  Search,
+  Filter
 } from 'lucide-react';
-import { optimizePDF, generateFileHash } from '../utils/pdfOptimizer';
 import { toast } from 'react-hot-toast';
+// El componente que crearemos a continuación
+// import UploadModal from '../components/Archivos/UploadModal'; 
 
 const Archivos = () => {
   const [loading, setLoading] = useState(false);
-  const [archivos] = useState([]); 
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [archivos] = useState([]); // Aquí irán los archivos de Firestore
   const [stats] = useState({ total: 0 });
-
-  const handleProcessFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file || file.type !== 'application/pdf') {
-      toast.error("Por favor, selecciona un archivo PDF válido.");
-      return;
-    }
-
-    setLoading(true);
-    const toastId = toast.loading("Procesando y optimizando PDF...");
-
-    try {
-      // 1. Optimizar el archivo
-      const optimizedFile = await optimizePDF(file);
-      
-      // 2. Generar y loguear el HASH único
-      const fileHash = await generateFileHash(optimizedFile);
-      console.log("%c[SACRE DEBUG] Hash del archivo optimizado:", "color: #4f46e5; font-weight: bold;", fileHash);
-      
-      // 3. Descarga automática
-      const url = URL.createObjectURL(optimizedFile);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `optimized_${file.name}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      const ahorro = ((1 - optimizedFile.size / file.size) * 100).toFixed(2);
-      toast.success(`¡Optimización completa! Ahorro: ${ahorro}%`, { id: toastId });
-      
-    } catch (error) {
-      console.error("Error en el procesamiento:", error);
-      toast.error("Hubo un error al procesar el archivo.", { id: toastId });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSync = () => {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      toast.success("Sincronización de metadatos completada.");
+      toast.success("Sincronización con Drive completada.");
     }, 1500);
   };
 
   return (
     <div className="p-6 space-y-6">
-      {/* HEADER */}
+      {/* HEADER PRINCIPAL */}
       <header className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none" />
         
@@ -75,113 +37,95 @@ const Archivos = () => {
           </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-              Manejador de Archivos
+              Gestión de Expedientes
             </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`flex h-2 w-2 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}></span>
-              <p className="text-slate-500 font-medium text-sm">
-                Mostrando <span className="text-slate-900 font-bold">{archivos.length}</span> documentos encontrados.
-              </p>
-            </div>
+            <p className="text-slate-500 font-medium text-sm mt-1">
+              Repositorio digital del <span className="text-indigo-600 font-bold">SACRE</span>
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6 sm:gap-10 border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-10 relative z-10">
-          <div className="flex flex-col items-start md:items-center">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Archivos</span>
-              <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-slate-900 leading-none">{stats.total}</span>
-                  <span className="text-sm font-bold text-slate-400">Docs.</span>
-              </div>
-          </div>
+        <div className="flex items-center gap-4 relative z-10">
+          <button 
+            onClick={handleSync}
+            className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+            title="Sincronizar"
+          >
+            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+          </button>
 
           <button 
-            onClick={handleSync} 
-            disabled={loading} 
-            className="group flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-100 px-5 py-3 rounded-xl font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
           >
-            <RefreshCw size={16} className={`transition-transform ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-            <span className="hidden sm:inline">{loading ? 'Actualizando' : 'Sincronizar'}</span>
+            <Plus size={20} />
+            <span>Subir Archivo</span>
           </button>
         </div>
       </header>
 
-      {/* ÁREA DE PRUEBA DE OPTIMIZACIÓN */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Card de Subida/Prueba */}
-        <div className="lg:col-span-2 bg-white rounded-[2rem] shadow-md p-8 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group">
+      {/* BARRA DE FILTROS Y BÚSQUEDA */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/50 p-2 rounded-3xl border border-slate-100">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
-            type="file" 
-            accept=".pdf"
-            onChange={handleProcessFile}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-            disabled={loading}
+            type="text" 
+            placeholder="Buscar por nombre o hash..." 
+            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
           />
-          
-          <div className="bg-indigo-50 p-6 rounded-3xl mb-4 group-hover:scale-110 transition-transform duration-500">
-            {loading ? (
-              <RefreshCw className="h-12 w-12 text-indigo-600 animate-spin" />
-            ) : (
-              <Upload className="h-12 w-12 text-indigo-600" />
-            )}
-          </div>
-          
-          <h2 className="text-xl font-bold text-slate-800">Probar Optimizador</h2>
-          <p className="text-slate-500 mt-2 text-center max-w-sm">
-            Sube un PDF pesado para ver la magia. Se imprimirá el hash en consola y se descargará la versión ligera automáticamente.
-          </p>
-          
-          {loading && (
-            <div className="mt-6 flex items-center gap-3 px-4 py-2 bg-amber-50 text-amber-700 rounded-full text-sm font-bold animate-pulse">
-              <Construction size={16} />
-              Procesando estructura del PDF...
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl text-slate-600 font-semibold hover:bg-slate-50 transition-all">
+            <Filter size={18} />
+            Filtros
+          </button>
+        </div>
+      </div>
+
+      {/* CONTENIDO PRINCIPAL / LISTADO */}
+      <main className="min-h-[400px] bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative">
+        {archivos.length === 0 ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center">
+            <div className="bg-slate-50 p-8 rounded-[3rem] mb-6">
+              <FileText size={64} className="text-slate-200" />
             </div>
-          )}
-        </div>
-
-        {/* Card de Información Técnica */}
-        <div className="bg-slate-900 rounded-[2rem] shadow-xl p-8 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10">
-            <HardDrive size={120} />
+            <h3 className="text-xl font-bold text-slate-800">No hay archivos en este puesto</h3>
+            <p className="text-slate-400 mt-2 max-w-xs leading-relaxed">
+              Los documentos que subas aparecerán aquí organizados por fecha y categoría.
+            </p>
+            <button 
+              onClick={() => setIsUploadModalOpen(true)}
+              className="mt-8 text-indigo-600 font-bold hover:underline"
+            >
+              Comenzar a subir archivos
+            </button>
           </div>
-          
-          <h3 className="text-lg font-black uppercase tracking-widest text-indigo-400 mb-6">Info Técnica</h3>
-          
-          <ul className="space-y-6 relative z-10">
-            <li className="flex gap-4">
-              <div className="h-10 w-10 shrink-0 bg-white/10 rounded-xl flex items-center justify-center text-indigo-300">
-                <FileCheck size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-bold">SHA-256 Validado</p>
-                <p className="text-xs text-slate-400">Huella digital única para evitar duplicados en el servidor.</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <div className="h-10 w-10 shrink-0 bg-white/10 rounded-xl flex items-center justify-center text-indigo-300">
-                <Download size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-bold">Estructura Clean</p>
-                <p className="text-xs text-slate-400">Eliminación de metadatos y objetos huérfanos sin perder calidad.</p>
-              </div>
-            </li>
-          </ul>
-
-          <div className="mt-10 pt-6 border-t border-white/10 text-[10px] font-medium text-slate-500 uppercase tracking-[0.2em]">
-            Integrado con Web Crypto API
+        ) : (
+          <div className="p-8">
+            {/* Aquí mapearemos la tabla de archivos más tarde */}
+            <p className="text-slate-400 italic">Listado de archivos en desarrollo...</p>
           </div>
+        )}
+      </main>
+
+      {/* FOOTER */}
+      <footer className="flex justify-between items-center px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Almacenamiento: Google Drive 15GB</span>
         </div>
+        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          SACRE v1.0 • Gestión Digital
+        </div>
+      </footer>
 
-      </div>
-
-      {/* FOOTER DE ESTADO */}
-      <div className="flex justify-center italic text-slate-400 text-xs gap-2">
-        <span>Módulo de gestión de archivos en fase Alpha</span>
-        <span>•</span>
-        <span className="font-bold text-indigo-500">SACRE v1.0</span>
-      </div>
+      {/* RENDERIZADO CONDICIONAL DEL MODAL (Lo crearemos a continuación) */}
+      {/* {isUploadModalOpen && (
+        <UploadModal 
+          isOpen={isUploadModalOpen} 
+          onClose={() => setIsUploadModalOpen(false)} 
+        />
+      )} */}
     </div>
   );
 };
