@@ -10,4 +10,6 @@ router.use(verifyToken);
 // Registro de oficio y subida a Drive
 router.post('/subir', upload.single('archivo'), archivoController.subirArchivo);
 
+router.get('/mis-archivos', verifyToken, archivoController.getMisArchivos);
+
 module.exports = router;

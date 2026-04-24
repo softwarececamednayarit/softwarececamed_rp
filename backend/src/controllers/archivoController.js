@@ -42,3 +42,21 @@ exports.subirArchivo = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// En archivoController.js agregar:
+
+exports.getMisArchivos = async (req, res) => {
+  try {
+    const propietarioId = req.user.id; // Extraído del token verificado
+    
+    const archivos = await ArchivoModel.obtenerPorPropietario(propietarioId);
+    
+    res.json({
+      success: true,
+      count: archivos.length,
+      data: archivos
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

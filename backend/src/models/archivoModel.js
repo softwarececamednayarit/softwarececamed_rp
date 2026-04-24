@@ -34,11 +34,34 @@ const ArchivoModel = {
       
       // Estado y Seguridad
       permisos: [user.role || 'General'],
-      estado: 'activo' // Borrado lógico gestionado aquí
+      estado: 'activo' 
     };
 
     const docRef = await db.collection('archivos').add(nuevoArchivo);
     return { id: docRef.id, ...nuevoArchivo };
+  },
+
+  /**
+   * Obtiene los archivos filtrados por el ID del usuario (propietario)
+   */
+  obtenerPorPropietario: async (propietarioId) => {
+    try {
+      const snapshot = await db.collection('archivos')
+        .where('propietarioId', '==', propietarioId)
+        .where('estado', '==', 'activo') // Solo los que no están "borrados"
+        .orderBy('fechaRegistroSistema', 'desc') 
+        .get();
+
+      if (snapshot.empty) return [];
+
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error("Error en ArchivoModel.obtenerPorPropietario:", error);
+      throw error;
+    }
   }
 };
 
