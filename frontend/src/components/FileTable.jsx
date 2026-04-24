@@ -1,13 +1,12 @@
 import React from 'react';
 import { 
   FileText, ExternalLink, MoreVertical, 
-  Download, Calendar, Building2, Hash,
-  ChevronRight, Clock
+  Calendar, Building2, Hash, Edit3
 } from 'lucide-react';
 
-const FileTable = ({ archivos, onRefresh }) => {
+// 1. Agregamos onEdit a las props
+const FileTable = ({ archivos, onRefresh, onEdit }) => {
   
-  // Helper para formatear el tamaño (si lo guardaste en bytes)
   const formatSize = (bytes) => {
     if (!bytes) return '0 KB';
     const kb = bytes / 1024;
@@ -96,6 +95,15 @@ const FileTable = ({ archivos, onRefresh }) => {
                   <span>Abrir</span>
                 </a>
                 
+                {/* 2. Conectamos el botón de editar */}
+                <button 
+                  onClick={() => onEdit(file)}
+                  className="flex items-center gap-2 p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all group/edit"
+                  title="Editar expediente"
+                >
+                  <Edit3 size={20} className="group-hover/edit:rotate-12 transition-transform" />
+                </button>
+
                 <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
                   <MoreVertical size={20} />
                 </button>

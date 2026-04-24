@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, FileText, Loader2, Zap, RotateCcw } from 'lucide-react';
+import { X, Upload, FileText, Loader2, Zap, RotateCcw, Save } from 'lucide-react';
 import { optimizePDF, generateFileHash } from '../utils/pdfOptimizer';
 import { sanitizeFileName, ensurePdfExtension } from '../utils/fileUtils';
 import { toast } from 'react-hot-toast';
 import archivosService from '../services/archivosService';
 
-const UploadModal = ({ isOpen, onClose }) => {
+const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
   const [customFileName, setCustomFileName] = useState('');
   const [hash, setHash] = useState('');
   const [stats, setStats] = useState({ original: 0, optimized: 0, percent: 0 });
+
+  const isEditing = !!archivoParaEditar;
 
   const [formData, setFormData] = useState({
     noOficio: '',
@@ -22,9 +24,44 @@ const UploadModal = ({ isOpen, onClose }) => {
     horaRecibido: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
     asunto: '',
     dirigidoA: '',
-    quienRecibe: 'Yael Cuevas', 
+    quienRecibe: '', 
     observaciones: ''
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      if (archivoParaEditar) {
+        setFormData({
+          noOficio: archivoParaEditar.noOficio || '',
+          fechaDocumento: archivoParaEditar.fechaDocumento || '',
+          origen: archivoParaEditar.origen || '',
+          cargo: archivoParaEditar.cargo || '',
+          fechaRecibido: archivoParaEditar.fechaRecibido || '',
+          horaRecibido: archivoParaEditar.horaRecibido || '',
+          asunto: archivoParaEditar.asunto || '',
+          dirigidoA: archivoParaEditar.dirigidoA || '',
+          quienRecibe: archivoParaEditar.quienRecibe || '',
+          observaciones: archivoParaEditar.observaciones || ''
+        });
+        setCustomFileName(archivoParaEditar.nombreOriginal || '');
+      } else {
+        setFormData({
+          noOficio: '',
+          fechaDocumento: '',
+          origen: '',
+          cargo: '',
+          fechaRecibido: new Date().toISOString().split('T')[0],
+          horaRecibido: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          asunto: '',
+          dirigidoA: '',
+          quienRecibe: '', 
+          observaciones: ''
+        });
+        setFile(null);
+        setCustomFileName('');
+      }
+    }
+  }, [isOpen, archivoParaEditar]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -65,24 +102,38 @@ const UploadModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return toast.error("Selecciona un archivo.");
+    if (!isEditing && !file) return toast.error("Selecciona un archivo.");
     
     setLoading(true);
-    const toastId = toast.loading("Registrando en SACRE...");
+    const toastId = toast.loading(isEditing ? "Actualizando expediente..." : "Registrando en SACRE...");
 
     try {
-      const data = new FormData();
-      const finalName = ensurePdfExtension(customFileName);
-      
-      data.append('archivo', file, finalName);
-      data.append('hash', hash);
-      Object.keys(formData).forEach(key => data.append(key, formData[key]));
+      if (isEditing) {
+        const finalName = ensurePdfExtension(customFileName);
+        const updateData = {
+          ...formData,
+          nombreOriginal: finalName
+        };
+        
+        const response = await archivosService.actualizarArchivo(archivoParaEditar.id, updateData);
+        if (response.success) {
+          toast.success("Expediente actualizado correctamente", { id: toastId });
+          onClose();
+        }
+      } else {
+        const data = new FormData();
+        const finalName = ensurePdfExtension(customFileName);
+        
+        data.append('archivo', file, finalName);
+        data.append('hash', hash);
+        Object.keys(formData).forEach(key => data.append(key, formData[key]));
 
-      const response = await archivosService.subirArchivo(data);
+        const response = await archivosService.subirArchivo(data);
 
-      if (response.success) {
-        toast.success("Oficio guardado correctamente", { id: toastId });
-        onClose();
+        if (response.success) {
+          toast.success("Oficio guardado correctamente", { id: toastId });
+          onClose();
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.error || "Error en el servidor.", { id: toastId });
@@ -102,19 +153,20 @@ const UploadModal = ({ isOpen, onClose }) => {
         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
           className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col font-sans">
           
-          {/* Header */}
           <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-600 rounded-lg text-white"><Upload size={20} /></div>
-              <h2 className="text-xl font-black text-slate-800 tracking-tight">Registro de Documentación</h2>
+              <div className={`p-2 rounded-lg text-white ${isEditing ? 'bg-amber-500' : 'bg-indigo-600'}`}>
+                {isEditing ? <FileText size={20} /> : <Upload size={20} />}
+              </div>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                {isEditing ? 'Editar Expediente' : 'Registro de Documentación'}
+              </h2>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              
-              {/* Bloques de Formulario (Simplificados para lectura) */}
               <div className="space-y-5">
                 <SectionHeader color="text-indigo-500" title="Información del Documento" />
                 <InputGroup label="No. de Oficio" name="noOficio" value={formData.noOficio} onChange={handleInputChange} placeholder="Ej. CECAMED/JUR/2026-01" required />
@@ -132,10 +184,9 @@ const UploadModal = ({ isOpen, onClose }) => {
                   <InputGroup label="Hora Recibido" name="horaRecibido" value={formData.horaRecibido} onChange={handleInputChange} type="time" />
                 </div>
                 <InputGroup label="A quién va dirigido" name="dirigidoA" value={formData.dirigidoA} onChange={handleInputChange} required />
-                <InputGroup label="Quién recibe" name="quienRecibe" value={formData.quienRecibe} onChange={handleInputChange} />
+                <InputGroup label="Quién recibe" name="quienRecibe" value={formData.quienRecibe} onChange={handleInputChange} placeholder="Nombre de quien recibe" />
               </div>
 
-              {/* Zona de Archivo */}
               <div className="md:col-span-2 space-y-6 pt-4 border-t border-slate-100">
                 <div className="space-y-2">
                   <label className="block text-xs font-black text-slate-500 uppercase ml-1">Asunto</label>
@@ -144,65 +195,68 @@ const UploadModal = ({ isOpen, onClose }) => {
                     placeholder="Descripción del trámite..." />
                 </div>
 
-                {/* Dropzone / File Editor */}
-                <div className={`relative border-2 border-dashed rounded-[2rem] p-10 transition-all flex flex-col items-center justify-center 
-                  ${file ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200 hover:border-indigo-300'}`}>
-                  
-                  {/* El truco del z-index: Si hay archivo, el input de file se va al fondo */}
-                  <input type="file" accept=".pdf" onChange={handleFileChange} 
-                    className={`absolute inset-0 opacity-0 cursor-pointer ${file ? '-z-10' : 'z-10'}`} 
-                    disabled={loading} />
-                  
-                  {loading ? <Loader2 className="animate-spin text-indigo-500 mb-2" size={32} /> : 
-                   file ? <div className="bg-emerald-500 p-3 rounded-2xl text-white mb-2 shadow-lg"><FileText size={32} /></div> : 
-                   <div className="bg-slate-100 p-3 rounded-2xl text-slate-400 mb-2"><Upload size={32} /></div>}
-                  
-                  <div className="text-center w-full max-w-sm z-20">
-                    {file ? (
-                      <div className="space-y-3">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre del archivo (Editable)</p>
-                        <div className="relative group">
-                          <input type="text" value={customFileName}
-                            onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))}
-                            className="w-full text-center bg-white/80 border-2 border-emerald-500 px-4 py-2 rounded-xl text-sm font-bold text-slate-700 outline-none shadow-sm" />
+                {!isEditing || file ? (
+                  <div className={`relative border-2 border-dashed rounded-[2rem] p-10 transition-all flex flex-col items-center justify-center 
+                    ${file ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200 hover:border-indigo-300'}`}>
+                    
+                    <input type="file" accept=".pdf" onChange={handleFileChange} 
+                      className={`absolute inset-0 opacity-0 cursor-pointer ${file ? '-z-10' : 'z-10'}`} 
+                      disabled={loading} />
+                    
+                    {loading ? <Loader2 className="animate-spin text-indigo-500 mb-2" size={32} /> : 
+                     file ? <div className="bg-emerald-500 p-3 rounded-2xl text-white mb-2 shadow-lg"><FileText size={32} /></div> : 
+                     <div className="bg-slate-100 p-3 rounded-2xl text-slate-400 mb-2"><Upload size={32} /></div>}
+                    
+                    <div className="text-center w-full max-w-sm z-20">
+                      {file ? (
+                        <div className="space-y-3">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre del archivo (Editable)</p>
+                          <div className="relative group">
+                            <input type="text" value={customFileName}
+                              onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))}
+                              className="w-full text-center bg-white/80 border-2 border-emerald-500 px-4 py-2 rounded-xl text-sm font-bold text-slate-700 outline-none shadow-sm" />
+                          </div>
+                          <div className="flex flex-wrap justify-center gap-2 mt-3">
+                             <Badge color="bg-emerald-100 text-emerald-700">
+                               <Zap size={10} fill="currentColor" /> {stats.percent}% más ligero
+                             </Badge>
+                             <button type="button" onClick={() => setFile(null)} className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors">
+                               <RotateCcw size={12}/> Cambiar archivo
+                             </button>
+                          </div>
                         </div>
-                        
-                        <div className="flex flex-wrap justify-center gap-2 mt-3">
-                           <Badge color="bg-emerald-100 text-emerald-700">
-                             <Zap size={10} fill="currentColor" /> {stats.percent}% más ligero
-                           </Badge>
-                           <button type="button" onClick={() => setFile(null)} className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors">
-                             <RotateCcw size={12}/> Cambiar archivo
-                           </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm font-bold text-slate-600">Haz clic o arrastra el Oficio (PDF)</p>
-                    )}
+                      ) : (
+                        <p className="text-sm font-bold text-slate-600">Haz clic o arrastra el Oficio (PDF)</p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Nombre del expediente en Drive</p>
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-indigo-600 shadow-sm">
+                        <FileText size={24} />
+                      </div>
+                      <input type="text" value={customFileName}
+                        onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))}
+                        className="flex-1 bg-white border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all" />
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-4">
-                  <InputGroup 
-                    label="Observaciones" 
-                    name="observaciones" 
-                    value={formData.observaciones} 
-                    onChange={handleInputChange} 
-                    placeholder="Notas adicionales o detalles importantes..." 
-                  />
+                  <InputGroup label="Observaciones" name="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Notas adicionales..." />
                 </div>
-
               </div>
             </div>
           </form>
 
-          {/* Footer */}
           <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end items-center gap-4">
              <button onClick={onClose} className="px-6 py-2.5 font-bold text-slate-500">Cancelar</button>
-             <button onClick={handleSubmit} disabled={loading || !file}
-              className="bg-slate-900 text-white px-10 py-3 rounded-2xl font-bold hover:bg-indigo-600 disabled:opacity-50 flex items-center gap-2 transition-all">
-              {loading && <Loader2 size={18} className="animate-spin" />}
-              Finalizar Registro
+             <button onClick={handleSubmit} disabled={loading || (!isEditing && !file)}
+              className={`${isEditing ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-900 hover:bg-indigo-600'} text-white px-10 py-3 rounded-2xl font-bold disabled:opacity-50 flex items-center gap-2 transition-all`}>
+              {loading ? <Loader2 size={18} className="animate-spin" /> : isEditing ? <Save size={18}/> : null}
+              {isEditing ? 'Guardar Cambios' : 'Finalizar Registro'}
             </button>
           </div>
         </motion.div>
@@ -211,7 +265,6 @@ const UploadModal = ({ isOpen, onClose }) => {
   );
 };
 
-// Sub-componentes internos para limpiar el render principal
 const SectionHeader = ({ color, title }) => (
   <h3 className={`text-[10px] font-black ${color} uppercase tracking-[0.2em] flex items-center gap-2`}>{title}</h3>
 );

@@ -13,6 +13,7 @@ const Archivos = () => {
   const [archivos, setArchivos] = useState([]);
   const [activeTab, setActiveTab] = useState('mis-archivos'); 
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
 
   // Lógica de carga de archivos con lógica de ingeniero: useCallback para evitar re-renders
   const fetchArchivos = useCallback(async () => {
@@ -47,6 +48,25 @@ const Archivos = () => {
     file.noOficio?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Función para abrir el modal en modo edición
+  const handleOpenEdit = (file) => {
+    setSelectedFile(file);
+    setIsUploadModalOpen(true);
+  };
+
+  // Función para abrir el modal en modo subida limpia (el botón "Subir Archivo")
+  const handleOpenUpload = () => {
+    setSelectedFile(null);
+    setIsUploadModalOpen(true);
+  };
+
+  // Modifica el onClose para que limpie el archivo seleccionado
+  const handleCloseModal = () => {
+    setIsUploadModalOpen(false);
+    setSelectedFile(null);
+    fetchArchivos();
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* HEADER PRINCIPAL */}
@@ -78,7 +98,7 @@ const Archivos = () => {
           </button>
 
           <button 
-            onClick={() => setIsUploadModalOpen(true)}
+            onClick={handleOpenUpload}
             className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
           >
             <Plus size={20} />
@@ -157,7 +177,11 @@ const Archivos = () => {
             )}
           </div>
         ) : (
-          <FileTable archivos={archivosFiltrados} onRefresh={fetchArchivos} />
+          <FileTable 
+            archivos={archivosFiltrados} 
+            onRefresh={fetchArchivos} 
+            onEdit={handleOpenEdit}
+          />
         )}
       </main>
 
