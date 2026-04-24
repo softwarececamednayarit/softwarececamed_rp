@@ -1,28 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  FolderOpen, 
-  RefreshCw, 
-  Plus,
-  FileText,
-  Search,
-  Filter
+  FolderOpen, RefreshCw, Plus, FileText, Search, Filter, Loader2 
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import UploadModal from '../components/UploadModal'; 
+import FileTable from '../components/FileTable'; // El nuevo componente que creaste
+import archivosService from '../services/archivosService';
 
 const Archivos = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [archivos] = useState([]); // Aquí irán los archivos de Firestore
-  const [stats] = useState({ total: 0 });
+  const [archivos, setArchivos] = useState([]);
+  const [activeTab, setActiveTab] = useState('mis-archivos'); 
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const handleSync = () => {
+  // Lógica de carga de archivos con lógica de ingeniero: useCallback para evitar re-renders
+  const fetchArchivos = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      // Por ahora solo tenemos implementado "Mis Archivos"
+      if (activeTab === 'mis-archivos') {
+        const response = await archivosService.getMisArchivos();
+        if (response.success) {
+          setArchivos(response.data);
+        }
+      } else {
+        // Placeholder para Compartidos y Papelera
+        setArchivos([]);
+      }
+    } catch (error) {
+      console.error("Error al cargar archivos:", error);
+      toast.error("No se pudieron cargar los expedientes");
+    } finally {
       setLoading(false);
-      toast.success("Sincronización con Drive completada.");
-    }, 1500);
-  };
+    }
+  }, [activeTab]);
+
+  // Disparar carga al montar el componente o cambiar de pestaña
+  useEffect(() => {
+    fetchArchivos();
+  }, [fetchArchivos]);
+
+  // Filtrado local por nombre o noOficio para que la búsqueda sea instantánea
+  const archivosFiltrados = archivos.filter(file => 
+    file.nombreOriginal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    file.noOficio?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="p-6 space-y-6">
@@ -35,10 +58,10 @@ const Archivos = () => {
             <FolderOpen size={32} /> 
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight text-left">
               Gestión de Expedientes
             </h1>
-            <p className="text-slate-500 font-medium text-sm mt-1">
+            <p className="text-slate-500 font-medium text-sm mt-1 text-left">
               Repositorio digital del <span className="text-indigo-600 font-bold">SACRE</span>
             </p>
           </div>
@@ -46,8 +69,9 @@ const Archivos = () => {
 
         <div className="flex items-center gap-4 relative z-10">
           <button 
-            onClick={handleSync}
-            className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+            onClick={fetchArchivos}
+            disabled={loading}
+            className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50"
             title="Sincronizar"
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
@@ -63,18 +87,42 @@ const Archivos = () => {
         </div>
       </header>
 
+      {/* NAVEGACIÓN DE SECCIONES (TABS) */}
+      <div className="flex gap-8 border-b border-slate-100 px-4">
+        {[
+          { id: 'mis-archivos', label: 'Mis Archivos' },
+          { id: 'compartidos', label: 'Compartidos' },
+          { id: 'papelera', label: 'Papelera' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`pb-4 text-xs font-black uppercase tracking-widest transition-all relative ${
+              activeTab === tab.id ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            {tab.label}
+            {activeTab === tab.id && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* BARRA DE FILTROS Y BÚSQUEDA */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/50 p-2 rounded-3xl border border-slate-100">
-        <div className="relative w-full md:w-96">
+        <div className="relative w-full md:w-96 text-left">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
             type="text" 
-            placeholder="Buscar por nombre o hash..." 
-            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nombre o No. de oficio..." 
+            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400 font-medium"
           />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl text-slate-600 font-semibold hover:bg-slate-50 transition-all">
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-50 transition-all">
             <Filter size={18} />
             Filtros
           </button>
@@ -82,46 +130,57 @@ const Archivos = () => {
       </div>
 
       {/* CONTENIDO PRINCIPAL / LISTADO */}
-      <main className="min-h-[400px] bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative">
-        {archivos.length === 0 ? (
+      <main className="min-h-[500px] bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative">
+        {loading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/60 backdrop-blur-[2px] z-20">
+            <Loader2 className="animate-spin text-indigo-600" size={48} />
+            <p className="text-slate-500 font-bold animate-pulse">Consultando base de datos...</p>
+          </div>
+        ) : archivosFiltrados.length === 0 ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center">
             <div className="bg-slate-50 p-8 rounded-[3rem] mb-6">
               <FileText size={64} className="text-slate-200" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800">No hay archivos en este puesto</h3>
+            <h3 className="text-xl font-bold text-slate-800">No se encontraron archivos</h3>
             <p className="text-slate-400 mt-2 max-w-xs leading-relaxed">
-              Los documentos que subas aparecerán aquí organizados por fecha y categoría.
+              {searchTerm 
+                ? `No hay resultados para "${searchTerm}" en esta sección.`
+                : "Aún no has registrado documentos en este puesto."}
             </p>
-            <button 
-              onClick={() => setIsUploadModalOpen(true)}
-              className="mt-8 text-indigo-600 font-bold hover:underline"
-            >
-              Comenzar a subir archivos
-            </button>
+            {!searchTerm && (
+              <button 
+                onClick={() => setIsUploadModalOpen(true)}
+                className="mt-8 text-indigo-600 font-black uppercase text-xs tracking-widest hover:text-indigo-700 transition-colors"
+              >
+                + Comenzar a subir archivos
+              </button>
+            )}
           </div>
         ) : (
-          <div className="p-8">
-            {/* Aquí mapearemos la tabla de archivos más tarde */}
-            <p className="text-slate-400 italic">Listado de archivos en desarrollo...</p>
-          </div>
+          <FileTable archivos={archivosFiltrados} onRefresh={fetchArchivos} />
         )}
       </main>
 
       {/* FOOTER */}
       <footer className="flex justify-between items-center px-4 py-2">
         <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Almacenamiento: Google Drive 15GB</span>
+          <span className={`flex h-2 w-2 rounded-full ${loading ? 'bg-amber-400' : 'bg-emerald-500'}`}></span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            {loading ? 'Sincronizando...' : 'Conexión con Drive Activa'}
+          </span>
         </div>
         <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          SACRE v1.0 • Gestión Digital
+          SACRE v1.0 • CECAMED NAYARIT
         </div>
       </footer>
 
       {isUploadModalOpen && (
         <UploadModal 
           isOpen={isUploadModalOpen} 
-          onClose={() => setIsUploadModalOpen(false)} 
+          onClose={() => {
+            setIsUploadModalOpen(false);
+            fetchArchivos(); // Recargar la lista automáticamente al cerrar el modal
+          }} 
         />
       )}
     </div>
