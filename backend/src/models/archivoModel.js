@@ -70,6 +70,27 @@ const ArchivoModel = {
     return { id: doc.id, ...doc.data() };
   },
 
+  // Obtiene los archivos marcados como borrados para un usuario
+  obtenerBorradosPorPropietario: async (propietarioId) => {
+    try {
+      const snapshot = await db.collection('archivos')
+        .where('propietarioId', '==', propietarioId)
+        .where('estado', '==', 'borrado') // Filtramos por estado borrado
+        .orderBy('fechaBorrado', 'desc') 
+        .get();
+
+      if (snapshot.empty) return [];
+
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error("Error en obtenerBorradosPorPropietario:", error);
+      throw error;
+    }
+  },
+
   actualizar: async (id, data) => {
     await db.collection('archivos').doc(id).update({
       ...data,

@@ -59,6 +59,21 @@ exports.getMisArchivos = async (req, res) => {
   }
 };
 
+exports.getPapelera = async (req, res) => {
+  try {
+    const propietarioId = req.user.id;
+    const archivos = await ArchivoModel.obtenerBorradosPorPropietario(propietarioId);
+    
+    res.json({
+      success: true,
+      count: archivos.length,
+      data: archivos
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 exports.editarArchivo = async (req, res) => {
   try {
     const { id } = req.params;
