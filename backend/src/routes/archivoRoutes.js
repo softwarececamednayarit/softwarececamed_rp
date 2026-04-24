@@ -14,6 +14,8 @@ router.get('/mis-archivos', verifyToken, archivoController.getMisArchivos);
 
 router.get('/papelera', verifyToken, archivoController.getPapelera);
 
+router.get('/compartidos', verifyToken, archivoController.getCompartidos);
+
 router.put('/:id', verifyToken, archivoController.editarArchivo);
 
 router.patch('/:id/eliminar', verifyToken, archivoController.eliminarArchivo);

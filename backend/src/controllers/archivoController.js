@@ -59,6 +59,21 @@ exports.getMisArchivos = async (req, res) => {
   }
 };
 
+exports.getCompartidos = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const archivos = await ArchivoModel.obtenerCompartidos(userId);
+    
+    res.json({
+      success: true,
+      count: archivos.length,
+      data: archivos
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 exports.getPapelera = async (req, res) => {
   try {
     const propietarioId = req.user.id;

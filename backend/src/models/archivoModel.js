@@ -33,7 +33,7 @@ const ArchivoModel = {
       fechaRegistroSistema: new Date().toISOString(),
       
       // Estado y Seguridad
-      permisos: [user.role || 'General'],
+      permisos: [user.id || 'General'],
       estado: 'activo' 
     };
 
@@ -97,6 +97,25 @@ const ArchivoModel = {
       fechaUltimaEdicion: new Date().toISOString()
     });
     return true;
+  },
+
+  obtenerCompartidos: async (userId) => {
+    try {
+      const snapshot = await db.collection('archivos')
+        .where('permisos', 'array-contains', userId) // Busca si el ID del usuario está en la lista
+        .where('estado', '==', 'activo')
+        .get();
+
+      if (snapshot.empty) return [];
+
+      // Filtramos para NO mostrar mis propios archivos en la pestaña de compartidos
+      return snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(archivo => archivo.propietarioId !== userId); 
+    } catch (error) {
+      console.error("Error en obtenerCompartidos:", error);
+      throw error;
+    }
   },
 
   eliminarLogico: async (id) => {
