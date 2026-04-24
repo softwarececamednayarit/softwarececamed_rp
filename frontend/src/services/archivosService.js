@@ -23,6 +23,13 @@ const getMisArchivos = async () => {
   return response.data;
 };
 
+
+const getCompartidos = async () => {
+  const response = await api.get(`${ENDPOINT}/compartidos`);
+  return response.data;
+};
+
+
 const getArchivosBorrados = async () => {
   const response = await api.get(`${ENDPOINT}/papelera`);
   return response.data;
@@ -43,6 +50,7 @@ export default {
   subirArchivo,
   getMisArchivos,
   getArchivosBorrados,
+  getCompartidos,
   actualizarArchivo,
   eliminarArchivo
 };

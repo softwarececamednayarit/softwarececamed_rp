@@ -22,8 +22,9 @@ const Archivos = () => {
       let response;
       if (activeTab === 'mis-archivos') {
         response = await archivosService.getMisArchivos();
+      } else if (activeTab === 'compartidos') {
+        response = await archivosService.getCompartidos();
       } else if (activeTab === 'papelera') {
-        // Llamamos al nuevo servicio de borrados
         response = await archivosService.getArchivosBorrados();
       }
 
