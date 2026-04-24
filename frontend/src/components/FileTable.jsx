@@ -1,10 +1,12 @@
 import React from 'react';
 import { 
-  FileText, ExternalLink, MoreVertical, 
+  FileText, ExternalLink, Trash2, 
   Calendar, Building2, Hash, Edit3
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import Swal from 'sweetalert2'; // El que faltaba en la lista
+import archivosService from '../services/archivosService';
 
-// 1. Agregamos onEdit a las props
 const FileTable = ({ archivos, onRefresh, onEdit }) => {
   
   const formatSize = (bytes) => {
@@ -13,6 +15,43 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
     return kb > 1024 
       ? `${(kb / 1024).toFixed(1)} MB` 
       : `${kb.toFixed(1)} KB`;
+  };
+
+  // Función funcional de eliminación
+  const handleDelete = async (id, nombre) => {
+    // Confirmación con SweetAlert2 para que combine con tu UI
+    const result = await Swal.fire({
+      title: '¿Mover a la papelera?',
+      text: `El expediente "${nombre}" se marcará como borrado PERMANENTEMENTE.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#1e293b', // slate-900
+      cancelButtonColor: '#94a3b8', // slate-400
+      confirmButtonText: 'Sí, borrar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      customClass: {
+        popup: 'rounded-[2.5rem]',
+        confirmButton: 'rounded-xl px-6 py-2',
+        cancelButton: 'rounded-xl px-6 py-2'
+      }
+    });
+
+    if (result.isConfirmed) {
+      const toastId = toast.loading("Eliminando expediente...");
+      try {
+        // Llamada al servicio patch que ya tienes en archivosService
+        const response = await archivosService.eliminarArchivo(id);
+        
+        if (response.success) {
+          toast.success("Expediente movido a la papelera", { id: toastId });
+          onRefresh(); // Recarga la lista en Archivos.jsx
+        }
+      } catch (error) {
+        toast.error("No se pudo eliminar el archivo", { id: toastId });
+        console.error(error);
+      }
+    }
   };
 
   return (
@@ -95,7 +134,6 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
                   <span>Abrir</span>
                 </a>
                 
-                {/* 2. Conectamos el botón de editar */}
                 <button 
                   onClick={() => onEdit(file)}
                   className="flex items-center gap-2 p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all group/edit"
@@ -104,8 +142,13 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
                   <Edit3 size={20} className="group-hover/edit:rotate-12 transition-transform" />
                 </button>
 
-                <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
-                  <MoreVertical size={20} />
+                {/* Botón de eliminar directo (Sustituye a MoreVertical) */}
+                <button 
+                  onClick={() => handleDelete(file.id, file.nombreOriginal)}
+                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                  title="Eliminar"
+                >
+                  <Trash2 size={20} />
                 </button>
               </div>
 
