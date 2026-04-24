@@ -201,10 +201,8 @@ const Archivos = () => {
       {isUploadModalOpen && (
         <UploadModal 
           isOpen={isUploadModalOpen} 
-          onClose={() => {
-            setIsUploadModalOpen(false);
-            fetchArchivos(); // Recargar la lista automáticamente al cerrar el modal
-          }} 
+          onClose={handleCloseModal}
+          archivoParaEditar={selectedFile}
         />
       )}
     </div>

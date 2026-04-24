@@ -62,7 +62,20 @@ exports.getMisArchivos = async (req, res) => {
 exports.editarArchivo = async (req, res) => {
   try {
     const { id } = req.params;
-    const { noOficio, asunto, nombreOriginal } = req.body;
+    
+    const { 
+      noOficio, 
+      asunto, 
+      nombreOriginal,
+      fechaDocumento,
+      origen,
+      cargo,
+      fechaRecibido,
+      horaRecibido,
+      dirigidoA,
+      quienRecibe,
+      observaciones
+    } = req.body;
     
     // 1. Obtener datos actuales a través del Modelo
     const archivoActual = await ArchivoModel.obtenerPorId(id);
@@ -70,22 +83,36 @@ exports.editarArchivo = async (req, res) => {
       return res.status(404).json({ error: 'El expediente no existe.' });
     }
 
-    // 2. Lógica de Drive: Solo si el nombre cambió
+    // 2. Lógica de Drive: Solo si el nombre cambió físicamente
     if (nombreOriginal && nombreOriginal !== archivoActual.nombreOriginal) {
       console.log(`[Drive] Renombrando archivo de ${archivoActual.nombreOriginal} a ${nombreOriginal}`);
       await driveService.actualizarNombreArchivo(archivoActual.driveId, nombreOriginal);
     }
 
-    // 3. Actualizar metadatos en Firestore a través del Modelo
-    const camposAActualizar = { noOficio, asunto, nombreOriginal };
+    // 3. Mapear los campos a actualizar (Asegúrate de que coincidan con los nombres en Firestore)
+    const camposAActualizar = { 
+      noOficio, 
+      asunto, 
+      nombreOriginal,
+      fechaDocumento: fechaDocumento || null,
+      origen: origen || '',
+      cargoRemitente: cargo || '', // Nota: En tu modelo se llama cargoRemitente
+      fechaRecibido: fechaRecibido || null,
+      horaRecibido: horaRecibido || null,
+      dirigidoA: dirigidoA || '',
+      quienRecibe: quienRecibe || '',
+      observaciones: observaciones || ''
+    };
+
+    // 4. Actualizar metadatos en Firestore
     await ArchivoModel.actualizar(id, camposAActualizar);
 
-    // 4. Registro en Bitácora (Indispensable para auditoría)
+    // 5. Registro en Bitácora con el detalle de los cambios
     LoggerService.log(
       req.user, 
       'EDICION', 
       'ARCHIVOS', 
-      `Actualizó el oficio ${archivoActual.noOficio} -> ${noOficio}`,
+      `Actualizó el oficio ${archivoActual.noOficio} (ID: ${id})`,
       { 
         id_documento: id,
         cambios: camposAActualizar 

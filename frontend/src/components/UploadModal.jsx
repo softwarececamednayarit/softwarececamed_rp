@@ -6,6 +6,25 @@ import { sanitizeFileName, ensurePdfExtension } from '../utils/fileUtils';
 import { toast } from 'react-hot-toast';
 import archivosService from '../services/archivosService';
 
+// --- SUB-COMPONENTES (Definidos arriba para evitar ReferenceError) ---
+const SectionHeader = ({ color, title }) => (
+  <h3 className={`text-[10px] font-black ${color} uppercase tracking-[0.2em] flex items-center gap-2`}>{title}</h3>
+);
+
+const InputGroup = ({ label, ...props }) => (
+  <div>
+    <label className="block text-xs font-black text-slate-500 uppercase mb-2 ml-1">{label}</label>
+    <input {...props} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400 text-slate-700 font-medium" />
+  </div>
+);
+
+const Badge = ({ children, color }) => (
+  <div className={`flex items-center gap-2 ${color} px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider`}>
+    {children}
+  </div>
+);
+
+// --- COMPONENTE PRINCIPAL ---
 const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
@@ -20,8 +39,8 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
     fechaDocumento: '',
     origen: '',
     cargo: '',
-    fechaRecibido: new Date().toISOString().split('T')[0],
-    horaRecibido: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+    fechaRecibido: '',
+    horaRecibido: '',
     asunto: '',
     dirigidoA: '',
     quienRecibe: '', 
@@ -31,12 +50,13 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
   useEffect(() => {
     if (isOpen) {
       if (archivoParaEditar) {
+        // IMPORTANTE: Los inputs type="date" solo aceptan formato YYYY-MM-DD
         setFormData({
           noOficio: archivoParaEditar.noOficio || '',
-          fechaDocumento: archivoParaEditar.fechaDocumento || '',
+          fechaDocumento: archivoParaEditar.fechaDocumento?.split('T')[0] || '',
           origen: archivoParaEditar.origen || '',
           cargo: archivoParaEditar.cargo || '',
-          fechaRecibido: archivoParaEditar.fechaRecibido || '',
+          fechaRecibido: archivoParaEditar.fechaRecibido?.split('T')[0] || '',
           horaRecibido: archivoParaEditar.horaRecibido || '',
           asunto: archivoParaEditar.asunto || '',
           dirigidoA: archivoParaEditar.dirigidoA || '',
@@ -74,12 +94,10 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
       toast.error("Solo se permiten archivos PDF.");
       return;
     }
-
     setLoading(true);
     try {
       const optimized = await optimizePDF(selectedFile);
       const fileHash = await generateFileHash(optimized);
-      
       const s1 = selectedFile.size;
       const s2 = optimized.size;
 
@@ -109,29 +127,25 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
 
     try {
       if (isEditing) {
-        const finalName = ensurePdfExtension(customFileName);
         const updateData = {
           ...formData,
-          nombreOriginal: finalName
+          nombreOriginal: ensurePdfExtension(customFileName)
         };
-        
         const response = await archivosService.actualizarArchivo(archivoParaEditar.id, updateData);
         if (response.success) {
-          toast.success("Expediente actualizado correctamente", { id: toastId });
+          toast.success("Expediente actualizado", { id: toastId });
           onClose();
         }
       } else {
         const data = new FormData();
         const finalName = ensurePdfExtension(customFileName);
-        
         data.append('archivo', file, finalName);
         data.append('hash', hash);
         Object.keys(formData).forEach(key => data.append(key, formData[key]));
 
         const response = await archivosService.subirArchivo(data);
-
         if (response.success) {
-          toast.success("Oficio guardado correctamente", { id: toastId });
+          toast.success("Oficio guardado", { id: toastId });
           onClose();
         }
       }
@@ -198,52 +212,31 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
                 {!isEditing || file ? (
                   <div className={`relative border-2 border-dashed rounded-[2rem] p-10 transition-all flex flex-col items-center justify-center 
                     ${file ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200 hover:border-indigo-300'}`}>
-                    
-                    <input type="file" accept=".pdf" onChange={handleFileChange} 
-                      className={`absolute inset-0 opacity-0 cursor-pointer ${file ? '-z-10' : 'z-10'}`} 
-                      disabled={loading} />
-                    
+                    <input type="file" accept=".pdf" onChange={handleFileChange} className={`absolute inset-0 opacity-0 cursor-pointer ${file ? '-z-10' : 'z-10'}`} disabled={loading} />
                     {loading ? <Loader2 className="animate-spin text-indigo-500 mb-2" size={32} /> : 
                      file ? <div className="bg-emerald-500 p-3 rounded-2xl text-white mb-2 shadow-lg"><FileText size={32} /></div> : 
                      <div className="bg-slate-100 p-3 rounded-2xl text-slate-400 mb-2"><Upload size={32} /></div>}
-                    
                     <div className="text-center w-full max-w-sm z-20">
                       {file ? (
                         <div className="space-y-3">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre del archivo (Editable)</p>
-                          <div className="relative group">
-                            <input type="text" value={customFileName}
-                              onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))}
-                              className="w-full text-center bg-white/80 border-2 border-emerald-500 px-4 py-2 rounded-xl text-sm font-bold text-slate-700 outline-none shadow-sm" />
-                          </div>
+                          <input type="text" value={customFileName} onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))} className="w-full text-center bg-white/80 border-2 border-emerald-500 px-4 py-2 rounded-xl text-sm font-bold text-slate-700 outline-none shadow-sm" />
                           <div className="flex flex-wrap justify-center gap-2 mt-3">
-                             <Badge color="bg-emerald-100 text-emerald-700">
-                               <Zap size={10} fill="currentColor" /> {stats.percent}% más ligero
-                             </Badge>
-                             <button type="button" onClick={() => setFile(null)} className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors">
-                               <RotateCcw size={12}/> Cambiar archivo
-                             </button>
+                             <Badge color="bg-emerald-100 text-emerald-700"><Zap size={10} fill="currentColor" /> {stats.percent}% más ligero</Badge>
+                             <button type="button" onClick={() => setFile(null)} className="text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors"><RotateCcw size={12}/> Cambiar archivo</button>
                           </div>
                         </div>
-                      ) : (
-                        <p className="text-sm font-bold text-slate-600">Haz clic o arrastra el Oficio (PDF)</p>
-                      )}
+                      ) : ( <p className="text-sm font-bold text-slate-600">Haz clic o arrastra el Oficio (PDF)</p> )}
                     </div>
                   </div>
                 ) : (
                   <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Nombre del expediente en Drive</p>
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-indigo-600 shadow-sm">
-                        <FileText size={24} />
-                      </div>
-                      <input type="text" value={customFileName}
-                        onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))}
-                        className="flex-1 bg-white border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all" />
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-indigo-600 shadow-sm"><FileText size={24} /></div>
+                      <input type="text" value={customFileName} onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))} className="flex-1 bg-white border border-slate-200 px-4 py-3 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all" />
                     </div>
                   </div>
                 )}
-
                 <div className="pt-4">
                   <InputGroup label="Observaciones" name="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Notas adicionales..." />
                 </div>
@@ -264,22 +257,5 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
     </AnimatePresence>
   );
 };
-
-const SectionHeader = ({ color, title }) => (
-  <h3 className={`text-[10px] font-black ${color} uppercase tracking-[0.2em] flex items-center gap-2`}>{title}</h3>
-);
-
-const InputGroup = ({ label, ...props }) => (
-  <div>
-    <label className="block text-xs font-black text-slate-500 uppercase mb-2 ml-1">{label}</label>
-    <input {...props} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400 text-slate-700 font-medium" />
-  </div>
-);
-
-const Badge = ({ children, color }) => (
-  <div className={`flex items-center gap-2 ${color} px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider`}>
-    {children}
-  </div>
-);
 
 export default UploadModal;
