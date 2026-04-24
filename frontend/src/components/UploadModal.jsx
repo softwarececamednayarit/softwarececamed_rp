@@ -6,13 +6,22 @@ import {
 } from 'lucide-react';
 import { optimizePDF, generateFileHash } from '../utils/pdfOptimizer';
 import { toast } from 'react-hot-toast';
-import archivosService from '../services/archivosService'; // <--- Importamos el servicio
+import archivosService from '../services/archivosService';
+
+// Función para limpiar acentos y caracteres especiales
+const sanitizeFileName = (name) => {
+  return name
+    .normalize("NFD") // Separa los acentos de las letras
+    .replace(/[\u0300-\u036f]/g, "") // Elimina los acentos
+    .replace(/[^a-zA-Z0-9.\-_]/g, "_") // Reemplaza caracteres no permitidos por "_"
+    .replace(/_{2,}/g, "_"); // Evita múltiples guiones seguidos
+};
 
 const UploadModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
+  const [customFileName, setCustomFileName] = useState(''); // Estado para el nombre del archivo
   const [hash, setHash] = useState('');
-  
   const [stats, setStats] = useState({ original: 0, optimized: 0, percent: 0 });
 
   const inputStyles = "w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400 text-slate-700 font-medium";
@@ -57,6 +66,10 @@ const UploadModal = ({ isOpen, onClose }) => {
         percent: reduction
       });
 
+      // Sanitizar nombre original y establecerlo por defecto
+      const cleanName = sanitizeFileName(selectedFile.name);
+      setCustomFileName(cleanName);
+
       setFile(optimized);
       setHash(fileHash);
       toast.success(`Reducción del ${reduction}% lograda`);
@@ -70,30 +83,29 @@ const UploadModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return toast.error("Debes seleccionar un archivo.");
+    if (!customFileName.trim()) return toast.error("El nombre del archivo no puede estar vacío.");
     
     setLoading(true);
     const toastId = toast.loading("Registrando documento en el SACRE...");
 
     try {
-      // 1. Crear el objeto FormData para enviar el archivo y los datos
       const data = new FormData();
       
-      // Adjuntamos el archivo optimizado. 
-      // El nombre 'archivo' debe coincidir con upload.single('archivo') en el backend
-      data.append('archivo', file);
+      // Enviamos el archivo con el nombre personalizado (tercer parámetro)
+      // Esto hace que el backend (multer) lo reconozca con ese nombre directamente
+      const finalName = customFileName.endsWith('.pdf') ? customFileName : `${customFileName}.pdf`;
+      data.append('archivo', file, finalName);
       
-      // Adjuntamos el hash y los campos del formulario
       data.append('hash', hash);
       Object.keys(formData).forEach(key => {
         data.append(key, formData[key]);
       });
 
-      // 2. Llamada al servicio
       const response = await archivosService.subirArchivo(data);
 
       if (response.success) {
         toast.success("Oficio registrado y guardado en Drive", { id: toastId });
-        onClose(); // Cerramos el modal tras el éxito
+        onClose();
       } else {
         throw new Error(response.message || "Error al subir");
       }
@@ -188,18 +200,29 @@ const UploadModal = ({ isOpen, onClose }) => {
                    file ? <div className="bg-emerald-500 p-3 rounded-2xl text-white mb-2 shadow-lg shadow-emerald-200"><FileText size={32} /></div> : 
                    <div className="bg-slate-100 p-3 rounded-2xl text-slate-400 mb-2"><Upload size={32} /></div>}
                   
-                  <div className="text-center">
-                    <p className="text-sm font-bold text-slate-600">{file ? file.name : "Adjuntar Oficio (PDF)"}</p>
-                    {file && (
-                      <div className="flex flex-col items-center gap-2 mt-3">
-                        <div className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                          <Zap size={12} fill="currentColor" />
-                          ¡Optimizado al {stats.percent}%!
+                  <div className="text-center w-full max-w-md">
+                    {file ? (
+                      <div className="space-y-3">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase">Nombre del archivo (Editable)</label>
+                        <input 
+                          type="text"
+                          value={customFileName}
+                          onClick={(e) => e.stopPropagation()} // Evita activar el input file
+                          onChange={(e) => setCustomFileName(sanitizeFileName(e.target.value))}
+                          className="w-full text-center bg-transparent border-b-2 border-emerald-500 py-1 text-sm font-bold text-slate-700 outline-none focus:bg-white/50 transition-all"
+                        />
+                        <div className="flex flex-col items-center gap-2 mt-3">
+                          <div className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                            <Zap size={12} fill="currentColor" />
+                            ¡Optimizado al {stats.percent}%!
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            De <span className="line-through">{stats.original} KB</span> a <span className="text-slate-600 font-bold">{stats.optimized} KB</span>
+                          </p>
                         </div>
-                        <p className="text-[10px] text-slate-400 font-medium">
-                          De <span className="line-through">{stats.original} KB</span> a <span className="text-slate-600 font-bold">{stats.optimized} KB</span>
-                        </p>
                       </div>
+                    ) : (
+                      <p className="text-sm font-bold text-slate-600">Adjuntar Oficio (PDF)</p>
                     )}
                   </div>
                 </div>
