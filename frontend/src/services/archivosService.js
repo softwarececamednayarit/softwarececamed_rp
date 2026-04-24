@@ -19,29 +19,24 @@ const subirArchivo = async (formData) => {
 
 
 const getMisArchivos = async () => {
-  const response = await api.get('/archivos/mis-archivos');
+  const response = await api.get(`${ENDPOINT}/mis-archivos`);
   return response.data;
 };
 
-/**
- * 3. CAMBIAR ESTADO (Borrado lógico)
- * @param {string} id - ID del documento en Firestore
- * @param {string} nuevoEstado - 'activo' | 'inactivo' | 'eliminado'
- */
-// const actualizarEstado = async (id, nuevoEstado) => {
-//   try {
-//     const response = await api.patch(`${ENDPOINT}/${id}/estado`, {
-//       estado: nuevoEstado
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error en actualizarEstado de archivo:", error);
-//     throw error;
-//   }
-// };
+const actualizarArchivo = async (id, data) => {
+  const response = await api.put(`${ENDPOINT}/${id}`, data);
+  return response.data;
+};
+
+const eliminarArchivo = async (id) => {
+  const response = await api.patch(`${ENDPOINT}/${id}/eliminar`);
+  return response.data;
+};
 
 // Exportamos el objeto con todas las funciones para mantener la consistencia
 export default {
   subirArchivo,
-  getMisArchivos
+  getMisArchivos,
+  actualizarArchivo,
+  eliminarArchivo
 };
