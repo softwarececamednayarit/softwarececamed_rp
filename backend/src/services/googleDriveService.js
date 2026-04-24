@@ -1,16 +1,26 @@
 const { google } = require('googleapis');
-const path = require('path');
 const { Readable } = require('stream');
 
-const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(__dirname, '../../config/serviceAccountKey.json'),
-  scopes: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive'],
+/**
+ * CONFIGURACIÓN DE AUTENTICACIÓN (OAuth2)
+ * Usamos el ID de Cliente, el Secreto y el Refresh Token para actuar en nombre
+ * de la cuenta institucional del CECAMED.
+ */
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  'https://developers.google.com/oauthplayground'
+);
+
+oauth2Client.setCredentials({
+  refresh_token: process.env.GOOGLE_REFRESH_TOKEN
 });
 
-const drive = google.drive({ version: 'v3', auth });
+const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
 /**
- * Establece permisos de lectura para cualquier persona con el enlace.
+ * ESTABLECE PERMISOS PÚBLICOS
+ * Permite que cualquier persona con el enlace pueda ver el documento.
  */
 const setFilePublic = async (fileId) => {
   try {
@@ -27,6 +37,9 @@ const setFilePublic = async (fileId) => {
   }
 };
 
+/**
+ * BUSCAR CARPETA
+ */
 const findFolder = async (folderName, parentId) => {
   const response = await drive.files.list({
     q: `name = '${folderName}' and '${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
@@ -35,6 +48,9 @@ const findFolder = async (folderName, parentId) => {
   return response.data.files[0] || null;
 };
 
+/**
+ * CREAR CARPETA
+ */
 const createFolder = async (folderName, parentId) => {
   const fileMetadata = {
     name: folderName,
@@ -49,7 +65,8 @@ const createFolder = async (folderName, parentId) => {
 };
 
 /**
- * Sube el archivo y lo configura como público para lectura inmediatamente.
+ * SUBIR ARCHIVO
+ * Procesa el buffer, lo sube a Drive y lo hace público.
  */
 const uploadFile = async (fileObject, folderId) => {
   try {
@@ -69,18 +86,18 @@ const uploadFile = async (fileObject, folderId) => {
       fields: 'id, webViewLink',
     });
 
-    // Hacer el archivo público justo después de subirlo
+    // IMPORTANTE: Hacerlo público para que el link de SACRE funcione para todos
     await setFilePublic(response.data.id);
 
     return response.data;
   } catch (error) {
-    console.error('Error en la subida a Drive:', error);
+    console.error('Error en la subida a Drive (OAuth2):', error);
     throw error;
   }
 };
 
 /**
- * Obtiene el flujo de datos del archivo para descarga directa desde el backend.
+ * OBTENER STREAM DEL ARCHIVO
  */
 const getFileStream = async (fileId) => {
   try {
@@ -95,10 +112,26 @@ const getFileStream = async (fileId) => {
   }
 };
 
+/**
+ * LÓGICA DE CARPETAS POR PUESTO
+ */
+const getOrCreateFolder = async (folderName, parentId) => {
+  try {
+    const folder = await findFolder(folderName, parentId);
+    if (folder) return folder.id;
+
+    console.log(`[Drive Service] Creando carpeta para el puesto: ${folderName}`);
+    return await createFolder(folderName, parentId);
+  } catch (error) {
+    console.error("Error en getOrCreateFolder:", error);
+    throw error;
+  }
+};
 
 module.exports = { 
   findFolder, 
   createFolder, 
   uploadFile, 
-  getFileStream 
+  getFileStream,
+  getOrCreateFolder, 
 };
