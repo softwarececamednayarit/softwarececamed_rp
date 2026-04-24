@@ -22,13 +22,13 @@ export const Sidebar = ({ currentView, onNavigate }) => {
   const MENU_ITEMS = [
     // Ítems sin 'isPrivate' se verán siempre (públicos)
     { id: 'sitios',       label: 'Sitios',           icon: Globe },
+    { id: 'archivos',     label: 'Archivos',         icon: FolderOpen },
     
     // Ítems privados (requieren estar en el arreglo 'permises')
     { id: 'atendidos',    label: 'Atendidos',        icon: Users ,      isPrivate: true},
     { id: 'recepcion',    label: 'Recepción',        icon: BookOpen,      isPrivate: true },
     { id: 'padron',       label: 'Padrón',           icon: FileSpreadsheet, isPrivate: true },
     { id: 'gestion',      label: 'Registro Clásico', icon: Briefcase,     isPrivate: true },
-    { id: 'archivos',     label: 'Archivos',         icon: FolderOpen,    isPrivate: true },
     { id: 'estadisticas', label: 'Estadísticas',     icon: TrendingUp,    isPrivate: true },
     { id: 'bitacora',     label: 'Bitácora',         icon: Shield,        isPrivate: true },
     { id: 'usuarios',     label: 'Usuarios',         icon: Users,         isPrivate: true },

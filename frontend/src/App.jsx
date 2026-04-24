@@ -64,6 +64,7 @@ const AppContent = () => {
     // 1. Vistas que siempre están permitidas para cualquier usuario logueado
     const publicViews = {
       sitios: <SitiosInteres />,
+      archivos: <Archivos />,
       perfil: <Perfil />
     };
 
@@ -82,7 +83,6 @@ const AppContent = () => {
         case 'recepcion':    return <Recepcion />;
         case 'padron':       return <Padron />;
         case 'gestion':      return <Gestion />;
-        case 'archivos':     return <Archivos />;
         case 'estadisticas': return <Estadisticas />;
         case 'usuarios':     return <Usuarios />;
         case 'bitacora':     return <Bitacora />;
