@@ -128,10 +128,27 @@ const getOrCreateFolder = async (folderName, parentId) => {
   }
 };
 
+/**
+ * Actualiza el nombre de un archivo en Google Drive
+ */
+const actualizarNombreArchivo = async (fileId, nuevoNombre) => {
+  try {
+    const response = await drive.files.update({
+      fileId: fileId,
+      resource: { name: nuevoNombre },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al renombrar en Drive:', error);
+    throw error;
+  }
+};
+
 module.exports = { 
   findFolder, 
   createFolder, 
   uploadFile, 
   getFileStream,
   getOrCreateFolder, 
+  actualizarNombreArchivo
 };
