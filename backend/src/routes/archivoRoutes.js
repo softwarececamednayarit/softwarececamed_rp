@@ -12,4 +12,8 @@ router.post('/subir', upload.single('archivo'), archivoController.subirArchivo);
 
 router.get('/mis-archivos', verifyToken, archivoController.getMisArchivos);
 
+router.put('/:id', verifyToken, archivoController.editarArchivo);
+
+router.patch('/:id/eliminar', verifyToken, archivoController.eliminarArchivo);
+
 module.exports = router;

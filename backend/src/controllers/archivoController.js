@@ -43,8 +43,6 @@ exports.subirArchivo = async (req, res) => {
   }
 };
 
-// En archivoController.js agregar:
-
 exports.getMisArchivos = async (req, res) => {
   try {
     const propietarioId = req.user.id; // Extraído del token verificado
@@ -58,5 +56,62 @@ exports.getMisArchivos = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.editarArchivo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { noOficio, asunto, nombreOriginal } = req.body;
+    
+    // 1. Obtener datos actuales a través del Modelo
+    const archivoActual = await ArchivoModel.obtenerPorId(id);
+    if (!archivoActual) {
+      return res.status(404).json({ error: 'El expediente no existe.' });
+    }
+
+    // 2. Lógica de Drive: Solo si el nombre cambió
+    if (nombreOriginal && nombreOriginal !== archivoActual.nombreOriginal) {
+      console.log(`[Drive] Renombrando archivo de ${archivoActual.nombreOriginal} a ${nombreOriginal}`);
+      await driveService.actualizarNombreArchivo(archivoActual.driveId, nombreOriginal);
+    }
+
+    // 3. Actualizar metadatos en Firestore a través del Modelo
+    const camposAActualizar = { noOficio, asunto, nombreOriginal };
+    await ArchivoModel.actualizar(id, camposAActualizar);
+
+    // 4. Registro en Bitácora (Indispensable para auditoría)
+    LoggerService.log(
+      req.user, 
+      'EDICION', 
+      'ARCHIVOS', 
+      `Actualizó el oficio ${archivoActual.noOficio} -> ${noOficio}`,
+      { 
+        id_documento: id,
+        cambios: camposAActualizar 
+      }
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'Expediente actualizado correctamente y sincronizado con Drive.' 
+    });
+
+  } catch (error) {
+    console.error("Error en editarArchivo:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.eliminarArchivo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await ArchivoModel.eliminarLogico(id);
+    
+    LoggerService.log(req.user, 'ELIMINAR', 'ARCHIVOS', `Movió a papelera el archivo con ID: ${id}`);
+    
+    res.json({ success: true, message: 'Movido a la papelera' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

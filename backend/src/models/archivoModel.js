@@ -62,7 +62,30 @@ const ArchivoModel = {
       console.error("Error en ArchivoModel.obtenerPorPropietario:", error);
       throw error;
     }
+  },
+
+  obtenerPorId: async (id) => {
+    const doc = await db.collection('archivos').doc(id).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() };
+  },
+
+  actualizar: async (id, data) => {
+    await db.collection('archivos').doc(id).update({
+      ...data,
+      fechaUltimaEdicion: new Date().toISOString()
+    });
+    return true;
+  },
+
+  eliminarLogico: async (id) => {
+    await db.collection('archivos').doc(id).update({
+      estado: 'borrado',
+      fechaBorrado: new Date().toISOString()
+    });
+    return true;
   }
+
 };
 
 module.exports = ArchivoModel;
