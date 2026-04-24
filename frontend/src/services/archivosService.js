@@ -23,6 +23,11 @@ const getMisArchivos = async () => {
   return response.data;
 };
 
+const getArchivosBorrados = async () => {
+  const response = await api.get(`${ENDPOINT}/papelera`);
+  return response.data;
+};
+
 const actualizarArchivo = async (id, data) => {
   const response = await api.put(`${ENDPOINT}/${id}`, data);
   return response.data;
@@ -37,6 +42,7 @@ const eliminarArchivo = async (id) => {
 export default {
   subirArchivo,
   getMisArchivos,
+  getArchivosBorrados,
   actualizarArchivo,
   eliminarArchivo
 };

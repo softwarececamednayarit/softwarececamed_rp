@@ -19,14 +19,17 @@ const Archivos = () => {
   const fetchArchivos = useCallback(async () => {
     setLoading(true);
     try {
-      // Por ahora solo tenemos implementado "Mis Archivos"
+      let response;
       if (activeTab === 'mis-archivos') {
-        const response = await archivosService.getMisArchivos();
-        if (response.success) {
-          setArchivos(response.data);
-        }
+        response = await archivosService.getMisArchivos();
+      } else if (activeTab === 'papelera') {
+        // Llamamos al nuevo servicio de borrados
+        response = await archivosService.getArchivosBorrados();
+      }
+
+      if (response?.success) {
+        setArchivos(response.data);
       } else {
-        // Placeholder para Compartidos y Papelera
         setArchivos([]);
       }
     } catch (error) {
@@ -165,16 +168,8 @@ const Archivos = () => {
             <p className="text-slate-400 mt-2 max-w-xs leading-relaxed">
               {searchTerm 
                 ? `No hay resultados para "${searchTerm}" en esta sección.`
-                : "Aún no has registrado documentos en este puesto."}
+                : "Aún no se han registrado documentos en esta pestaña."}
             </p>
-            {!searchTerm && (
-              <button 
-                onClick={() => setIsUploadModalOpen(true)}
-                className="mt-8 text-indigo-600 font-black uppercase text-xs tracking-widest hover:text-indigo-700 transition-colors"
-              >
-                + Comenzar a subir archivos
-              </button>
-            )}
           </div>
         ) : (
           <FileTable 
