@@ -20,4 +20,6 @@ router.put('/:id', verifyToken, archivoController.editarArchivo);
 
 router.patch('/:id/eliminar', verifyToken, archivoController.eliminarArchivo);
 
+router.patch('/:id/permisos', verifyToken, archivoController.actualizarPermisos);
+
 module.exports = router;

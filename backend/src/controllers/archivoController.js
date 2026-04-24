@@ -74,6 +74,36 @@ exports.getCompartidos = async (req, res) => {
   }
 };
 
+exports.actualizarPermisos = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { permisos } = req.body; // Se espera un array de IDs [id1, id2, ...]
+
+    if (!Array.isArray(permisos)) {
+      return res.status(400).json({ error: 'El campo permisos debe ser un arreglo.' });
+    }
+
+    const archivo = await ArchivoModel.obtenerPorId(id);
+    if (!archivo) return res.status(404).json({ error: 'Archivo no encontrado.' });
+
+    // Actualizamos solo los permisos en Firestore
+    await ArchivoModel.actualizar(id, { permisos });
+
+    // Registro en bitácora
+    LoggerService.log(
+      req.user,
+      'COMPARTIR',
+      'ARCHIVOS',
+      `Actualizó permisos del archivo ${archivo.noOficio}`,
+      { archivo_id: id, nuevos_permisos: permisos }
+    );
+
+    res.json({ success: true, message: 'Permisos actualizados correctamente.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.getPapelera = async (req, res) => {
   try {
     const propietarioId = req.user.id;
