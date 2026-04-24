@@ -17,21 +17,11 @@ const subirArchivo = async (formData) => {
   }
 };
 
-/**
- * 2. OBTENER ARCHIVOS POR PUESTO (Para el listado principal)
- * @param {string} puesto - El rol para filtrar los documentos
- */
-// const getArchivosPorPuesto = async (puesto) => {
-//   try {
-//     const response = await api.get(ENDPOINT, {
-//       params: { puesto }
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error en getArchivosPorPuesto:", error);
-//     throw error;
-//   }
-// };
+
+const getMisArchivos = async () => {
+  const response = await api.get('/archivos/mis-archivos');
+  return response.data;
+};
 
 /**
  * 3. CAMBIAR ESTADO (Borrado lógico)
@@ -52,8 +42,6 @@ const subirArchivo = async (formData) => {
 
 // Exportamos el objeto con todas las funciones para mantener la consistencia
 export default {
-  subirArchivo
-  // ,
-  // getArchivosPorPuesto,
-  // actualizarEstado
-  };
+  subirArchivo,
+  getMisArchivos
+};
