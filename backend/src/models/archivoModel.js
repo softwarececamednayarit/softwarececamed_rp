@@ -29,11 +29,11 @@ const ArchivoModel = {
 
       // Trazabilidad
       propietarioRol: user.role || 'General',
-      propietarioId: user.uid,
+      propietarioId: user.id,
       fechaRegistroSistema: new Date().toISOString(),
       
       // Estado y Seguridad
-      permisos: [user.role || 'General', 'Desarrollador', 'Director'],
+      permisos: [user.role || 'General'],
       estado: 'activo' // Borrado lógico gestionado aquí
     };
 

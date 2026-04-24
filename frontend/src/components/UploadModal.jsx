@@ -181,6 +181,17 @@ const UploadModal = ({ isOpen, onClose }) => {
                     )}
                   </div>
                 </div>
+
+                <div className="pt-4">
+                  <InputGroup 
+                    label="Observaciones" 
+                    name="observaciones" 
+                    value={formData.observaciones} 
+                    onChange={handleInputChange} 
+                    placeholder="Notas adicionales o detalles importantes..." 
+                  />
+                </div>
+
               </div>
             </div>
           </form>
