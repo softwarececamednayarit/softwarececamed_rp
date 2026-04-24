@@ -45,6 +45,11 @@ const eliminarArchivo = async (id) => {
   return response.data;
 };
 
+const actualizarPermisos = async (id, permisos) => {
+  const response = await api.patch(`${ENDPOINT}/${id}/permisos`, { permisos });
+  return response.data;
+};
+
 // Exportamos el objeto con todas las funciones para mantener la consistencia
 export default {
   subirArchivo,
@@ -52,5 +57,6 @@ export default {
   getArchivosBorrados,
   getCompartidos,
   actualizarArchivo,
-  eliminarArchivo
+  eliminarArchivo,
+  actualizarPermisos
 };
