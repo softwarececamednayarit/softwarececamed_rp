@@ -26,7 +26,7 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
   const handleDelete = async (id, nombre) => {
     const result = await Swal.fire({
       title: '¿Mover a la papelera?',
-      text: `El expediente "${nombre}" se enviará a la papelera.`,
+      text: `El archivo "${nombre}" se enviará a la papelera.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#1e293b',

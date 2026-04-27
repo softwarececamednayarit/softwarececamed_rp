@@ -1,39 +1,44 @@
 // frontend/src/components/ShareModal.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Loader2, Search, UserPlus } from 'lucide-react';
+import { X, Check, Loader2, Search, UserPlus, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// 1. Importación nombrada (como en tu página de Usuarios)
 import { getAllUsersRequest } from '../services/authService';
 import archivosService from '../services/archivosService';
+import { useAuth } from '../context/AuthContext'; // - Importamos el hook de autenticación
 
 const ShareModal = ({ isOpen, onClose, archivo }) => {
+  const { user: currentUser } = useAuth(); // - Obtenemos el usuario logueado
   const [users, setUsers] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 2. Cargar usuarios y permisos actuales al abrir
+  // Identificamos si el usuario actual es el dueño del archivo
+  const isOwnerOfFile = currentUser?.id === archivo?.propietarioId;
+
   useEffect(() => {
     if (isOpen && archivo) {
       fetchUsers();
-      // Cargamos los IDs que ya tienen acceso
-      setSelectedIds(archivo.permisos || []);
+      // Aseguramos que el propietario siempre esté en la lista de permisos seleccionados
+      const initialPermisos = archivo.permisos || [];
+      if (!initialPermisos.includes(archivo.propietarioId)) {
+        setSelectedIds([archivo.propietarioId, ...initialPermisos]);
+      } else {
+        setSelectedIds(initialPermisos);
+      }
     }
   }, [isOpen, archivo]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // Usamos la misma función que en Usuarios.jsx
       const data = await getAllUsersRequest();
-      
-      // Filtramos para no mostrar al dueño del archivo en la lista de compartir
-      // (El dueño siempre tiene acceso implícito o por su ID fijo)
-      setUsers(data.filter(u => u.id !== archivo.propietarioId));
+      // Ya no filtramos al propietario, lo dejamos en la lista
+      setUsers(data);
     } catch (error) {
       toast.error("Error al cargar la lista de usuarios");
       console.error(error);
@@ -42,7 +47,32 @@ const ShareModal = ({ isOpen, onClose, archivo }) => {
     }
   };
 
+  // Lógica de filtrado y ordenamiento
+  const processedUsers = useMemo(() => {
+    // 1. Filtrar por búsqueda
+    const filtered = users.filter(user => 
+      user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // 2. Ordenar: El propietario siempre va al principio
+    return [...filtered].sort((a, b) => {
+      if (a.id === archivo?.propietarioId) return -1;
+      if (b.id === archivo?.propietarioId) return 1;
+      return 0;
+    });
+  }, [users, searchTerm, archivo]);
+
   const toggleUser = (userId) => {
+    // REGLA 1: El propietario nunca se puede desmarcar
+    if (userId === archivo.propietarioId) return;
+
+    // REGLA 2: Si no eres el dueño, no puedes desmarcarte a ti mismo
+    if (userId === currentUser?.id && !isOwnerOfFile) {
+      toast.error("No puedes eliminar tu propio acceso. Solo el propietario puede hacerlo.");
+      return;
+    }
+
     setSelectedIds(prev => 
       prev.includes(userId) 
         ? prev.filter(id => id !== userId) 
@@ -54,7 +84,6 @@ const ShareModal = ({ isOpen, onClose, archivo }) => {
     setSaving(true);
     const toastId = toast.loading("Actualizando accesos...");
     try {
-      // Enviamos el arreglo actualizado de IDs al backend
       const response = await archivosService.actualizarPermisos(archivo.id, selectedIds);
       if (response.success) {
         toast.success("Permisos actualizados", { id: toastId });
@@ -66,12 +95,6 @@ const ShareModal = ({ isOpen, onClose, archivo }) => {
       setSaving(false);
     }
   };
-
-  // Filtrado idéntico al de tu página de Usuarios
-  const filteredUsers = users.filter(user => 
-    user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (!isOpen) return null;
 
@@ -95,7 +118,6 @@ const ShareModal = ({ isOpen, onClose, archivo }) => {
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
           </div>
 
-          {/* Buscador de usuarios */}
           <div className="p-4 bg-white border-b border-slate-100">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -115,17 +137,24 @@ const ShareModal = ({ isOpen, onClose, archivo }) => {
                 <Loader2 className="animate-spin text-indigo-500" size={32} />
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cargando personal...</p>
               </div>
-            ) : filteredUsers.length === 0 ? (
+            ) : processedUsers.length === 0 ? (
               <div className="p-10 text-center text-slate-400 text-sm font-medium">No se encontraron usuarios.</div>
-            ) : filteredUsers.map(user => {
+            ) : processedUsers.map(user => {
               const isSelected = selectedIds.includes(user.id);
+              const isPropietario = user.id === archivo.propietarioId;
+              const isSelf = user.id === currentUser?.id;
+              
+              // Bloquear desmarcado si: es propietario O (es uno mismo y no es el dueño del archivo)
+              const isLocked = isPropietario || (isSelf && !isOwnerOfFile);
+
               return (
                 <button 
                   key={user.id} 
                   onClick={() => toggleUser(user.id)}
+                  disabled={isLocked && isSelected} // Deshabilitar si está bloqueado
                   className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${
                     isSelected ? 'border-indigo-200 bg-indigo-50/50 shadow-sm' : 'border-transparent hover:bg-slate-50'
-                  }`}
+                  } ${isLocked ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center gap-3 text-left">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${
@@ -134,12 +163,18 @@ const ShareModal = ({ isOpen, onClose, archivo }) => {
                       {user.nombre?.charAt(0)}
                     </div>
                     <div>
-                      <p className={`text-sm font-bold ${isSelected ? 'text-indigo-900' : 'text-slate-800'}`}>{user.nombre}</p>
+                      <p className={`text-sm font-bold flex items-center gap-2 ${isSelected ? 'text-indigo-900' : 'text-slate-800'}`}>
+                        {user.nombre} 
+                        {isPropietario && <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1"><ShieldCheck size={10}/> Propietario</span>}
+                        {isSelf && !isPropietario && <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">(Tú)</span>}
+                      </p>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{user.role || 'General'}</p>
                     </div>
                   </div>
                   <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${
-                    isSelected ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'border-slate-200 bg-white'
+                    isSelected 
+                      ? (isLocked ? 'bg-slate-400 border-slate-400 text-white' : 'bg-indigo-600 border-indigo-600 text-white shadow-md') 
+                      : 'border-slate-200 bg-white'
                   }`}>
                     {isSelected && <Check size={14} strokeWidth={3} />}
                   </div>
@@ -152,7 +187,7 @@ const ShareModal = ({ isOpen, onClose, archivo }) => {
             <button onClick={onClose} className="flex-1 py-3 font-bold text-slate-500 hover:text-slate-700 transition-colors">Cancelar</button>
             <button 
               onClick={handleSave} 
-              disabled={saving}
+              disabled={saving || (!isOwnerOfFile && selectedIds.length === archivo.permisos?.length)} 
               className="flex-1 bg-slate-900 text-white py-3 rounded-2xl font-bold hover:bg-indigo-600 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-slate-200 transition-all active:scale-95"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : null}
