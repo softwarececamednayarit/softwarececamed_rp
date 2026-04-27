@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   FolderOpen, RefreshCw, Plus, FileText, Search, Filter, Loader2 
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion'; // Añadimos AnimatePresence aquí
 import { toast } from 'react-hot-toast';
 import UploadModal from '../components/UploadModal'; 
-import FileTable from '../components/FileTable'; // El nuevo componente que creaste
+import FileTable from '../components/FileTable';
 import archivosService from '../services/archivosService';
 
 const Archivos = () => {
@@ -15,7 +16,6 @@ const Archivos = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // Lógica de carga de archivos con lógica de ingeniero: useCallback para evitar re-renders
   const fetchArchivos = useCallback(async () => {
     setLoading(true);
     try {
@@ -41,30 +41,25 @@ const Archivos = () => {
     }
   }, [activeTab]);
 
-  // Disparar carga al montar el componente o cambiar de pestaña
   useEffect(() => {
     fetchArchivos();
   }, [fetchArchivos]);
 
-  // Filtrado local por nombre o noOficio para que la búsqueda sea instantánea
   const archivosFiltrados = archivos.filter(file => 
     file.nombreOriginal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     file.noOficio?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Función para abrir el modal en modo edición
   const handleOpenEdit = (file) => {
     setSelectedFile(file);
     setIsUploadModalOpen(true);
   };
 
-  // Función para abrir el modal en modo subida limpia (el botón "Subir Archivo")
   const handleOpenUpload = () => {
     setSelectedFile(null);
     setIsUploadModalOpen(true);
   };
 
-  // Modifica el onClose para que limpie el archivo seleccionado
   const handleCloseModal = () => {
     setIsUploadModalOpen(false);
     setSelectedFile(null);
@@ -86,7 +81,8 @@ const Archivos = () => {
               Gestión de Expedientes
             </h1>
             <p className="text-slate-500 font-medium text-sm mt-1 text-left">
-              Repositorio digital del <span className="text-indigo-600 font-bold">SACRE</span>
+              <span>Repositorio digital del </span>
+              <span className="text-indigo-600 font-bold">SACRE</span>
             </p>
           </div>
         </div>
@@ -111,7 +107,7 @@ const Archivos = () => {
         </div>
       </header>
 
-      {/* NAVEGACIÓN DE SECCIONES (TABS) */}
+      {/* NAVEGACIÓN DE TABS */}
       <div className="flex gap-8 border-b border-slate-100 px-4">
         {[
           { id: 'mis-archivos', label: 'Mis Archivos' },
@@ -125,15 +121,15 @@ const Archivos = () => {
               activeTab === tab.id ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            {tab.label}
+            <span>{tab.label}</span>
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />
+              <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />
             )}
           </button>
         ))}
       </div>
 
-      {/* BARRA DE FILTROS Y BÚSQUEDA */}
+      {/* BÚSQUEDA Y FILTROS */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/50 p-2 rounded-3xl border border-slate-100">
         <div className="relative w-full md:w-96 text-left">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -142,18 +138,16 @@ const Archivos = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por nombre o No. de oficio..." 
-            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400 font-medium"
+            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400 font-medium"
           />
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-50 transition-all">
-            <Filter size={18} />
-            Filtros
-          </button>
-        </div>
+        <button className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-50 transition-all">
+          <Filter size={18} />
+          <span>Filtros</span>
+        </button>
       </div>
 
-      {/* CONTENIDO PRINCIPAL / LISTADO */}
+      {/* LISTADO PRINCIPAL */}
       <main className="min-h-[500px] bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative">
         {loading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/60 backdrop-blur-[2px] z-20">
@@ -167,9 +161,7 @@ const Archivos = () => {
             </div>
             <h3 className="text-xl font-bold text-slate-800">No se encontraron archivos</h3>
             <p className="text-slate-400 mt-2 max-w-xs leading-relaxed">
-              {searchTerm 
-                ? `No hay resultados para "${searchTerm}" en esta sección.`
-                : "Aún no se han registrado documentos en esta pestaña."}
+              <span>{searchTerm ? `No hay resultados para "${searchTerm}".` : "Aún no se han registrado documentos."}</span>
             </p>
           </div>
         ) : (
@@ -186,7 +178,7 @@ const Archivos = () => {
         <div className="flex items-center gap-2">
           <span className={`flex h-2 w-2 rounded-full ${loading ? 'bg-amber-400' : 'bg-emerald-500'}`}></span>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            {loading ? 'Sincronizando...' : 'Conexión con Drive Activa'}
+            <span>{loading ? 'Sincronizando...' : 'Conexión con Drive Activa'}</span>
           </span>
         </div>
         <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
@@ -194,13 +186,16 @@ const Archivos = () => {
         </div>
       </footer>
 
-      {isUploadModalOpen && (
-        <UploadModal 
-          isOpen={isUploadModalOpen} 
-          onClose={handleCloseModal}
-          archivoParaEditar={selectedFile}
-        />
-      )}
+      {/* MODAL CON ANIMATEPRESENCE EN EL PADRE */}
+      <AnimatePresence>
+        {isUploadModalOpen && (
+          <UploadModal 
+            isOpen={isUploadModalOpen} 
+            onClose={handleCloseModal}
+            archivoParaEditar={selectedFile}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
