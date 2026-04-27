@@ -55,7 +55,7 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
           noOficio: archivoParaEditar.noOficio || '',
           fechaDocumento: archivoParaEditar.fechaDocumento?.split('T')[0] || '',
           origen: archivoParaEditar.origen || '',
-          cargo: archivoParaEditar.cargo || '',
+          cargo: archivoParaEditar.cargoRemitente || '',
           fechaRecibido: archivoParaEditar.fechaRecibido?.split('T')[0] || '',
           horaRecibido: archivoParaEditar.horaRecibido || '',
           asunto: archivoParaEditar.asunto || '',
