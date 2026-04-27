@@ -1,6 +1,6 @@
 const driveService = require('../services/googleDriveService');
 const ArchivoModel = require('../models/archivoModel');
-const LoggerService = require('../services/LoggerService');
+const LoggerService = require('../services/loggerService');
 
 exports.subirArchivo = async (req, res) => {
   try {
