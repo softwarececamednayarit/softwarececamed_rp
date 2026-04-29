@@ -123,7 +123,8 @@ exports.editarArchivo = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const { 
+    const {
+      tipoDocumento, 
       noOficio, 
       asunto, 
       nombreOriginal,
@@ -151,6 +152,7 @@ exports.editarArchivo = async (req, res) => {
 
     // 3. Mapear los campos a actualizar (Asegúrate de que coincidan con los nombres en Firestore)
     const camposAActualizar = { 
+      tipoDocumento,
       noOficio, 
       asunto, 
       nombreOriginal,

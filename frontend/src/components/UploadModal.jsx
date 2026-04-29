@@ -53,6 +53,7 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
     if (isOpen) {
       if (archivoParaEditar) {
         setFormData({
+          tipoDocumento: archivoParaEditar.tipoDocumento || 'Recibido',
           noOficio: archivoParaEditar.noOficio || '',
           fechaDocumento: archivoParaEditar.fechaDocumento?.split('T')[0] || '',
           origen: archivoParaEditar.origen || '',
@@ -192,6 +193,20 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-5">
                   <SectionHeader color="text-indigo-500" title="Información del Documento" />
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase mb-2 ml-1">
+                      Tipo de Documento
+                    </label>
+                    <select 
+                      name="tipoDocumento" 
+                      value={formData.tipoDocumento} 
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-slate-700 font-medium"
+                    >
+                      <option value="Recibido">Recibido</option>
+                      <option value="Enviado">Enviado</option>
+                    </select>
+                  </div>
                   <InputGroup label="No. de Oficio" name="noOficio" value={formData.noOficio} onChange={handleInputChange} placeholder="Ej. CECAMED/JUR/2026-01" required />
                   <div className="grid grid-cols-2 gap-4">
                     <InputGroup label="Fecha Oficio" name="fechaDocumento" value={formData.fechaDocumento} onChange={handleInputChange} type="date" required />

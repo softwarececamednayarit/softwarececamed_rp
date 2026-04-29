@@ -14,6 +14,7 @@ const ArchivoModel = {
       size: file.size,
 
       // Información del Oficio
+      tipoDocumento: data.tipoDocumento || 'Recibido',
       noOficio: data.noOficio || 'S/N',
       fechaDocumento: data.fechaDocumento || null,
       origen: data.origen || '',
