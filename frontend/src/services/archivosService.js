@@ -51,12 +51,12 @@ const actualizarPermisos = async (id, permisos) => {
 };
 
 export const getHistorialArchivo = async (archivoId) => {
-  const response = await axiosInstance.get(`/archivos/${archivoId}/historial`);
+  const response = await api.get(`${ENDPOINT}/${archivoId}/historial`);
   return response.data;
 };
 
 export const agregarHistorialManual = async (archivoId, descripcion) => {
-  const response = await axiosInstance.post(`/archivos/${archivoId}/historial`, { descripcion });
+  const response = await api.post(`${ENDPOINT}/${archivoId}/historial`, { descripcion });
   return response.data;
 };
 
