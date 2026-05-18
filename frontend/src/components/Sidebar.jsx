@@ -4,6 +4,7 @@ import {
   Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp,
   FolderOpen, Shield 
 } from 'lucide-react';
+import NotificacionesDropdown from './NotificacionesDropdown';
 import logoCecamed from '../assets/images/logoCecamed.png';
 import Swal from 'sweetalert2';
 import { toast } from 'react-hot-toast';
@@ -121,9 +122,12 @@ export const Sidebar = ({ currentView, onNavigate }) => {
 
         {/* SECCIÓN CUENTA */}
         <div className="pt-6 mt-6 border-t border-slate-800/50">
-            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-2">
-              Sistema
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-2 flex justify-between items-center">
+              <span>Sistema</span>
+              {/* --- DROPDOWN DE NOTIFICACIONES --- */}
+              <NotificacionesDropdown />
             </p>
+            
             <button 
               onClick={() => onNavigate('perfil')} 
               className={getLinkClass(currentView === 'perfil')}

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../middleware/authMiddleware');
-const notificacionController = require('../controllers/notificacionController');
+const notificacionController = require('../controllers/notificationController');
 
 router.use(verifyToken);
 
