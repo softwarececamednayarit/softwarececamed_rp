@@ -68,7 +68,7 @@ const Login = () => {
           <div className="relative z-10 flex items-center gap-2 mt-2 px-4 py-2 bg-white/10 rounded-full border border-white/10 backdrop-blur-sm">
             <ShieldCheck size={16} className="text-emerald-400" />
             <p className="text-slate-200 text-[10px] font-bold uppercase tracking-widest text-center leading-tight">
-              Sistema Centralizado de Administración
+              SISTEMA DE ADMINISTRACIÓN DE CASOS Y REPORTES ESTADÍSTICOS
             </p>
           </div>
         </div>
@@ -99,7 +99,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400"
-                    placeholder="usuario@cecamed.gob.mx"
+                    placeholder="usuario@dominio.com"
                   />
                 </div>
               </div>
