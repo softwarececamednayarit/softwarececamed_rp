@@ -120,31 +120,27 @@ export const Sidebar = ({ currentView, onNavigate }) => {
             <span>{item.label}</span>
           </button>
         ))}
-
-        {/* SECCIÓN CUENTA */}
-        <div className="pt-6 mt-6 border-t border-slate-800/50">
-            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-2 flex justify-between items-center">
-              <span>Sistema</span>
-              {/* --- DROPDOWN DE NOTIFICACIONES --- */}
-              <NotificacionesDropdown />
-            </div>
-            
-            <button 
-              onClick={() => onNavigate('perfil')} 
-              className={getLinkClass(currentView === 'perfil')}
-            >
-              <User size={20} /> 
-              <span>Mi Perfil</span>
-            </button>
-        </div>
-
       </nav>
 
-      {/* --- FOOTER / LOGOUT --- */}
-      <div className="pt-4 mt-4 border-t border-slate-800 shrink-0">
+      {/* --- FOOTER FIJO (Sistema, Perfil y Logout) --- */}
+      <div className="pt-4 mt-4 border-t border-slate-800 shrink-0 flex flex-col gap-1">
+        
+        <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-2 mt-2 flex justify-between items-center">
+          <span>Sistema</span>
+          <NotificacionesDropdown />
+        </div>
+        
+        <button 
+          onClick={() => onNavigate('perfil')} 
+          className={getLinkClass(currentView === 'perfil')}
+        >
+          <User size={20} /> 
+          <span>Mi Perfil</span>
+        </button>
+
         <button 
           onClick={handleLogout}
-          className="flex items-center space-x-3 p-3.5 rounded-2xl transition-all w-full text-left font-medium text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 group"
+          className="flex items-center space-x-3 p-3.5 rounded-2xl transition-all w-full text-left font-medium text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 group mt-1"
         >
           <LogOut size={20} className="group-hover:-translate-x-1 transition-transform"/> 
           <span>Cerrar Sesión</span>

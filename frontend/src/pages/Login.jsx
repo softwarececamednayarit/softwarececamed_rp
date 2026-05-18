@@ -1,22 +1,31 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { loginRequest } from '../services/authService'; // <-- Faltaba importar la petición al backend
 import { Mail, Lock, ShieldAlert, Fingerprint, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 import logoCecamed from '../assets/images/logoCecamed.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const { login } = useAuth(); // Función del contexto para guardar la sesión
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    
     try {
-      await login(email, password);
+      // 1. Hacemos la petición real a la API
+      const data = await loginRequest(email, password);
+      
+      // 2. Guardamos el token y el usuario en el contexto
+      login(data.token, data.user); 
+      
     } catch (err) {
+      console.error("Error de autenticación:", err);
       setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
     } finally {
       setIsLoading(false);
@@ -24,7 +33,6 @@ const Login = () => {
   };
 
   return (
-    // Contenedor principal con el fondo oscuro, grid y degradado radial (Colores de antes)
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-900 selection:bg-indigo-500 selection:text-white">
       
       {/* Capa 1: Patrón de cuadrícula sutil (Grid pattern) */}
@@ -39,13 +47,11 @@ const Login = () => {
         <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-3xl opacity-50"></div>
       </div>
 
-      {/* Tarjeta dividida en 2 columnas (Estructura Nueva) */}
       <div className="w-full max-w-5xl bg-white rounded-[3rem] shadow-2xl shadow-black/40 flex flex-col md:flex-row overflow-hidden relative z-10 animate-in zoom-in-95 duration-500">
         
-        {/* Sección Izquierda - Branding Institucional (Recuperando el fondo oscuro y la huella) */}
+        {/* Sección Izquierda - Branding Institucional */}
         <div className="w-full md:w-1/2 bg-slate-900 p-12 flex flex-col items-center justify-center relative overflow-hidden text-center min-h-[400px]">
           
-          {/* Decoración de huella */}
           <div className="absolute -left-16 -bottom-16 opacity-5 pointer-events-none rotate-12">
             <Fingerprint size={350} color="white" />
           </div>
@@ -67,7 +73,7 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Sección Derecha - Formulario de Acceso (Estructura Limpia) */}
+        {/* Sección Derecha - Formulario de Acceso */}
         <div className="w-full md:w-1/2 p-8 md:p-16 flex flex-col justify-center bg-white">
           <div className="max-w-md mx-auto w-full">
             <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">Bienvenido</h2>
@@ -115,7 +121,6 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Botón con el estilo oscuro de antes */}
               <button
                 type="submit"
                 disabled={isLoading}
