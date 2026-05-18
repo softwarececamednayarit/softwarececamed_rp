@@ -15,14 +15,19 @@ const NotificacionModel = {
   },
 
   obtenerNoLeidas: async (usuarioId) => {
+    // 1. Quitamos el orderBy para que Firestore no exija un Índice Compuesto
     const snapshot = await db.collection('notificaciones')
       .where('usuarioId', '==', usuarioId)
       .where('leida', '==', false)
-      .orderBy('fecha', 'desc')
       .get();
 
     if (snapshot.empty) return [];
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // 2. Mapeamos los datos
+    const notificaciones = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // 3. Ordenamos en memoria (Las más recientes primero)
+    return notificaciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   },
 
   marcarComoLeida: async (notificacionId) => {
