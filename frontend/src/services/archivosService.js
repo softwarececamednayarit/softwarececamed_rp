@@ -50,6 +50,16 @@ const actualizarPermisos = async (id, permisos) => {
   return response.data;
 };
 
+export const getHistorialArchivo = async (archivoId) => {
+  const response = await axiosInstance.get(`/archivos/${archivoId}/historial`);
+  return response.data;
+};
+
+export const agregarHistorialManual = async (archivoId, descripcion) => {
+  const response = await axiosInstance.post(`/archivos/${archivoId}/historial`, { descripcion });
+  return response.data;
+};
+
 // Exportamos el objeto con todas las funciones para mantener la consistencia
 export default {
   subirArchivo,
@@ -58,5 +68,7 @@ export default {
   getCompartidos,
   actualizarArchivo,
   eliminarArchivo,
-  actualizarPermisos
+  actualizarPermisos,
+  getHistorialArchivo,
+  agregarHistorialManual
 };
