@@ -77,7 +77,7 @@ exports.getCompartidos = async (req, res) => {
 exports.actualizarPermisos = async (req, res) => {
   try {
     const { id } = req.params;
-    const { permisos } = req.body; // Se espera un array de IDs [id1, id2, ...]
+    const { permisos } = req.body; 
 
     if (!Array.isArray(permisos)) {
       return res.status(400).json({ error: 'El campo permisos debe ser un arreglo.' });
@@ -86,10 +86,36 @@ exports.actualizarPermisos = async (req, res) => {
     const archivo = await ArchivoModel.obtenerPorId(id);
     if (!archivo) return res.status(404).json({ error: 'Archivo no encontrado.' });
 
-    // Actualizamos solo los permisos en Firestore
+    // 1. Detectar cambios (Agregados y Eliminados)
+    const permisosAnteriores = archivo.permisos || [];
+    const usuariosAgregados = permisos.filter(userId => !permisosAnteriores.includes(userId));
+    const usuariosEliminados = permisosAnteriores.filter(userId => !permisos.includes(userId) && userId !== 'General');
+
+    // 2. Actualizar en Firestore
     await ArchivoModel.actualizar(id, { permisos });
 
-    // Registro en bitácora
+    // 3. Generar Historial Automático y Notificaciones
+    for (const userId of usuariosAgregados) {
+      // Historial
+      await ArchivoModel.agregarHistorial(id, 'COMPARTIDO', `Se compartió el archivo con el usuario ID: ${userId}`, req.user.id);
+      
+      // Notificación al usuario que recibió acceso
+      if(userId !== req.user.id) {
+        await NotificacionModel.crear(
+          userId, 
+          `Se te ha compartido el archivo: ${archivo.nombreOriginal}`, 
+          'ARCHIVO_COMPARTIDO', 
+          id
+        );
+      }
+    }
+
+    for (const userId of usuariosEliminados) {
+      // Historial
+      await ArchivoModel.agregarHistorial(id, 'ACCESO_REVOCADO', `Se quitó el acceso al usuario ID: ${userId}`, req.user.id);
+    }
+
+    // Registro en bitácora general
     LoggerService.log(
       req.user,
       'COMPARTIR',
@@ -200,6 +226,33 @@ exports.eliminarArchivo = async (req, res) => {
     LoggerService.log(req.user, 'ELIMINAR', 'ARCHIVOS', `Movió a papelera el archivo con ID: ${id}`);
     
     res.json({ success: true, message: 'Movido a la papelera' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- NUEVOS CONTROLADORES PARA HISTORIAL ---
+
+exports.agregarHistorialManual = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { descripcion } = req.body;
+    
+    if (!descripcion) return res.status(400).json({ error: 'La descripción es obligatoria' });
+
+    await ArchivoModel.agregarHistorial(id, 'REGISTRO_MANUAL', descripcion, req.user.id);
+    
+    res.json({ success: true, message: 'Registro agregado al historial' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getHistorialArchivo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const historial = await ArchivoModel.obtenerHistorial(id);
+    res.json({ success: true, data: historial });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
