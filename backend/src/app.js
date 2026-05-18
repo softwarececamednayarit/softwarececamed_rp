@@ -23,6 +23,7 @@ const authRoutes = require('./routes/authRoutes');
 const solicitudesRoutes = require('./routes/solicitudesRoutes');
 const bitacoraRoutes = require('./routes/bitacoraRoutes');
 const archivoRoutes = require('./routes/archivoRoutes');
+const notificacionRoutes = require('./routes/notificacionRoutes');
 
 // --- Montar Rutas ---
 // Mantener prefijos claros facilita la lectura y la seguridad (scoping).
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
 app.use('/api/bitacora', bitacoraRoutes);
 app.use('/api/archivos', archivoRoutes);
+app.use('/api/notificaciones', notificacionRoutes);
 
 // Ruta de salud / prueba rápida
 app.get('/', (req, res) => {

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const notificationController = require('../controllers/notificationController');
-const { verifyToken } = require('../middleware/authMiddleware'); 
+const { verifyToken } = require('../middleware/authMiddleware');
+const notificacionController = require('../controllers/notificacionController');
 
 router.use(verifyToken);
 
-router.get('/no-leidas', notificationController.getNoLeidas);
-router.patch('/:id/marcar-leida', notificationController.marcarLeida);
+router.get('/no-leidas', notificacionController.getNoLeidas);
+router.patch('/:id/leer', notificacionController.marcarLeida);
 
 module.exports = router;
