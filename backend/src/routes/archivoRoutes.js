@@ -22,4 +22,8 @@ router.patch('/:id/eliminar', verifyToken, archivoController.eliminarArchivo);
 
 router.patch('/:id/permisos', verifyToken, archivoController.actualizarPermisos);
 
+router.post('/:id/historial', verifyToken, archivoController.agregarHistorialManual);
+
+router.get('/:id/historial', verifyToken, archivoController.getHistorialArchivo);
+
 module.exports = router;
