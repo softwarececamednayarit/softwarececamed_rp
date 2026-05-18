@@ -1,5 +1,4 @@
-// backend/src/controllers/notificacionController.js
-const NotificacionModel = require('../models/notificacionModel');
+const NotificacionModel = require('../models/notificationModel');
 
 exports.getNoLeidas = async (req, res) => {
   try {
