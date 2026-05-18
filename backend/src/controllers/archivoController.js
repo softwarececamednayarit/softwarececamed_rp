@@ -1,6 +1,8 @@
 const driveService = require('../services/googleDriveService');
 const ArchivoModel = require('../models/archivoModel');
 const LoggerService = require('../services/loggerService');
+const NotificacionModel = require('../models/notificationModel');
+const User = require('../models/userModel'); // <-- Importamos el modelo de usuario para obtener nombres
 
 exports.subirArchivo = async (req, res) => {
   try {
@@ -10,6 +12,7 @@ exports.subirArchivo = async (req, res) => {
 
     const mainFolderId = process.env.DRIVE_MAIN_FOLDER_ID;
     const puesto = req.user.role || 'General';
+    const nombreAutor = req.user.nombre || req.user.email || 'Usuario Desconocido';
 
     // 1. Gestión en Google Drive (Service)
     const folderId = await driveService.getOrCreateFolder(puesto, mainFolderId);
@@ -18,7 +21,15 @@ exports.subirArchivo = async (req, res) => {
     // 2. Persistencia en base de datos (Modelo)
     const resultado = await ArchivoModel.crearYGuardar(req.body, req.file, driveFile, req.user);
 
-    // 3. Registro en Bitácora
+    // 3. Historial del Archivo (Creación)
+    await ArchivoModel.agregarHistorial(
+      resultado.id, 
+      'CREACION', 
+      `Archivo subido al sistema por ${nombreAutor}`, 
+      req.user.id
+    );
+
+    // 4. Registro en Bitácora General
     LoggerService.log(
       req.user, 
       'SUBIDA', 
@@ -45,15 +56,10 @@ exports.subirArchivo = async (req, res) => {
 
 exports.getMisArchivos = async (req, res) => {
   try {
-    const propietarioId = req.user.id; // Extraído del token verificado
-    
+    const propietarioId = req.user.id; 
     const archivos = await ArchivoModel.obtenerPorPropietario(propietarioId);
     
-    res.json({
-      success: true,
-      count: archivos.length,
-      data: archivos
-    });
+    res.json({ success: true, count: archivos.length, data: archivos });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -64,11 +70,7 @@ exports.getCompartidos = async (req, res) => {
     const userId = req.user.id;
     const archivos = await ArchivoModel.obtenerCompartidos(userId);
     
-    res.json({
-      success: true,
-      count: archivos.length,
-      data: archivos
-    });
+    res.json({ success: true, count: archivos.length, data: archivos });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -86,42 +88,56 @@ exports.actualizarPermisos = async (req, res) => {
     const archivo = await ArchivoModel.obtenerPorId(id);
     if (!archivo) return res.status(404).json({ error: 'Archivo no encontrado.' });
 
-    // 1. Detectar cambios (Agregados y Eliminados)
     const permisosAnteriores = archivo.permisos || [];
     const usuariosAgregados = permisos.filter(userId => !permisosAnteriores.includes(userId));
     const usuariosEliminados = permisosAnteriores.filter(userId => !permisos.includes(userId) && userId !== 'General');
+    const autorAccion = req.user.nombre || 'el propietario';
 
-    // 2. Actualizar en Firestore
     await ArchivoModel.actualizar(id, { permisos });
 
-    // 3. Generar Historial Automático y Notificaciones
+    // Procesar agregados buscando sus nombres reales
     for (const userId of usuariosAgregados) {
-      // Historial
-      await ArchivoModel.agregarHistorial(id, 'COMPARTIDO', `Se compartió el archivo con el usuario ID: ${userId}`, req.user.id);
+      let nombreDestino = userId;
+      if (userId !== 'General') {
+        const userDoc = await User.findById(userId);
+        if (userDoc) nombreDestino = userDoc.nombre;
+      }
+
+      await ArchivoModel.agregarHistorial(
+        id, 
+        'COMPARTIDO', 
+        `${autorAccion} compartió este archivo con: ${nombreDestino}`, 
+        req.user.id
+      );
       
-      // Notificación al usuario que recibió acceso
-      if(userId !== req.user.id) {
+      if(userId !== req.user.id && userId !== 'General') {
         await NotificacionModel.crear(
           userId, 
-          `Se te ha compartido el archivo: ${archivo.nombreOriginal}`, 
+          `${autorAccion} te ha compartido el archivo: ${archivo.nombreOriginal}`, 
           'ARCHIVO_COMPARTIDO', 
           id
         );
       }
     }
 
+    // Procesar eliminados buscando sus nombres reales
     for (const userId of usuariosEliminados) {
-      // Historial
-      await ArchivoModel.agregarHistorial(id, 'ACCESO_REVOCADO', `Se quitó el acceso al usuario ID: ${userId}`, req.user.id);
+      let nombreDestino = userId;
+      if (userId !== 'General') {
+        const userDoc = await User.findById(userId);
+        if (userDoc) nombreDestino = userDoc.nombre;
+      }
+
+      await ArchivoModel.agregarHistorial(
+        id, 
+        'ACCESO_REVOCADO', 
+        `${autorAccion} revocó el acceso de: ${nombreDestino}`, 
+        req.user.id
+      );
     }
 
-    // Registro en bitácora general
     LoggerService.log(
-      req.user,
-      'COMPARTIR',
-      'ARCHIVOS',
-      `Actualizó permisos del archivo ${archivo.noOficio}`,
-      { archivo_id: id, nuevos_permisos: permisos }
+      req.user, 'COMPARTIR', 'ARCHIVOS', `Actualizó permisos del archivo ${archivo.noOficio}`, { archivo_id: id, nuevos_permisos: permisos }
     );
 
     res.json({ success: true, message: 'Permisos actualizados correctamente.' });
@@ -135,11 +151,7 @@ exports.getPapelera = async (req, res) => {
     const propietarioId = req.user.id;
     const archivos = await ArchivoModel.obtenerBorradosPorPropietario(propietarioId);
     
-    res.json({
-      success: true,
-      count: archivos.length,
-      data: archivos
-    });
+    res.json({ success: true, count: archivos.length, data: archivos });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -148,69 +160,42 @@ exports.getPapelera = async (req, res) => {
 exports.editarArchivo = async (req, res) => {
   try {
     const { id } = req.params;
-    
     const {
-      tipoDocumento, 
-      noOficio, 
-      asunto, 
-      nombreOriginal,
-      fechaDocumento,
-      origen,
-      cargo,
-      fechaRecibido,
-      horaRecibido,
-      dirigidoA,
-      quienRecibe,
-      observaciones
+      tipoDocumento, noOficio, asunto, nombreOriginal, fechaDocumento,
+      origen, cargo, fechaRecibido, horaRecibido, dirigidoA, quienRecibe, observaciones
     } = req.body;
     
-    // 1. Obtener datos actuales a través del Modelo
     const archivoActual = await ArchivoModel.obtenerPorId(id);
-    if (!archivoActual) {
-      return res.status(404).json({ error: 'El expediente no existe.' });
-    }
+    if (!archivoActual) return res.status(404).json({ error: 'El expediente no existe.' });
 
-    // 2. Lógica de Drive: Solo si el nombre cambió físicamente
     if (nombreOriginal && nombreOriginal !== archivoActual.nombreOriginal) {
-      console.log(`[Drive] Renombrando archivo de ${archivoActual.nombreOriginal} a ${nombreOriginal}`);
       await driveService.actualizarNombreArchivo(archivoActual.driveId, nombreOriginal);
     }
 
-    // 3. Mapear los campos a actualizar (Asegúrate de que coincidan con los nombres en Firestore)
     const camposAActualizar = { 
-      tipoDocumento,
-      noOficio, 
-      asunto, 
-      nombreOriginal,
-      fechaDocumento: fechaDocumento || null,
-      origen: origen || '',
-      cargoRemitente: cargo || '', // Nota: En tu modelo se llama cargoRemitente
-      fechaRecibido: fechaRecibido || null,
-      horaRecibido: horaRecibido || null,
-      dirigidoA: dirigidoA || '',
-      quienRecibe: quienRecibe || '',
-      observaciones: observaciones || ''
+      tipoDocumento, noOficio, asunto, nombreOriginal,
+      fechaDocumento: fechaDocumento || null, origen: origen || '',
+      cargoRemitente: cargo || '', fechaRecibido: fechaRecibido || null,
+      horaRecibido: horaRecibido || null, dirigidoA: dirigidoA || '',
+      quienRecibe: quienRecibe || '', observaciones: observaciones || ''
     };
 
-    // 4. Actualizar metadatos en Firestore
     await ArchivoModel.actualizar(id, camposAActualizar);
 
-    // 5. Registro en Bitácora con el detalle de los cambios
-    LoggerService.log(
-      req.user, 
+    // Agregar al historial del archivo
+    const nombreEditor = req.user.nombre || req.user.email || 'Un usuario';
+    await ArchivoModel.agregarHistorial(
+      id, 
       'EDICION', 
-      'ARCHIVOS', 
-      `Actualizó el oficio ${archivoActual.noOficio} (ID: ${id})`,
-      { 
-        id_documento: id,
-        cambios: camposAActualizar 
-      }
+      `Los metadatos del archivo fueron actualizados por ${nombreEditor}`, 
+      req.user.id
     );
 
-    res.json({ 
-      success: true, 
-      message: 'Expediente actualizado correctamente y sincronizado con Drive.' 
-    });
+    LoggerService.log(
+      req.user, 'EDICION', 'ARCHIVOS', `Actualizó el oficio ${archivoActual.noOficio} (ID: ${id})`, { id_documento: id, cambios: camposAActualizar }
+    );
+
+    res.json({ success: true, message: 'Expediente actualizado correctamente y sincronizado con Drive.' });
 
   } catch (error) {
     console.error("Error en editarArchivo:", error);
@@ -223,6 +208,15 @@ exports.eliminarArchivo = async (req, res) => {
     const { id } = req.params;
     await ArchivoModel.eliminarLogico(id);
     
+    // Agregar al historial del archivo
+    const nombreEliminador = req.user.nombre || req.user.email || 'Un usuario';
+    await ArchivoModel.agregarHistorial(
+      id, 
+      'ELIMINADO', 
+      `El archivo fue enviado a la papelera por ${nombreEliminador}`, 
+      req.user.id
+    );
+
     LoggerService.log(req.user, 'ELIMINAR', 'ARCHIVOS', `Movió a papelera el archivo con ID: ${id}`);
     
     res.json({ success: true, message: 'Movido a la papelera' });
@@ -231,7 +225,7 @@ exports.eliminarArchivo = async (req, res) => {
   }
 };
 
-// --- NUEVOS CONTROLADORES PARA HISTORIAL ---
+// --- CONTROLADORES PARA HISTORIAL ---
 
 exports.agregarHistorialManual = async (req, res) => {
   try {
@@ -240,7 +234,11 @@ exports.agregarHistorialManual = async (req, res) => {
     
     if (!descripcion) return res.status(400).json({ error: 'La descripción es obligatoria' });
 
-    await ArchivoModel.agregarHistorial(id, 'REGISTRO_MANUAL', descripcion, req.user.id);
+    // Etiquetamos visualmente quién hizo el comentario manual
+    const nombreAutor = req.user.nombre || 'Usuario';
+    const descripcionConAutor = `${descripcion} (Nota de ${nombreAutor})`;
+
+    await ArchivoModel.agregarHistorial(id, 'REGISTRO_MANUAL', descripcionConAutor, req.user.id);
     
     res.json({ success: true, message: 'Registro agregado al historial' });
   } catch (error) {
