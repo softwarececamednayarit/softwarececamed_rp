@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import ShareModal from './ShareModal';
+import HistorialModal from './HistorialModal';
 import { 
-  FileText, ExternalLink, Trash2, 
+  FileText, ExternalLink, Trash2, Clock,
   Calendar, Edit3, ShieldAlert, UserPlus 
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -10,6 +11,8 @@ import archivosService from '../services/archivosService';
 
 const FileTable = ({ archivos, onRefresh, onEdit }) => {
   const [selectedFileForShare, setSelectedFileForShare] = useState(null);
+  const [modalHistorialAbierto, setModalHistorialAbierto] = useState(false);
+  const [archivoParaHistorial, setArchivoParaHistorial] = useState(null);
 
   const formatSize = (bytes) => {
     if (!bytes) return '0 KB';
@@ -127,6 +130,16 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
                       <button onClick={() => setSelectedFileForShare(file)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Compartir">
                         <UserPlus size={20} />
                       </button>
+                      <button 
+                        onClick={() => {
+                          setArchivoParaHistorial(file);
+                          setModalHistorialAbierto(true);
+                        }} 
+                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" 
+                        title="Ver Historial"
+                      >
+                        <Clock size={20} />
+                      </button>
                       <a href={file.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all">
                         <ExternalLink size={16} />
                         <span>Abrir</span>
@@ -155,6 +168,17 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
         }}
         archivo={selectedFileForShare}
       />
+      {archivoParaHistorial && (
+        <HistorialModal 
+          isOpen={modalHistorialAbierto}
+          onClose={() => {
+            setModalHistorialAbierto(false);
+            setArchivoParaHistorial(null);
+          }}
+          archivoId={archivoParaHistorial.id}
+          nombreArchivo={archivoParaHistorial.nombreOriginal}
+        />
+      )}
     </div>
   );
 };
