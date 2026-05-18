@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import { Sidebar } from './components/Sidebar';
 
 // Importar páginas
+import Home from './pages/Home'
 import Atendidos from './pages/Atendidos';
 import SitiosInteres from './pages/SitiosInteres';
 import Recepcion from './pages/Recepcion';
@@ -63,6 +64,7 @@ const AppContent = () => {
   const renderView = () => {
     // 1. Vistas que siempre están permitidas para cualquier usuario logueado
     const publicViews = {
+      home: <Home />,
       sitios: <SitiosInteres />,
       archivos: <Archivos />,
       perfil: <Perfil />
@@ -79,6 +81,7 @@ const AppContent = () => {
 
     if (isSuperAdmin || hasPermission) {
       switch (currentView) {
+        case 'home':        return <Home />;
         case 'atendidos':    return <Atendidos />;
         case 'recepcion':    return <Recepcion />;
         case 'padron':       return <Padron />;

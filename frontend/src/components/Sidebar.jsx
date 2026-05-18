@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Users, Globe, BookOpen, User, FileSpreadsheet, Briefcase, LogOut, TrendingUp,
-  FolderOpen, Shield 
+  FolderOpen, Shield, Home 
 } from 'lucide-react';
 import NotificacionesDropdown from './NotificacionesDropdown';
 import logoCecamed from '../assets/images/logoCecamed.png';
@@ -22,6 +22,7 @@ export const Sidebar = ({ currentView, onNavigate }) => {
   // ===========================================================================
   const MENU_ITEMS = [
     // Ítems sin 'isPrivate' se verán siempre (públicos)
+    { id: 'home',         label: 'Inicio',           icon: Home },
     { id: 'sitios',       label: 'Sitios',           icon: Globe },
     { id: 'archivos',     label: 'Archivos',         icon: FolderOpen },
     
