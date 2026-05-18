@@ -125,6 +125,38 @@ const ArchivoModel = {
       fechaBorrado: new Date().toISOString()
     });
     return true;
+  },
+
+  /**
+   * Agrega un registro al historial de un archivo específico
+   */
+  agregarHistorial: async (archivoId, accion, descripcion, usuarioId) => {
+    const registro = {
+      accion, // ej: 'COMPARTIDO', 'REVOCADO', 'ACTUALIZACION_MANUAL'
+      descripcion,
+      usuarioId,
+      fecha: new Date().toISOString()
+    };
+    await db.collection('archivos').doc(archivoId).collection('historial').add(registro);
+    return true;
+  },
+
+  /**
+   * Obtiene el historial completo de un archivo
+   */
+  obtenerHistorial: async (archivoId) => {
+    const snapshot = await db.collection('archivos')
+      .doc(archivoId)
+      .collection('historial')
+      .orderBy('fecha', 'desc')
+      .get();
+
+    if (snapshot.empty) return [];
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
   }
 
 };
