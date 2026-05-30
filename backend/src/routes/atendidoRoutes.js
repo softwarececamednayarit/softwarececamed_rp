@@ -44,4 +44,8 @@ router.get('/:id', atendidoController.getAtendidoById);
 // Eliminar expediente (borrado físico; requiere precaución)
 router.delete('/:id', atendidoController.deleteExpediente);
 
+// Historial cronológico de seguimientos
+router.get('/:id/seguimientos', atendidoController.getSeguimientos);
+router.post('/:id/seguimientos', atendidoController.addSeguimiento);
+
 module.exports = router;

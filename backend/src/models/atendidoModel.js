@@ -163,6 +163,51 @@ class AtendidoModel {
     }
   }
 
+  // Agregar una nota de seguimiento en la subcolección interna del atendido
+  static async addSeguimiento(idAtendido, data) {
+    try {
+      const docRef = await db.collection('atendidos')
+        .doc(idAtendido)
+        .collection('seguimientos')
+        .add({
+          ...data,
+          fecha: new Date() // Fecha y hora del servidor
+        });
+      return docRef.id;
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.addSeguimiento: ' + error.message);
+    }
+  }
+
+  // Obtener el historial completo de seguimientos ordenados por fecha descendente
+  static async getSeguimientos(idAtendido) {
+    try {
+      const snapshot = await db.collection('atendidos')
+        .doc(idAtendido)
+        .collection('seguimientos')
+        .orderBy('fecha', 'desc')
+        .get();
+      
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Normalizar la fecha de Firestore para que viaje limpia en el JSON como ISO String
+        let fechaLimpia = data.fecha;
+        if (data.fecha && typeof data.fecha.toDate === 'function') {
+          fechaLimpia = data.fecha.toDate().toISOString();
+        }
+        
+        return {
+          id: doc.id,
+          ...data,
+          fecha: fechaLimpia
+        };
+      });
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.getSeguimientos: ' + error.message);
+    }
+  }
+
 }
 
 module.exports = AtendidoModel;

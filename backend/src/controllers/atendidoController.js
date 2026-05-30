@@ -288,6 +288,64 @@ const deleteExpediente = async (req, res) => {
   }
 };
 
+// Agregar un nuevo seguimiento cronológico e historial
+const addSeguimiento = async (req, res) => {
+  const { id } = req.params;
+  const { nota } = req.body;
+
+  try {
+    if (!nota || nota.trim() === '') {
+      return res.status(400).json({ ok: false, message: 'La nota de seguimiento no puede estar vacía.' });
+    }
+
+    // Validar si existe el expediente base
+    const exists = await Atendido.getById(id);
+    if (!exists) return res.status(404).json({ ok: false, message: 'El expediente no existe.' });
+
+    // Estructurar los datos del usuario de forma robusta
+    const creadoPor = {
+      uid: req.user?.uid || req.user?.id || 'desconocido',
+      nombre: req.user?.nombre || 'Usuario del Sistema',
+      rol: req.user?.role || req.user?.rol || 'operador'
+    };
+
+    const seguimientoId = await Atendido.addSeguimiento(id, { nota, creadoPor });
+
+    // Registrar acción en la bitácora del sistema
+    LoggerService.log(
+      req.user, 'CREAR', 'SEGUIMIENTO', 
+      `Agregó nota de seguimiento al expediente de: ${exists.nombre} ${exists.apellido_paterno}`, 
+      { id_expediente: id, id_seguimiento: seguimientoId }
+    );
+
+    res.status(201).json({ 
+      ok: true, 
+      message: 'Seguimiento registrado de forma exitosa.', 
+      id: seguimientoId 
+    });
+  } catch (error) {
+    console.error("Error en addSeguimiento:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
+// Obtener el historial de seguimientos de un expediente específico
+const getSeguimientos = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const exists = await Atendido.getById(id);
+    if (!exists) return res.status(404).json({ ok: false, message: 'El expediente no existe.' });
+
+    const historial = await Atendido.getSeguimientos(id);
+
+    res.status(200).json({ ok: true, count: historial.length, data: historial });
+  } catch (error) {
+    console.error("Error en getSeguimientos:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAtendidos,
   getAtendidoById,
@@ -299,5 +357,7 @@ module.exports = {
   updateEstatusSiremed,
   getResumenMensual,
   migrarExpedientes,
-  deleteExpediente
+  deleteExpediente,
+  addSeguimiento,
+  getSeguimientos
 };
