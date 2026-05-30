@@ -114,6 +114,28 @@ export const AtendidosService = {
       console.error("Error en service deleteAtendido:", error);
       throw error;
     }
+  },
+
+  // 11. Obtener el historial cronológico de seguimientos de un atendido
+  getSeguimientos: async (id) => {
+    try {
+      const response = await api.get(`${ENDPOINT}/${id}/seguimientos`);
+      return response.data; // Retorna { ok: true, count: X, data: [...] }
+    } catch (error) {
+      console.error("Error en service getSeguimientos:", error);
+      throw error;
+    }
+  },
+
+  // 12. Registrar una nueva nota de seguimiento en el historial
+  addSeguimiento: async (id, nota) => {
+    try {
+      const response = await api.post(`${ENDPOINT}/${id}/seguimientos`, { nota });
+      return response.data; // Retorna { ok: true, message: '...', id: '...' }
+    } catch (error) {
+      console.error("Error en service addSeguimiento:", error);
+      throw error;
+    }
   }
 
 };
