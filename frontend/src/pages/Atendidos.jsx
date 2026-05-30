@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { AtendidosService } from '../services/atendidosService'; 
 import { StatCard } from '../components/StatCard';
 import { DataTable } from '../components/DataTable';
+import DocumentosModal from '../components/DocumentosModal';
 import { SearchFilters } from '../components/SearchFilters';
 import { DetailModal } from '../components/DetailModal';
 import { normalizeText } from '../utils/formatters';
@@ -10,6 +11,7 @@ import { Users, MessageSquare, AlertCircle, Compass, RefreshCw, Briefcase, Zap, 
 const Atendidos = () => {
   const [atendidos, setAtendidos] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [documentItem, setDocumentItem] = useState(null);
   const [loading, setLoading] = useState(true);
   
   const [filters, setFilters] = useState({ 
@@ -221,7 +223,11 @@ const Atendidos = () => {
                 <span className="text-slate-500 font-bold text-lg">Sincronizando...</span>
               </div>
             ) : (
-              <DataTable data={dataFiltrada} onDetailClick={setSelectedItem} />
+              <DataTable 
+                data={dataFiltrada} 
+                onDetailClick={setSelectedItem} 
+                onDocumentClick={setDocumentItem} 
+              />
             )}
           </div>
         </section>
@@ -229,6 +235,13 @@ const Atendidos = () => {
 
       {selectedItem && (
         <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+      )}
+      {documentItem && (
+        <DocumentosModal 
+          isOpen={!!documentItem} 
+          onClose={() => setDocumentItem(null)} 
+          item={documentItem} 
+        />
       )}
     </div>
   );

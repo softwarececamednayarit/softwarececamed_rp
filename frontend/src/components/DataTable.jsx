@@ -5,7 +5,8 @@ import { Eye, FileText, Scale } from 'lucide-react';
 // Props:
 // - data: array de registros a mostrar
 // - onDetailClick: callback cuando se solicita ver detalle (recibe el item)
-export const DataTable = ({ data, onDetailClick }) => {
+// - onDocumentClick: callback cuando se solicita generar documentos (recibe el item) 👈 NUEVA PROP
+export const DataTable = ({ data, onDetailClick, onDocumentClick }) => {
 
   const getBadgeStyle = (tipoRaw) => {
     const tipo = (tipoRaw || '').toLowerCase();
@@ -24,13 +25,10 @@ export const DataTable = ({ data, onDetailClick }) => {
   };
 
   return (
-    // Se quitó el fondo blanco, el borde y la sombra pesada del contenedor
-    // para que la tabla fluya de forma natural dentro de la sección superior.
     <div className="overflow-hidden w-full">
       <div className="overflow-x-auto custom-scrollbar pb-4">
         <table className="min-w-full border-collapse w-full">
           <thead>
-            {/* Se cambió el color del header y se le dio un borde inferior sutil */}
             <tr className="border-b border-slate-100">
               {['Fecha', 'Ciudadano', 'Asunto', 'Autoridad / Procedencia', 'Acciones'].map((header, i) => (
                 <th 
@@ -54,7 +52,6 @@ export const DataTable = ({ data, onDetailClick }) => {
                 <tr 
                   key={item.id} 
                   onClick={() => onDetailClick(item)}
-                  // Hover más sutil para que no brinque tanto a la vista
                   className="group hover:bg-slate-50/50 transition-colors duration-200 cursor-pointer"
                 >
                   <td className="px-6 py-5 whitespace-nowrap pl-2">
@@ -103,16 +100,33 @@ export const DataTable = ({ data, onDetailClick }) => {
                   </td>
 
                   <td className="px-6 py-5 whitespace-nowrap text-right pr-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDetailClick(item);
-                      }}
-                      className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm group-hover:scale-100 scale-95 opacity-0 group-hover:opacity-100"
-                      title="Ver Detalles"
-                    >
-                      <Eye size={16} />
-                    </button>
+                    <div className="inline-flex gap-2 justify-end w-full">
+                      
+                      {/* 👇 NUEVO BOTÓN: GENERAR DOCUMENTACIÓN */}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation(); // Evita abrir el detalle de la fila completa
+                          onDocumentClick(item);
+                        }}
+                        className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm group-hover:scale-100 scale-95 opacity-0 group-hover:opacity-100"
+                        title="Generar Documentación"
+                      >
+                        <FileText size={16} />
+                      </button>
+
+                      {/* BOTÓN EXISTENTE: VER DETALLES */}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDetailClick(item);
+                        }}
+                        className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm group-hover:scale-100 scale-95 opacity-0 group-hover:opacity-100"
+                        title="Ver Detalles"
+                      >
+                        <Eye size={16} />
+                      </button>
+
+                    </div>
                   </td>
                 </tr>
               );
