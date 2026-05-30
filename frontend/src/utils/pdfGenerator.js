@@ -2,6 +2,69 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatName } from './formatters';
 
+// --- CONFIGURACIÓN MODULAR DE CAMPOS PARA DOCUMENTOS ---
+
+// Diccionario maestro para el Acta (Mapea Etiqueta formal -> Posibles llaves en el objeto exp)
+const CONFIG_CAMPOS_ACTA = [
+  { label: 'FECHA RECEPCIÓN',     keys: ['fecha_recepcion', 'fecha'] },
+  { label: 'NACIONALIDAD',        keys: ['nacionalidad'] },
+  { label: 'IDENTIFICACIÓN',      keys: ['identificacion', 'tipo_identificacion'] },
+  { label: 'NO. IDENTIFICACIÓN',  keys: ['no_identificacion', 'num_identificacion', 'numero_identificacion'] },
+  { label: 'CURP',                keys: ['curp'] },
+  { label: 'APELLIDO PATERNO',    keys: ['apellido_paterno', 'apellido_p'] },
+  { label: 'APELLIDO MATERNO',    keys: ['apellido_materno', 'apellido_m'] },
+  { label: 'NOMBRE (S)',          keys: ['nombre', 'nombres'] },
+  { label: 'SEXO',                keys: ['sexo'] },
+  { label: 'FECHA NAC. O EDAD',   keys: ['edad', 'edad_o_nacimiento', 'fecha_nacimiento'] },
+  { label: 'GRUPO',               keys: ['grupo', 'grupo_vulnerable'] },
+  { label: 'DOMICILIO',           keys: ['domicilio', 'domicilio_ciudadano'] },
+  { label: 'TELÉFONO',            keys: ['telefono', 'tel'] },
+  { label: 'CORREO ELECTRÓNICO',  keys: ['correo_electronico', 'correo', 'email'] },
+  { label: 'FORMA REC.',          keys: ['forma_recepcion', 'forma_rec'] },
+  { label: 'MOTIVO',              keys: ['motivo', 'motivo_inconformidad'] },
+  { label: 'SUBMOTIVO',           keys: ['submotivo'] },
+  { label: 'CRITERIO MÉDICO',     keys: ['criterio_medico'] },
+  { label: 'AUTORIDAD',           keys: ['autoridad'] },
+  { label: 'PRETENSIONES',        keys: ['pretensiones'] },
+  { label: 'DESCRIPCIÓN DE HECHOS', keys: ['descripcion_hechos', 'hechos'] },
+  { label: 'DIAGNÓSTICO',         keys: ['diagnostico', 'dx'] },
+  { label: 'OBSERVACIONES',       keys: ['observaciones'] },
+  { label: 'MOTIVO DE QUEJA',     keys: ['motivo_queja'] },
+  { label: 'NOTAS SEGUIMIENTO',   keys: ['notas_seguimiento', 'seguimiento'] }
+];
+
+// Diccionario maestro para el Carnet de Seguimiento
+const CONFIG_CAMPOS_CARNET = [
+  { label: 'NACIONALIDAD',        keys: ['nacionalidad'] },
+  { label: 'IDENTIFICACIÓN',      keys: ['identificacion', 'tipo_identificacion'] },
+  { label: 'NO. IDENTIFICACIÓN',  keys: ['no_identificacion', 'num_identificacion'] },
+  { label: 'CURP',                keys: ['curp'] },
+  { label: 'APELLIDO PATERNO',    keys: ['apellido_paterno', 'apellido_p'] },
+  { label: 'APELLIDO MATERNO',    keys: ['apellido_materno', 'apellido_m'] },
+  { label: 'NOMBRE (S)',          keys: ['nombre', 'nombres'] },
+  { label: 'SEXO',                keys: ['sexo'] },
+  { label: 'FECHA NAC. O EDAD',   keys: ['edad', 'edad_o_nacimiento'] },
+  { label: 'GRUPO',               keys: ['grupo'] },
+  { label: 'DOMICILIO',           keys: ['domicilio'] },
+  { label: 'TELÉFONO',            keys: ['telefono'] },
+  { label: 'CORREO ELECTRÓNICO',  keys: ['correo_electronico'] },
+  { label: 'PRETENSIONES',        keys: ['pretensiones'] },
+  { label: 'NOTAS SEGUIMIENTO',   keys: ['notas_seguimiento'] }
+];
+
+// Término legal para el atendido/usuario (Fácil de cambiar si jurídicamente se requiere)
+const ETIQUETA_FIRMA_USUARIO = "COMPARECIENTE"; 
+
+// --- AYUDANTE EXTRA: EXTRAER VALOR SEGURO ---
+const buscarValorCampo = (exp, llaves) => {
+  for (let key of llaves) {
+    if (exp[key] !== undefined && exp[key] !== null && exp[key] !== '') {
+      return String(exp[key]).toUpperCase();
+    }
+  }
+  return null; // Retorna null si no viene para omitirlo de la plantilla
+};
+
 // --- AYUDANTE 1: CLASIFICACIÓN DE INSTITUCIONES ---
 // Aquí definimos las palabras clave para saber en qué columna sumar
 const clasificarInstitucion = (nombreRaw) => {
@@ -244,4 +307,164 @@ export const generarPDFMensual = (data, fechaInicio, fechaFin) => {
 
   // Guardar PDF
   doc.save(`Reporte_Mensual_${periodoTexto.replace(/ /g, '_')}.pdf`);
+};
+
+export const generarPDFActa = (exp) => {
+  const doc = new jsPDF({ orientation: 'portrait' }); // Formato Vertical formal
+  
+  // 1. Determinar el Tipo de Título Dinámico
+  const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'gestión').toLowerCase();
+  const tituloDocumento = `ACTA DE ${tipoAsunto.toUpperCase()}`;
+
+  // 2. Procesar y filtrar los campos que sí contienen información
+  const filasTabla = [];
+  CONFIG_CAMPOS_ACTA.forEach(campo => {
+    const valor = buscarValorCampo(exp, campo.keys);
+    if (valor) {
+      filasTabla.push([campo.label, valor]);
+    }
+  });
+
+  // 3. Dibujar Encabezado Institucional
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text("COMISIÓN ESTATAL DE ARBITRAJE MÉDICO", 105, 20, { align: 'center' });
+  
+  doc.setFontSize(12);
+  doc.text(tituloDocumento, 105, 28, { align: 'center' });
+  doc.setLineWidth(0.5);
+  doc.line(15, 33, 195, 33); // Línea divisoria estética
+
+  // 4. Renderizar Tabla de Datos del Acta
+  autoTable(doc, {
+    startY: 38,
+    body: filasTabla,
+    theme: 'plain',
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 3, 
+      lineColor: [220, 220, 220], 
+      lineWidth: 0.1,
+      valign: 'top'
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 50, textColor: [60, 60, 60] }, // Columna Etiqueta
+      1: { cellWidth: 130 } // Columna Contenido
+    },
+    margin: { left: 15, right: 15, bottom: 60 } // Margen inferior amplio para las firmas
+  });
+
+  // 5. Configurar Matriz de Firmas Condicionales
+  const esQueja = tipoAsunto.includes('queja');
+  const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
+
+  const firmaIzquierda = `TITULAR DE LA UNIDAD DE\n${unidadTexto}`;
+  const firmaDerecha = `AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`;
+  const firmaCentro = `FIRMA DEL ${ETIQUETA_FIRMA_USUARIO}`;
+
+  // 6. Imprimir bloque de firmas seguro usando una tabla invisible al final
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 25,
+    body: [
+      ['___________________________', '___________________________'],
+      [firmaIzquierda, firmaDerecha],
+      ['', ''], // Espaciador vertical
+      ['', '___________________________'],
+      ['', firmaCentro]
+    ],
+    theme: 'plain',
+    styles: { halign: 'center', fontSize: 9, cellPadding: 1, valign: 'top' },
+    columnStyles: {
+      0: { cellWidth: 90 },
+      1: { cellWidth: 90 }
+    },
+    margin: { left: 15, right: 15 },
+    pageBreak: 'avoid' // Evita que el bloque de firmas se mutile entre dos páginas
+  });
+
+  // 7. Descargar Documento
+  doc.save(`Acta_${tipoAsunto}_${exp.id || 'Exp'}.pdf`);
+};
+
+export const generarPDFCarnet = (exp, notaSeguimientoSeleccionada) => {
+  const doc = new jsPDF({ orientation: 'portrait' });
+
+  // 1. Título Dinámico
+  const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'seguimiento').toLowerCase();
+  const tituloDocumento = `CARNET DE SEGUIMIENTO DE ${tipoAsunto.toUpperCase()}`;
+
+  // 2. Inyectar la nota seleccionada en el objeto temporal para el mapeo modular
+  const copiaExpediente = { 
+    ...exp, 
+    notas_seguimiento: notaSeguimientoSeleccionada || exp.notas_seguimiento 
+  };
+
+  // 3. Procesar Campos Filtrados
+  const filasTabla = [];
+  CONFIG_CAMPOS_CARNET.forEach(campo => {
+    const valor = buscarValorCampo(copiaExpediente, campo.keys);
+    if (valor) {
+      filasTabla.push([campo.label, valor]);
+    }
+  });
+
+  // 4. Encabezado Estético
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text("COMISIÓN ESTATAL DE ARBITRAJE MÉDICO", 105, 20, { align: 'center' });
+  
+  doc.setFontSize(11);
+  doc.text(tituloDocumento, 105, 27, { align: 'center' });
+  doc.setLineWidth(0.4);
+  doc.line(15, 31, 195, 31);
+
+  // 5. Tabla de Datos Compacta
+  autoTable(doc, {
+    startY: 36,
+    body: filasTabla,
+    theme: 'plain',
+    styles: { 
+      fontSize: 9.5, 
+      cellPadding: 2.5, 
+      lineColor: [230, 230, 230], 
+      lineWidth: 0.1,
+      valign: 'top'
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 45, textColor: [70, 70, 70] },
+      1: { cellWidth: 135 }
+    },
+    margin: { left: 15, right: 15, bottom: 55 }
+  });
+
+  // 6. Matriz de Firmas Condicionales
+  const esQueja = tipoAsunto.includes('queja');
+  const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
+
+  const firmaIzquierda = `TITULAR DE LA UNIDAD DE\n${unidadTexto}`;
+  const firmaDerecha = `AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`;
+  const firmaCentro = `FIRMA DEL ${ETIQUETA_FIRMA_USUARIO}`;
+
+  // 7. Bloque de firmas unificado
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 22,
+    body: [
+      ['___________________________', '___________________________'],
+      [firmaIzquierda, firmaDerecha],
+      ['', ''],
+      ['', '___________________________'],
+      ['', firmaCentro]
+    ],
+    theme: 'plain',
+    styles: { halign: 'center', fontSize: 8.5, cellPadding: 1, valign: 'top' },
+    columnStyles: {
+      0: { cellWidth: 90 },
+      1: { cellWidth: 90 }
+    },
+    margin: { left: 15, right: 15 },
+    pageBreak: 'avoid'
+  });
+
+  // 8. Descargar Documento
+  doc.save(`Carnet_Seguimiento_${tipoAsunto}_${exp.id || 'Exp'}.pdf`);
 };
