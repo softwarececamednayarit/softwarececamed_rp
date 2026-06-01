@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   X, Phone, Save, CheckCircle, Clock, History, FileText, 
   MapPin, Mail, Calendar, User, Hash, Building,
-  Stethoscope, AlertCircle, Users, HeartHandshake // <--- 1. AGREGAMOS ICONOS NUEVOS
+  Stethoscope, AlertCircle, Users, HeartHandshake 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext'; 
@@ -22,6 +22,9 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
   const [notas, setNotas] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   
+  // Detectamos si es agendado para deshabilitar el flujo de llamadas
+  const esAgendado = solicitud.status === 'agendado';
+
   // Detectamos si es médico
   const esMedico = solicitud.es_medico_check === true || (solicitud.quien_presenta || '').toLowerCase().includes('médico');
 
@@ -136,7 +139,7 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
               )}
             </div>
 
-            {/* --- SECCIÓN NUEVA: DATOS DEL REPRESENTANTE --- */}
+            {/* --- SECCIÓN: DATOS DEL REPRESENTANTE --- */}
             {tieneRepresentante && (
                 <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
                     <h4 className="text-[10px] font-bold text-orange-800 uppercase tracking-wider mb-2 flex items-center gap-2">
@@ -266,11 +269,7 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
                           {intento.usuario || 'Usuario desconocido'}
                         </span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        intento.status === 'contactado' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-50 text-red-600'
-                      }`}>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
                         {intento.status === 'no_contesto' ? 'No Contestó' : intento.status}
                       </span>
                     </div>
@@ -284,111 +283,156 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
           </div>
         </div>
 
-        {/* === COLUMNA DERECHA: GESTIÓN === */}
-        <div className="p-6 md:w-1/2 flex flex-col bg-white">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Phone className="text-indigo-600" /> Gestión Telefónica
-            </h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X /></button>
-          </div>
+        {/* === COLUMNA DERECHA: GESTIÓN CONDICIONAL === */}
+        {esAgendado ? (
+          <div className="p-6 md:w-1/2 flex flex-col bg-white">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <CheckCircle className="text-emerald-600" /> Solicitud Agendada
+              </h2>
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X /></button>
+            </div>
 
-          {/* BOTONES DE ESTATUS */}
-          <div className="mb-8">
-            <label className="block text-sm font-bold text-slate-700 mb-3">¿Se logró contactar?</label>
-            <div className="grid grid-cols-2 gap-4">
-              {['no_contesto', 'contactado'].map((estado) => (
-                <button
-                  key={estado}
-                  onClick={() => setStatusLlamada(estado)}
-                  className={`py-4 px-4 rounded-xl text-sm font-bold border-2 transition-all flex flex-col items-center gap-2 ${
-                    statusLlamada === estado 
-                      ? estado === 'contactado' 
-                        ? 'bg-green-50 border-green-500 text-green-700' 
-                        : 'bg-red-50 border-red-500 text-red-700'
-                      : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                    {estado === 'contactado' ? <CheckCircle size={24}/> : <Phone size={24} className="rotate-135"/>}
-                    {estado === 'no_contesto' ? 'NO CONTESTÓ' : 'CONTACTADO'}
-                </button>
-              ))}
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="p-4 bg-emerald-100 text-emerald-700 rounded-full shadow-inner">
+                <CheckCircle size={36} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-slate-800">Cita Confirmada</h3>
+                <p className="text-sm text-slate-500 mt-1 max-w-xs leading-relaxed">
+                  Esta solicitud ya se encuentra agendada y procesada correctamente. La sección de llamadas se encuentra bloqueada.
+                </p>
+              </div>
+
+              {solicitud.cita_programada && (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 w-full max-w-sm text-left space-y-2 shadow-sm mt-2">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Programación</p>
+                    <p className="font-bold text-slate-700 mt-0.5">{solicitud.cita_programada}</p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                    <span className="text-xs font-bold text-indigo-600">{solicitud.tipo_asignado || 'ASESORÍA'}</span>
+                    <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-md uppercase tracking-wider">Procesado</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-4 border-t flex justify-end">
+              <button 
+                onClick={onClose} 
+                className="px-6 py-2.5 bg-slate-900 text-white hover:bg-slate-800 rounded-xl font-bold text-sm transition-colors shadow-md shadow-slate-200 active:scale-95"
+              >
+                Cerrar Detalles
+              </button>
             </div>
           </div>
+        ) : (
+          <div className="p-6 md:w-1/2 flex flex-col bg-white">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Phone className="text-indigo-600" /> Gestión Telefónica
+              </h2>
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X /></button>
+            </div>
 
-          {/* LÓGICA CONDICIONAL */}
-          {statusLlamada === 'contactado' ? (
-            <div className="flex-1 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
-              <div className="bg-green-50 border border-green-200 p-5 rounded-2xl shadow-sm">
-                <h4 className="text-green-800 font-bold flex items-center gap-2 mb-4 border-b border-green-200 pb-2">
-                  <CheckCircle size={18} /> Asignar Cita
-                </h4>
-                
-                <div className="mb-4 flex items-center justify-between bg-white/80 p-3 rounded-lg border border-green-100">
-                  <div>
-                    <label className="text-[10px] font-bold text-green-600 uppercase tracking-wider block">Tipo de Atención</label>
-                    <span className="font-black text-green-900 text-lg">ASESORÍA</span>
-                  </div>
-                  <span className="bg-green-200 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold">AUTOMÁTICO</span>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-green-700 mb-1 block">Instrucciones</label>
-                  <textarea 
-                    className="w-full p-3 rounded-lg border border-green-300 h-24 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                    value={instrucciones}
-                    onChange={(e) => setInstrucciones(e.target.value)}
-                  />
-                  {esMedico && (
-                    <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1">
-                        <AlertCircle size={10} /> Solicitud de médico detectada. Instrucciones ajustadas.
-                    </p>
-                  )}
-                  {tieneRepresentante && !esMedico && (
-                    <p className="text-[10px] text-orange-600 mt-1 flex items-center gap-1">
-                        <Users size={10} /> Recuerda solicitar INE del representante legal.
-                    </p>
-                  )}
-                </div>
+            {/* BOTONES DE ESTATUS */}
+            <div className="mb-8">
+              <label className="block text-sm font-bold text-slate-700 mb-3">¿Se logró contactar?</label>
+              <div className="grid grid-cols-2 gap-4">
+                {['no_contesto', 'contactado'].map((estado) => (
+                  <button
+                    key={estado}
+                    onClick={() => setStatusLlamada(estado)}
+                    className={`py-4 px-4 rounded-xl text-sm font-bold border-2 transition-all flex flex-col items-center gap-2 ${
+                      statusLlamada === estado 
+                        ? estado === 'contactado' 
+                          ? 'bg-green-50 border-green-500 text-green-700' 
+                          : 'bg-red-50 border-red-500 text-red-700'
+                        : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                      {estado === 'contactado' ? <CheckCircle size={24}/> : <Phone size={24} className="rotate-135"/>}
+                      {estado === 'no_contesto' ? 'NO CONTESTÓ' : 'CONTACTADO'}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className={`flex-1 transition-opacity ${statusLlamada === 'pendiente' ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
-                 <span className="flex items-center gap-2"><FileText size={16}/> Nota del intento</span>
-              </label>
-              <textarea 
-                className="w-full p-4 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-40 resize-none text-slate-700"
-                placeholder={statusLlamada === 'pendiente' ? 'Selecciona una opción arriba primero...' : "Ej. Buzón de voz, número equivocado, línea ocupada..."}
-                value={notas}
-                onChange={(e) => setNotas(e.target.value)}
-                disabled={statusLlamada === 'pendiente'}
-              />
+
+            {/* LÓGICA CONDICIONAL */}
+            {statusLlamada === 'contactado' ? (
+              <div className="flex-1 space-y-5 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="bg-green-50 border border-green-200 p-5 rounded-2xl shadow-sm">
+                  <h4 className="text-green-800 font-bold flex items-center gap-2 mb-4 border-b border-green-200 pb-2">
+                    <CheckCircle size={18} /> Asignar Cita
+                  </h4>
+                  
+                  <div className="mb-4 flex items-center justify-between bg-white/80 p-3 rounded-lg border border-green-100">
+                    <div>
+                      <label className="text-[10px] font-bold text-green-600 uppercase tracking-wider block">Tipo de Atención</label>
+                      <span className="font-black text-green-900 text-lg">ASESORÍA</span>
+                    </div>
+                    <span className="bg-green-200 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold">AUTOMÁTICO</span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-green-700 mb-1 block">Instrucciones</label>
+                    <textarea 
+                      className="w-full p-3 rounded-lg border border-green-300 h-24 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                      value={instrucciones}
+                      onChange={(e) => setInstrucciones(e.target.value)}
+                    />
+                    {esMedico && (
+                      <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1">
+                          <AlertCircle size={10} /> Solicitud de médico detectada. Instrucciones ajustadas.
+                      </p>
+                    )}
+                    {tieneRepresentante && !esMedico && (
+                      <p className="text-[10px] text-orange-600 mt-1 flex items-center gap-1">
+                          <Users size={10} /> Recuerda solicitar INE del representante legal.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className={`flex-1 transition-opacity ${statusLlamada === 'pendiente' ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                   <span className="flex items-center gap-2"><FileText size={16}/> Nota del intento</span>
+                </label>
+                <textarea 
+                  className="w-full p-4 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-40 resize-none text-slate-700"
+                  placeholder={statusLlamada === 'pendiente' ? 'Selecciona una opción arriba primero...' : "Ej. Buzón de voz, número equivocado, línea ocupada..."}
+                  value={notas}
+                  onChange={(e) => setNotas(e.target.value)}
+                  disabled={statusLlamada === 'pendiente'}
+                />
+              </div>
+            )}
+
+            <div className="mt-6 pt-4 border-t flex justify-end gap-3">
+              <button onClick={onClose} className="px-5 py-2.5 text-slate-500 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">
+                Cancelar
+              </button>
+              
+              <button 
+                onClick={handleSubmit}
+                disabled={loading || statusLlamada === 'pendiente'}
+                className={`px-8 py-2.5 rounded-xl text-white font-bold flex items-center gap-2 shadow-lg transition-all ${
+                  statusLlamada === 'contactado' 
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-200 hover:shadow-green-300' 
+                    : statusLlamada === 'no_contesto'
+                      ? 'bg-slate-800 hover:bg-slate-900 shadow-slate-300'
+                      : 'bg-slate-300 cursor-not-allowed'
+                }`}
+              >
+                {loading ? <Clock className="animate-spin" size={18}/> : <Save size={18} />}
+                {statusLlamada === 'contactado' ? 'Finalizar Solicitud' : 'Guardar Intento'}
+              </button>
             </div>
-          )}
-
-          <div className="mt-6 pt-4 border-t flex justify-end gap-3">
-            <button onClick={onClose} className="px-5 py-2.5 text-slate-500 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">
-              Cancelar
-            </button>
-            
-            <button 
-              onClick={handleSubmit}
-              disabled={loading || statusLlamada === 'pendiente'}
-              className={`px-8 py-2.5 rounded-xl text-white font-bold flex items-center gap-2 shadow-lg transition-all ${
-                statusLlamada === 'contactado' 
-                  ? 'bg-green-600 hover:bg-green-700 shadow-green-200 hover:shadow-green-300' 
-                  : statusLlamada === 'no_contesto'
-                    ? 'bg-slate-800 hover:bg-slate-900 shadow-slate-300'
-                    : 'bg-slate-300 cursor-not-allowed'
-              }`}
-            >
-              {loading ? <Clock className="animate-spin" size={18}/> : <Save size={18} />}
-              {statusLlamada === 'contactado' ? 'Finalizar Solicitud' : 'Guardar Intento'}
-            </button>
           </div>
+        )}
 
-        </div>
       </div>
     </div>
   );

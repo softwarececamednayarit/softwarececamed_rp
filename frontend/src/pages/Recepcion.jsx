@@ -18,7 +18,7 @@ const Recepcion = () => {
       setSolicitudes(data);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudieron cargar las solicitudes. Revisa tu conexión."); // <--- AVISO VISUAL
+      toast.error("No se pudieron cargar las solicitudes. Revisa tu conexión.");
     } finally {
       setLoading(false);
     }
@@ -46,12 +46,11 @@ const Recepcion = () => {
       }
     });
 
-    // Si el usuario canceló, no hacemos nada
     if (!isConfirmed) return; 
 
     try {
       await solicitudesService.descartarSolicitud(id, motivo);
-      toast.success("Solicitud enviada a la papelera."); // Mejoramos el mensaje
+      toast.success("Solicitud enviada a la papelera.");
       cargarDatos(); 
     } catch (error) {
       console.error(error);
@@ -60,13 +59,12 @@ const Recepcion = () => {
   };
 
   const handleRecuperar = async (id) => {
-    // 1. Sustituimos el confirm nativo por Swal
     const result = await Swal.fire({
       title: '¿Recuperar solicitud?',
       text: "¿Deseas enviar esta solicitud de vuelta a la bandeja de entrada?",
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#4f46e5', // Indigo
+      confirmButtonColor: '#4f46e5',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Sí, recuperar',
       cancelButtonText: 'Cancelar',
@@ -75,15 +73,11 @@ const Recepcion = () => {
       }
     });
 
-    // 2. Si no confirma, detenemos
     if (!result.isConfirmed) return;
 
     try {
       await solicitudesService.recuperarSolicitud(id);
-      
-      // Añadimos un toast de éxito para confirmar la acción
       toast.success("Solicitud recuperada correctamente.");
-      
       cargarDatos();
     } catch (error) {
       console.error("Error al recuperar:", error);
@@ -236,7 +230,7 @@ const Recepcion = () => {
                      </div>
                   ) : (
                      <p className="text-slate-600 italic line-clamp-3 text-xs leading-relaxed">
-                        "{sol.descripcion_hechos || 'Sin descripción capturada'}"
+                       "{sol.descripcion_hechos || 'Sin descripción capturada'}"
                      </p>
                   )}
                 </div>
@@ -280,8 +274,16 @@ const Recepcion = () => {
                   )}
 
                   {activeTab === 'agendado' && (
-                    <div className="w-full py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold text-center border border-emerald-100 flex items-center justify-center gap-2">
-                      <CheckCircle size={16} /> Procesado Correctamente
+                    <div className="w-full flex gap-3">
+                      <div className="flex-1 py-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold text-center border border-emerald-100 flex items-center justify-center gap-2">
+                        <CheckCircle size={16} /> Procesado
+                      </div>
+                      <button 
+                        onClick={() => setSolicitudSeleccionada(sol)}
+                        className="flex-1 bg-slate-900 text-white font-bold py-3 rounded-xl text-sm hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 active:scale-95"
+                      >
+                        Ver Detalles
+                      </button>
                     </div>
                   )}
                 </div>
