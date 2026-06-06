@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, FileText, Loader2, Zap, RotateCcw, Save } from 'lucide-react';
+import { X, Upload, FileText, Loader2, Clock, Zap, RotateCcw, Save } from 'lucide-react';
 import { optimizePDF, generateFileHash } from '../utils/pdfOptimizer';
 import { sanitizeFileName, ensurePdfExtension } from '../utils/fileUtils';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 import archivosService from '../services/archivosService';
 
 const SectionHeader = ({ color, title }) => (
@@ -11,6 +12,12 @@ const SectionHeader = ({ color, title }) => (
     <span>{title}</span>
   </h3>
 );
+
+const formatDateTime = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  return `${date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })} a las ${date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`;
+};
 
 const InputGroup = ({ label, ...props }) => (
   <div>
@@ -30,6 +37,7 @@ const Badge = ({ children, color }) => (
 const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
+  const { user } = useAuth();
   const [customFileName, setCustomFileName] = useState('');
   const [hash, setHash] = useState('');
   const [stats, setStats] = useState({ original: 0, optimized: 0, percent: 0 });
@@ -45,7 +53,7 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
     horaRecibido: '',
     asunto: '',
     dirigidoA: '',
-    quienRecibe: '', 
+    quienRecibe: user?.nombre ||  '',
     observaciones: ''
   });
 
@@ -76,14 +84,14 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
           horaRecibido: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
           asunto: '',
           dirigidoA: '',
-          quienRecibe: '', 
+          quienRecibe: user?.nombre ||  '',
           observaciones: ''
         });
         setFile(null);
         setCustomFileName('');
       }
     }
-  }, [isOpen, archivoParaEditar]);
+  }, [isOpen, archivoParaEditar, user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -177,16 +185,25 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col font-sans"
           >
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg text-white ${isEditing ? 'bg-amber-500' : 'bg-indigo-600'}`}>
-                  {isEditing ? <FileText size={20} /> : <Upload size={20} />}
+            <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl text-white shadow-sm ${isEditing ? 'bg-amber-500' : 'bg-indigo-600'}`}>
+                  {isEditing ? <FileText size={24} /> : <Upload size={24} />}
                 </div>
-                <h2 className="text-xl font-black text-slate-800 tracking-tight">
-                  <span>{isEditing ? 'Editar Expediente' : 'Registro de Documentación'}</span>
-                </h2>
+                <div className="flex flex-col">
+                  <h2 className="text-xl font-black text-slate-800 tracking-tight leading-none">
+                    <span>{isEditing ? 'Editar Expediente' : 'Registro de Documentación'}</span>
+                  </h2>
+                  {isEditing && archivoParaEditar?.fechaRegistroSistema && (
+                    <span className="text-xs font-bold text-slate-400 mt-1.5 flex items-center gap-1">
+                      Subido por <span className="text-slate-600">{archivoParaEditar.propietarioNombre || archivoParaEditar.propietarioRol || 'Usuario'}</span> el {formatDateTime(archivoParaEditar.fechaRegistroSistema)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
+              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
+                <X size={20} />
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
@@ -272,13 +289,30 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
               </div>
             </form>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end items-center gap-4">
-               <button onClick={onClose} className="px-6 py-2.5 font-bold text-slate-500"><span>Cancelar</span></button>
-               <button onClick={handleSubmit} disabled={loading || (!isEditing && !file)}
-                className={`${isEditing ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-900 hover:bg-indigo-600'} text-white px-10 py-3 rounded-2xl font-bold disabled:opacity-50 flex items-center gap-2 transition-all`}>
-                {loading ? <Loader2 size={18} className="animate-spin" /> : isEditing ? <Save size={18}/> : null}
-                <span>{isEditing ? 'Guardar Cambios' : 'Finalizar Registro'}</span>
-              </button>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center gap-4">
+              
+              {/* Lado izquierdo: Última edición */}
+              <div className="flex-1">
+                {isEditing && archivoParaEditar?.fechaUltimaEdicion && (
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Clock size={14} className="text-amber-500" />
+                    Última edición: {formatDateTime(archivoParaEditar.fechaUltimaEdicion)}
+                  </span>
+                )}
+              </div>
+
+              {/* Lado derecho: Botones */}
+              <div className="flex items-center gap-4">
+                <button onClick={onClose} className="px-6 py-2.5 font-bold text-slate-500 hover:text-slate-700 transition-colors">
+                  <span>Cancelar</span>
+                </button>
+                <button onClick={handleSubmit} disabled={loading || (!isEditing && !file)}
+                  className={`${isEditing ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-slate-900 hover:bg-indigo-600 shadow-slate-900/20'} text-white px-10 py-3 rounded-2xl font-bold disabled:opacity-50 flex items-center gap-2 transition-all shadow-lg active:scale-95`}>
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : isEditing ? <Save size={18}/> : null}
+                  <span>{isEditing ? 'Guardar Cambios' : 'Finalizar Registro'}</span>
+                </button>
+              </div>
+
             </div>
           </motion.div>
         </div>

@@ -3,7 +3,7 @@ import ShareModal from './ShareModal';
 import HistorialModal from './HistorialModal';
 import { 
   FileText, ExternalLink, Trash2, Clock,
-  Calendar, Edit3, ShieldAlert, UserPlus 
+  Calendar, Edit3, ShieldAlert, UserPlus, User 
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -98,8 +98,10 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
                   </div>
                 </div>
 
-                {/* SECCIÓN 2: METADATOS (Fecha del Documento) */}
+                {/* SECCIÓN 2: METADATOS (Fecha del Documento y Registro) */}
                 <div className="flex items-center gap-8 px-4 lg:border-x lg:border-slate-50">
+                  
+                  {/* Fecha del Oficio Original */}
                   <div className="text-left">
                     <span className="block text-[10px] font-black text-slate-700 uppercase tracking-widest mb-1">
                       Fecha del Oficio
@@ -113,6 +115,36 @@ const FileTable = ({ archivos, onRefresh, onEdit }) => {
                       </span>
                     </div>
                   </div>
+
+                  {/* NUEVO: Subido por y Fecha de Registro */}
+                  <div className="text-left hidden md:block">
+                    <span className="block text-[10px] font-black text-slate-700 uppercase tracking-widest mb-1">
+                      Subido al Sistema
+                    </span>
+                    <div className="flex flex-col gap-1.5 text-slate-600">
+                      
+                      {/* Fecha y Hora de subida */}
+                      <div className="flex items-center gap-2" title="Fecha y hora de registro">
+                        <Clock size={13} className="text-slate-400" />
+                        <span className="text-[11px] font-bold">
+                          {file.fechaRegistroSistema 
+                            ? `${new Date(file.fechaRegistroSistema).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })} a las ${new Date(file.fechaRegistroSistema).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
+                            : 'Desconocida'}
+                        </span>
+                      </div>
+
+                      {/* Usuario que subió */}
+                      <div className="flex items-center gap-2" title="Usuario que registró el documento">
+                        <User size={13} className="text-slate-400" />
+                        <span className="text-[11px] font-bold truncate max-w-[120px]">
+                          {/* Usa propietarioNombre si tu backend lo cruza, si no, usa el Rol */}
+                          {file.propietarioNombre || file.propietarioRol || 'Usuario Desconocido'}
+                        </span>
+                      </div>
+
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* SECCIÓN 3: ACCIONES */}
