@@ -64,44 +64,53 @@ exports.agregarAAgenda = async (datos) => {
   try {
     const nombreRaw = `${datos.nombre || ''} ${datos.apellido_paterno || ''} ${datos.apellido_materno || ''}`.trim();
     const nombreCompleto = formatoTitulo(nombreRaw);
+    
     const quienPresenta = (datos.quien_presenta || '').toLowerCase();
-    const esElPaciente = quienPresenta.includes('paciente') || quienPresenta.includes('mismo');
+    const esElPaciente = quienPresenta.includes('paciente') || quienPresenta.includes('mismo') || quienPresenta === '';
     const checkEsPaciente = esElPaciente ? 'Sí' : 'No'; 
     
     const repNombre = esElPaciente ? '---' : formatoTitulo(datos.representante_nombre || '');
-    const repTelefono = esElPaciente ? '---' : (datos.representante_telefono || '');
     const repRelacion = esElPaciente ? '---' : formatoTitulo(datos.representante_parentesco || '');
+    const repTelefono = esElPaciente ? '---' : (datos.representante_telefono || '');
 
+    const fechaRegistro = datos.fecha_recepcion || new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    // Arreglo exacto de 20 elementos coincidiendo con las columnas A-T
     const fila = [
-      (datos.tipo_asignado || 'SIN CLASIFICAR').toUpperCase(),
-      nombreCompleto,
-      datos.telefono || '',
-      checkEsPaciente,
-      repNombre,
-      repTelefono,
-      repRelacion,
-      formatoTitulo(datos.medico_nombre || ''),
-      formatoOracion(datos.notas_seguimiento || ''),
-      formatoOracion(datos.descripcion_hechos || ''),
-      datos.edad || '',
-      formatoTitulo(datos.sexo || ''),
-      (datos.curp || '').toUpperCase(),
-      formatoTitulo(datos.domicilio || ''),
-      datos.fecha_recepcion || ''
+      (datos.tipo_asignado || 'SIN CLASIFICAR').toUpperCase(), // A (0)
+      fechaRegistro,                                           // B (1)
+      formatoTitulo(datos.quien_presenta || 'Ciudadano'),      // C (2)
+      nombreCompleto,                                          // D (3)
+      datos.edad || '',                                        // E (4)
+      formatoTitulo(datos.sexo || ''),                         // F (5)
+      (datos.curp || '').toUpperCase(),                        // G (6)
+      datos.telefonoCel || datos.telefono || '',               // H (7)
+      datos.telefonoFijo || '',                                // I (8)
+      (datos.correoElectronico || '').toLowerCase(),           // J (9)
+      formatoTitulo(datos.domicilio || ''),                    // K (10)
+      checkEsPaciente,                                         // L (11)
+      repNombre,                                               // M (12)
+      repRelacion,                                             // N (13)
+      repTelefono,                                             // O (14)
+      datos.fecha_incidente ? datos.fecha_incidente.split('T')[0] : '', // P (15)
+      formatoTitulo(datos.medico_nombre || ''),                // Q (16)
+      formatoTitulo(datos.medico_domicilio || ''),             // R (17)
+      formatoOracion(datos.descripcion_hechos || ''),          // S (18)
+      formatoOracion(datos.instrucciones || datos.notas_seguimiento || '') // T (19)
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_AGENDA_ID,
-      range: `AGENDA!A:A`, 
+      range: `AGENDA!A:A`, // Automáticamente insertará en A a T
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS', 
       resource: { values: [fila] },
     });
-    console.log(`Agenda actualizada para: ${nombreCompleto}`);
+    console.log(`✅ Agenda actualizada para: ${nombreCompleto}`);
     return true;
 
   } catch (error) {
-    console.error('Error escribiendo en Excel:', error.message);
+    console.error('❌ Error escribiendo en Excel:', error.message);
     throw new Error('No se pudo sincronizar con la hoja de Agenda.');
   }
 };
