@@ -7,6 +7,7 @@ import { SearchFilters } from '../components/SearchFilters';
 import { DetailModal } from '../components/DetailModal';
 import { normalizeText } from '../utils/formatters';
 import { Users, MessageSquare, AlertCircle, Compass, RefreshCw, Briefcase, Zap, FileText, Scale } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const Atendidos = () => {
   const [atendidos, setAtendidos] = useState([]);
@@ -43,6 +44,28 @@ const Atendidos = () => {
       console.error("Error al obtener datos:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDocumentClick = async (item) => {
+    const toastId = toast.loading("Cargando expediente completo...");
+    
+    try {
+      // 1. Obtenemos los datos y los guardamos en 'dataCompleta'
+      const dataCompleta = await AtendidosService.getCompleto(item.id);
+      
+      // 2. Extraemos los datos correctamente:
+      // Si dataCompleta tiene una propiedad .data (como en Axios), usamos eso.
+      // Si no, usamos el objeto tal cual.
+      const finalData = dataCompleta.data || dataCompleta;
+      
+      // 3. Ahora sí, seteamos el estado con los datos limpios
+      setDocumentItem(finalData);
+      
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error("Error al cargar datos completos:", err);
+      toast.error("No se pudo cargar la información del expediente", { id: toastId });
     }
   };
 
@@ -226,7 +249,7 @@ const Atendidos = () => {
               <DataTable 
                 data={dataFiltrada} 
                 onDetailClick={setSelectedItem} 
-                onDocumentClick={setDocumentItem} 
+                onDocumentClick={handleDocumentClick} // <--- AHORA LLAMA A NUESTRA FUNCIÓN
               />
             )}
           </div>

@@ -4,33 +4,59 @@ import { formatName } from './formatters';
 
 // --- CONFIGURACIÓN MODULAR DE CAMPOS PARA DOCUMENTOS ---
 
-const CONFIG_CAMPOS_ACTA = [
-  { label: 'FECHA RECEPCIÓN',     keys: ['fecha_recepcion', 'fecha'] },
-  { label: 'NACIONALIDAD',        keys: ['nacionalidad'] },
-  { label: 'IDENTIFICACIÓN',      keys: ['identificacion', 'tipo_identificacion'] },
-  { label: 'NO. IDENTIFICACIÓN',  keys: ['no_identificacion', 'num_identificacion', 'numero_identificacion'] },
-  { label: 'CURP',                keys: ['curp'] },
-  { label: 'APELLIDO PATERNO',    keys: ['apellido_paterno', 'apellido_p'] },
-  { label: 'APELLIDO MATERNO',    keys: ['apellido_materno', 'apellido_m'] },
-  { label: 'NOMBRE (S)',          keys: ['nombre', 'nombres'] },
-  { label: 'SEXO',                keys: ['sexo'] },
-  { label: 'FECHA NAC. O EDAD',   keys: ['edad', 'edad_o_nacimiento', 'fecha_nacimiento'] },
-  { label: 'GRUPO',               keys: ['grupo', 'grupo_vulnerable'] },
-  { label: 'DOMICILIO',           keys: ['domicilio', 'domicilio_ciudadano'] },
-  { label: 'TELÉFONO',            keys: ['telefono', 'tel'] },
-  { label: 'CORREO ELECTRÓNICO',  keys: ['correo_electronico', 'correo', 'email'] },
-  { label: 'FORMA REC.',          keys: ['forma_recepcion', 'forma_rec'] },
-  { label: 'MOTIVO',              keys: ['motivo', 'motivo_inconformidad'] },
-  { label: 'SUBMOTIVO',           keys: ['submotivo'] },
-  { label: 'CRITERIO MÉDICO',     keys: ['criterio_medico'] },
-  { label: 'AUTORIDAD',           keys: ['autoridad'] },
-  { label: 'PRETENSIONES',        keys: ['pretensiones'] },
-  { label: 'DESCRIPCIÓN DE HECHOS', keys: ['descripcion_hechos', 'hechos'] },
-  { label: 'DIAGNÓSTICO',         keys: ['diagnostico', 'dx'] },
-  { label: 'OBSERVACIONES',       keys: ['observaciones'] },
-  { label: 'MOTIVO DE QUEJA',     keys: ['motivo_queja'] },
-  { label: 'NOTAS SEGUIMIENTO',   keys: ['notas_seguimiento', 'seguimiento'] }
-];
+// Configuración de secciones para el Acta
+const SECCIONES_CONFIG = {
+  RECEPCION: {
+    titulo: '1. DATOS DE LA RECEPCIÓN',
+    campos: [
+      { label: 'Tipo de Asunto', key: 'tipo' },
+      { label: 'Fecha Recepción', key: 'fecha_recepcion' },
+      { label: 'Folio de atención', key: 'no_asignado' },
+      { label: 'Folio de expediente', key: 'servicio' },
+      { label: 'Forma Rec.', key: 'forma_recepcion' },
+      { label: 'Autoridad Sol.', key: 'autoridad_solicitante' }
+    ]
+  },
+  USUARIO: {
+    titulo: '2. DATOS DEL USUARIO / PACIENTE',
+    campos: [
+      { label: 'Nombre Completo', key: 'nombre_completo' },
+      { label: 'Edad', key: 'edad_o_nacimiento' },
+      { label: 'Sexo', key: 'sexo' },
+      { label: 'CURP', key: 'curp' },
+      { label: 'Estado Civil', key: 'estado_civil' },
+      { label: 'Ocupación', key: 'ocupacion' },
+      { label: 'Domicilio', key: 'domicilio_ciudadano' },
+      { label: 'Municipio / Localidad', key: 'municipio_localidad' },
+      { label: 'Teléfono', key: 'telefono' },
+      { label: 'Correo', key: 'correo' },
+      { label: 'Representante', key: 'representante' },
+      { label: 'Parentesco', key: 'parentesco' }
+    ]
+  },
+  PRESTADOR: {
+    titulo: '3. DATOS DEL (LOS) PRESTADOR(ES)',
+    campos: [
+      { label: 'Médico / Inst.', key: 'medico_nombre' },
+      { label: 'Domicilio UM', key: 'unidad_medica_domicilio' },
+      { label: 'Especialidad', key: 'especialidad_medica' },
+      { label: 'Institución', key: 'institucion' }
+    ]
+  },
+  ATENCION: {
+    titulo: '4. DATOS DE LA ATENCIÓN',
+    campos: [
+      { label: 'Motivo', key: 'motivo_principal' },
+      { label: 'Submotivo', key: 'submotivo' },
+      { label: 'Pretensiones', key: 'pretensiones' },
+      { label: 'Descripción Hechos', key: 'descripcion_hechos' },
+      { label: 'Diagnóstico', key: 'diagnostico' },
+      { label: 'Criterio Médico', key: 'criterio_medico' },
+      { label: 'Notas Seguimiento', key: 'notas_seguimiento' },
+      { label: 'Observaciones', key: 'observaciones_servicio' },
+    ]
+  }
+};
 
 const CONFIG_CAMPOS_CARNET = [
   { label: 'NACIONALIDAD',        keys: ['nacionalidad'] },
@@ -340,62 +366,71 @@ export const generarPDFMensual = (data, fechaInicio, fechaFin) => {
 // 2. GENERACIÓN DE ACTAS DE ATENCIÓN (DISEÑO FORMAL)
 // ===========================================================================
 export const generarPDFActa = (exp) => {
-  const doc = new jsPDF({ orientation: 'portrait' }); 
+  const doc = new jsPDF({ orientation: 'portrait' });
   
-  const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'gestión').toLowerCase();
-  const tituloDocumento = `ACTA DE ${tipoAsunto.toUpperCase()}`;
+  // 1. PREPARACIÓN DE DATOS (Priorización y Normalización)
+  const expP = {
+    ...exp,
+    nombre_completo: `${exp.nombre || ''} ${exp.apellido_paterno || ''} ${exp.apellido_materno || ''}`.trim(),
+    municipio_localidad: `${exp.municipio || ''} ${exp.localidad ? '(' + exp.localidad + ')' : ''}`.trim(),
+    ocupacion: exp.cargo_ocupacion || exp.ocupacion || 'No especificada',
+    monto_apoyo: exp.monto_apoyo ? `$${exp.monto_apoyo}` : 'N/A'
+  };
 
-  const filasTabla = [];
-  CONFIG_CAMPOS_ACTA.forEach(campo => {
-    const valor = buscarValorCampo(exp, campo.keys);
-    if (valor) {
-      filasTabla.push([campo.label, valor]);
-    }
-  });
+  const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'gestión').toUpperCase();
+  const tituloDocumento = `ACTA DE ${tipoAsunto}`;
+
+  // Encabezado institucional (Logo)
+  encapsularDiseñoInstitucional(doc, tipoAsunto);
 
   // Título elegante
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(20, 20, 20); // Negro formal
-  doc.text(tituloDocumento, 105, 48, { align: 'center' });
+  doc.setTextColor(20, 20, 20);
+  doc.text(tituloDocumento, 105, 35, { align: 'center' });
 
-  // Línea separadora sutil debajo del título
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineWidth(0.3);
-  doc.line(15, 52, 195, 52);
+  // 2. RENDERIZADO DE SECCIONES
+  let currentY = 45;
+  Object.values(SECCIONES_CONFIG).forEach((seccion) => {
+    // Si no hay espacio, nueva página
+    if (currentY > 240) {
+      doc.addPage();
+      currentY = 20;
+    }
 
-  // AJUSTE: Quitamos el formato de "tabla" y lo hacemos parecer un formulario legal
-  autoTable(doc, {
-    startY: 57,
-    body: filasTabla,
-    theme: 'plain',
-    styles: { 
-      fontSize: 10, 
-      cellPadding: { top: 4, right: 2, bottom: 4, left: 0 }, // Sin padding izquierdo
-      lineColor: [220, 220, 220], // Gris muy sutil para la línea divisoria
-      lineWidth: { bottom: 0.2 }, // SOLO línea inferior (estilo renglón)
-      valign: 'top', // Para que el texto largo no se centre raro
-      font: 'helvetica'
-    },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 55, textColor: [40, 40, 40] }, // Etiquetas oscuras
-      1: { cellWidth: 125, textColor: [0, 0, 0], halign: 'justify' } // Valores en negro puro
-    },
-    margin: { left: 15, right: 15, top: 55, bottom: 52 } 
+    // Título de Sección
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 51, 102); // Azul formal para títulos de sección
+    doc.text(seccion.titulo, 15, currentY);
+
+    const filas = [];
+    seccion.campos.forEach(c => {
+      if (expP[c.key]) filas.push([c.label, expP[c.key]]);
+    });
+
+    // Tabla de sección
+    autoTable(doc, {
+      startY: currentY + 3,
+      body: filas,
+      theme: 'plain',
+      styles: { fontSize: 9, cellPadding: { top: 2, bottom: 2 }, lineColor: [220, 220, 220], lineWidth: { bottom: 0.2 } },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50, textColor: [70, 70, 70] }, 1: { cellWidth: 130 } },
+      margin: { left: 15, right: 15, top: 15, bottom: 25 },
+    });
+    
+    currentY = doc.lastAutoTable.finalY + 10;
   });
 
-  const esQueja = tipoAsunto.includes('queja');
+  // 3. FIRMAS
+  const esQueja = tipoAsunto.includes('QUEJA');
   const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
-
   const firmaIzquierda = `TITULAR DE LA UNIDAD DE\n${unidadTexto}`;
   const firmaDerecha = `AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`;
   const firmaCentro = `FIRMA DEL ${ETIQUETA_FIRMA_USUARIO}`;
 
-  let startYFirmas = doc.lastAutoTable.finalY + 20; // Un poco más de aire antes de firmas
-  if (startYFirmas + 35 > 251) {
-    doc.addPage();
-    startYFirmas = 55; 
-  }
+  let startYFirmas = currentY + 10;
+  if (startYFirmas + 30 > 280) { doc.addPage(); startYFirmas = 20; }
 
   autoTable(doc, {
     startY: startYFirmas,
@@ -403,18 +438,15 @@ export const generarPDFActa = (exp) => {
       ['___________________________________', '___________________________________'],
       [firmaIzquierda, firmaDerecha],
       ['', ''], 
-      ['', ''], // Espacio extra
       ['', '___________________________________'],
       ['', firmaCentro]
     ],
     theme: 'plain',
     styles: { halign: 'center', fontSize: 9, cellPadding: 1, valign: 'top', font: 'helvetica', textColor: [20, 20, 20] },
     columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } },
-    margin: { left: 15, right: 15, bottom: 52 },
+    margin: { left: 15, right: 15 },
     pageBreak: 'avoid' 
   });
-
-  encapsularDiseñoInstitucional(doc, tipoAsunto);
 
   doc.save(`Acta_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`);
 };
@@ -446,13 +478,11 @@ export const generarPDFCarnet = (exp, notaSeguimientoSeleccionada) => {
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(20, 20, 20);
   doc.text(tituloDocumento, 105, 48, { align: 'center' });
-
-  // Línea separadora sutil debajo del título
   doc.setDrawColor(180, 180, 180);
   doc.setLineWidth(0.3);
   doc.line(15, 52, 195, 52);
 
-  // AJUSTE: Mismo formato de renglones formales que el Acta
+  // Tabla principal
   autoTable(doc, {
     startY: 57,
     body: filasTabla,
@@ -469,39 +499,42 @@ export const generarPDFCarnet = (exp, notaSeguimientoSeleccionada) => {
       0: { fontStyle: 'bold', cellWidth: 55, textColor: [40, 40, 40] },
       1: { cellWidth: 125, textColor: [0, 0, 0], halign: 'justify' }
     },
-    margin: { left: 15, right: 15, top: 55, bottom: 52 }
+    margin: { left: 15, right: 15, top: 55, bottom: 65 }
   });
 
+  // --- FIRMAS (Dibujadas con coordenadas fijas para evitar desfases) ---
   const esQueja = tipoAsunto.includes('queja');
   const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
-
   const firmaIzquierda = `TITULAR DE LA UNIDAD DE\n${unidadTexto}`;
   const firmaDerecha = `AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`;
   const firmaCentro = `FIRMA DEL ${ETIQUETA_FIRMA_USUARIO}`;
 
-  let startYFirmas = doc.lastAutoTable.finalY + 20;
-  if (startYFirmas + 35 > 251) {
+  let y = doc.lastAutoTable.finalY + 20;
+  
+  // Si no hay espacio suficiente, saltamos página
+  if (y > 220) {
     doc.addPage();
-    startYFirmas = 55;
+    y = 30;
   }
 
-  autoTable(doc, {
-    startY: startYFirmas,
-    body: [
-      ['___________________________________', '___________________________________'],
-      [firmaIzquierda, firmaDerecha],
-      ['', ''],
-      ['', ''],
-      ['', '___________________________________'],
-      ['', firmaCentro]
-    ],
-    theme: 'plain',
-    styles: { halign: 'center', fontSize: 9, cellPadding: 1, valign: 'top', font: 'helvetica', textColor: [20, 20, 20] },
-    columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } },
-    margin: { left: 15, right: 15, bottom: 52 },
-    pageBreak: 'avoid'
-  });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(20, 20, 20);
 
+  // 1. Líneas y texto de Titular y Auxiliar
+  doc.setDrawColor(0, 0, 0);
+  doc.line(30, y, 80, y);     // Línea Titular
+  doc.line(130, y, 180, y);   // Línea Auxiliar
+  
+  doc.text(firmaIzquierda, 55, y + 5, { align: 'center' });
+  doc.text(firmaDerecha, 155, y + 5, { align: 'center' });
+
+  // 2. Línea y texto de Compareciente (Centrado abajo)
+  const yCentro = y + 30;
+  doc.line(80, yCentro, 130, yCentro);
+  doc.text(firmaCentro, 105, yCentro + 5, { align: 'center' });
+
+  // Aplicar el pie de página institucional al final
   encapsularDiseñoInstitucional(doc, tipoAsunto);
 
   doc.save(`Carnet_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`);
