@@ -16,6 +16,8 @@ router.get('/papelera', verifyToken, archivoController.getPapelera);
 
 router.get('/compartidos', verifyToken, archivoController.getCompartidos);
 
+router.get('/generarReporte', verifyToken, archivoController.generarReporteExcel);
+
 router.put('/:id', verifyToken, archivoController.editarArchivo);
 
 router.patch('/:id/eliminar', verifyToken, archivoController.eliminarArchivo);

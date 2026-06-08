@@ -42,6 +42,12 @@ const ArchivoModel = {
     return { id: docRef.id, ...nuevoArchivo };
   },
 
+  obtenerTodos: async () => {
+    const snapshot = await db.collection('archivos').where('estado', '==', 'activo').orderBy('fechaRegistroSistema', 'desc').get();
+    if (snapshot.empty) return [];
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  },
+
   /**
    * Obtiene los archivos filtrados por el ID del usuario (propietario)
    */

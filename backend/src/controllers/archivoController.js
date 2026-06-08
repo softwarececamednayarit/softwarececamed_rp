@@ -3,6 +3,7 @@ const ArchivoModel = require('../models/archivoModel');
 const LoggerService = require('../services/loggerService');
 const NotificacionModel = require('../models/notificationModel');
 const User = require('../models/userModel'); // <-- Importamos el modelo de usuario para obtener nombres
+const sheetsService = require('../services/googleSheetsService');
 
 exports.subirArchivo = async (req, res) => {
   try {
@@ -226,7 +227,6 @@ exports.eliminarArchivo = async (req, res) => {
 };
 
 // --- CONTROLADORES PARA HISTORIAL ---
-
 exports.agregarHistorialManual = async (req, res) => {
   try {
     const { id } = req.params;
@@ -253,5 +253,51 @@ exports.getHistorialArchivo = async (req, res) => {
     res.json({ success: true, data: historial });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// --- CONTROLADOR PARA GENERAR REPORTE EN EXCEL (Google Sheets) ---
+exports.generarReporteExcel = async (req, res) => {
+  try {
+    console.log(`📊 Petición recibida para generar el reporte completo de archivos...`);
+
+    // 1. Obtener todos los registros de la base de datos
+    // Se asume la existencia de un método en ArchivoModel para obtener la lista completa
+    const listaDatos = await ArchivoModel.obtenerTodos(); 
+
+    if (!listaDatos || listaDatos.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No hay registros disponibles en la base de datos para generar el reporte.' 
+      });
+    }
+
+    // 2. Ejecutar la función de generación y clasificación en las hojas
+    // Se envía la lista completa de datos obtenida del modelo
+    const resultado = await sheetsService.generarReporteArchivos(listaDatos);
+
+    // 3. Registro en la Bitácora General
+    LoggerService.log(
+      req.user, 
+      'EXPORTAR', 
+      'ARCHIVOS', 
+      `Generó el reporte completo de correspondencia y archivos en Google Sheets`, 
+      { 
+        total_registros: resultado.count,
+        spreadsheet_id: process.env.GOOGLE_SHEET_ARCHIVOS_ID
+      }
+    );
+
+    // 4. Respuesta al cliente con el enlace del documento
+    res.json({ 
+      success: true, 
+      message: 'Reporte generado y sincronizado con éxito en Google Sheets.',
+      url: resultado.url,
+      count: resultado.count 
+    });
+
+  } catch (error) {
+    console.error("Error en generarReporteExcel:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };

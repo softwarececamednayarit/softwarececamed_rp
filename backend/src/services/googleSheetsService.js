@@ -32,6 +32,7 @@ const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_AGENDA_ID = process.env.GOOGLE_SHEET_ID;
 const SPREADSHEET_PADRON_ID = process.env.GOOGLE_SHEET_PADRON_ID;
 const SPREADSHEET_CLASICO_ID = process.env.GOOGLE_SHEET_CLASICO_ID;
+const SPREADSHEET_ARCHIVOS_ID = process.env.GOOGLE_SHEET_ARCHIVOS_ID;
 
 // Helpers de formato
 const formatoTitulo = (texto) => {
@@ -339,5 +340,139 @@ exports.generarReporteClasico = async (listaDatos) => {
   } catch (error) {
     console.error("❌ Error en Registro Clásico:", error.message); 
     throw new Error("Falló la generación del Registro Clásico.");
+  }
+};
+
+// Reporte de archivos: clasifica en 3 hojas según criterios específicos y ordena cronológicamente
+exports.generarReporteArchivos = async (listaDatos) => {
+  try {
+    console.log(`📄 Iniciando reporte de archivos con ${listaDatos.length} registros...`);
+
+    // 1. Ordenar cronológicamente por fechaRecibido y horaRecibido (más antiguos arriba)
+    listaDatos.sort((a, b) => {
+      // Intentar crear objetos de fecha combinando ambos campos para una ordenación precisa
+      const dateTimeA = new Date(`${a.fechaRecibido || '1970-01-01'}T${a.horaRecibido || '00:00:00'}`).getTime();
+      const dateTimeB = new Date(`${b.fechaRecibido || '1970-01-01'}T${b.horaRecibido || '00:00:00'}`).getTime();
+
+      const diff = dateTimeA - dateTimeB;
+      if (diff !== 0) return diff;
+
+      // Desempate por ID si existe, para asegurar un orden estable
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+    // 2. Definir las tres hojas de destino
+    const lotes = {
+      'MEMORANDUM ENVIADOS': [],
+      'CORRESPONDENCIA RECIBIDA': [],
+      'CORRESPONDENCIA ENVIADA': []
+    };
+
+    // Contadores individuales por hoja para el número consecutivo (Columna A)
+    const contadores = {
+      'MEMORANDUM ENVIADOS': 1,
+      'CORRESPONDENCIA RECIBIDA': 1,
+      'CORRESPONDENCIA ENVIADA': 1
+    };
+
+    // 3. Clasificar los datos sin duplicidades
+    listaDatos.forEach(dato => {
+      // Normalizar cargoRemitente (quitar acentos, espacios extras y pasar a minúsculas)
+      const cargoNorm = (dato.cargoRemitente || '')
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+      const noOficioNorm = (dato.noOficio || '').trim().toUpperCase();
+      const tipoDoc = (dato.tipoDocumento || '').trim();
+
+      let hojaDestino = null;
+
+      // Condición estricta para MEMORANDUM ENVIADOS
+      if (cargoNorm === 'comisionado estatal' && noOficioNorm.startsWith('MEMORANDUM')) {
+        hojaDestino = 'MEMORANDUM ENVIADOS';
+      } else if (tipoDoc === 'Recibido') {
+        hojaDestino = 'CORRESPONDENCIA RECIBIDA';
+      } else if (tipoDoc === 'Enviado') {
+        hojaDestino = 'CORRESPONDENCIA ENVIADA';
+      }
+
+      // Si cumple con alguna de las hojas mapeadas, se construye la fila
+      if (hojaDestino && lotes[hojaDestino]) {
+        const consecutivo = contadores[hojaDestino]++;
+        
+        // Mapeo de columnas de la A a la N
+        const fila = [
+          consecutivo,                                 // Columna A: Número consecutivo
+          dato.noOficio || '',                         // Columna B: noOficio
+          dato.fechaDocumento || '',                   // Columna C: fechaDocumento
+          dato.origen || '',                           // Columna D: origen
+          dato.cargoRemitente || '',                   // Columna E: cargoRemitente
+          dato.fechaRecibido || '',                    // Columna F: fechaRecibido
+          dato.horaRecibido || '',                     // Columna G: horaRecibido
+          dato.asunto || '',                           // Columna H: asunto
+          dato.dirigidoA || '',                        // Columna I: dirigidoA
+          dato.quienRecibe || '',                      // Columna J: quienRecibe
+          dato.url ? `=HYPERLINK("${dato.url}", "[enlace]")` : '', // Columna K: Hipervínculo a la URL de la BD
+          dato.estatusActual || '',                    // Columna L: estatusActual
+          dato.porcentajeAvance || '',                 // Columna M: porcentajeAvance
+          dato.observaciones || ''                     // Columna N: observaciones
+        ];
+
+        lotes[hojaDestino].push(fila);
+      }
+    });
+
+    // 4. Ejecutar la limpieza y la escritura en cada pestaña
+    const promesas = Object.keys(lotes).map(async (nombreHoja) => {
+      const filasNuevas = lotes[nombreHoja];
+
+      // La estructura establecida inicia en la fila 9 (A9 hasta la columna N)
+      const rangoInicio = `'${nombreHoja}'!A9`; 
+      const rangoLimpieza = `'${nombreHoja}'!A9:N5000`;
+
+      // A. Limpiar el rango de datos anterior de la fila 9 en adelante
+      try {
+        await sheets.spreadsheets.values.clear({
+          spreadsheetId: SPREADSHEET_ARCHIVOS_ID,
+          range: rangoLimpieza, 
+        });
+      } catch (e) {
+        console.warn(`⚠️ Aviso: No se pudo limpiar la hoja "${nombreHoja}". Detalles:`, e.message);
+        return; 
+      }
+
+      // B. Escribir los registros nuevos procesados
+      if (filasNuevas.length > 0) {
+        try {
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ARCHIVOS_ID,
+            range: rangoInicio, 
+            valueInputOption: 'USER_ENTERED', // Vital para que reconozca la fórmula =HYPERLINK
+            resource: { values: filasNuevas },
+          });
+          console.log(`✅ ${nombreHoja}: ${filasNuevas.length} registros escritos desde la fila 9.`);
+        } catch (writeError) {
+          console.error(`❌ Error escribiendo en "${nombreHoja}":`, writeError.message);
+        }
+      } else {
+        console.log(`ℹ️ ${nombreHoja}: No se encontraron registros para escribir.`);
+      }
+    });
+
+    await Promise.all(promesas);
+
+    const webLink = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ARCHIVOS_ID}/edit`;
+
+    return { 
+        success: true, 
+        url: webLink,
+        count: listaDatos.length 
+    };
+
+  } catch (error) {
+    console.error("❌ Error CRÍTICO actualizando el reporte de archivos:", error);
+    throw new Error("Falló la actualización del archivo de control. Revisa los logs del servidor.");
   }
 };
