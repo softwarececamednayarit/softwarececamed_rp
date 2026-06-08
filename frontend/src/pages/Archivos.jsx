@@ -61,7 +61,7 @@ const Archivos = () => {
     const toastId = toast.loading("Generando reporte en Google Sheets...");
     
     try {
-      const response = await archivosService.generarReporteExcel();
+      const response = await archivosService.generarReporteSheets();
       if (response.success) {
         toast.success(`Reporte generado (${response.count} registros)`, { id: toastId });
         // Abrir el enlace de Google Sheets en una nueva pestaña
