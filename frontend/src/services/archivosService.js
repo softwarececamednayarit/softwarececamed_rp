@@ -60,6 +60,11 @@ export const agregarHistorialManual = async (archivoId, descripcion) => {
   return response.data;
 };
 
+const generarReporteSheets = async () => {
+  const response = await api.get(`${ENDPOINT}/generarReporte`);
+  return response.data;
+};
+
 // Exportamos el objeto con todas las funciones para mantener la consistencia
 export default {
   subirArchivo,
@@ -70,5 +75,6 @@ export default {
   eliminarArchivo,
   actualizarPermisos,
   getHistorialArchivo,
-  agregarHistorialManual
+  agregarHistorialManual,
+  generarReporteSheets
 };

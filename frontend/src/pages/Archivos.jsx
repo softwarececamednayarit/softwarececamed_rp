@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import ArchivoFilters from '../components/ArchivoFilters'; // Importación del nuevo componente
+import ArchivoFilters from '../components/ArchivoFilters'; 
 import { 
-  FolderOpen, RefreshCw, Plus, FileText, Loader2 
+  FolderOpen, RefreshCw, Plus, FileText, Loader2, FileSpreadsheet // <-- Añadido icono para Sheets
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -11,6 +11,7 @@ import archivosService from '../services/archivosService';
 
 const Archivos = () => {
   const [loading, setLoading] = useState(true);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false); // <-- Nuevo estado para el reporte
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [archivos, setArchivos] = useState([]);
   const [activeTab, setActiveTab] = useState('mis-archivos'); 
@@ -53,6 +54,30 @@ const Archivos = () => {
   useEffect(() => {
     fetchArchivos();
   }, [fetchArchivos]);
+
+  // --- NUEVA FUNCIÓN PARA GENERAR REPORTE ---
+  const handleGenerarReporte = async () => {
+    setIsGeneratingReport(true);
+    const toastId = toast.loading("Generando reporte en Google Sheets...");
+    
+    try {
+      const response = await archivosService.generarReporteExcel();
+      if (response.success) {
+        toast.success(`Reporte generado (${response.count} registros)`, { id: toastId });
+        // Abrir el enlace de Google Sheets en una nueva pestaña
+        if (response.url) {
+          window.open(response.url, '_blank', 'noopener,noreferrer');
+        }
+      } else {
+        toast.error("Ocurrió un problema al generar el reporte", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Error generando reporte:", error);
+      toast.error(error.response?.data?.error || "Fallo al conectar con el servidor", { id: toastId });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
 
   const archivosProcesados = useMemo(() => {
     return archivos
@@ -117,13 +142,25 @@ const Archivos = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 relative z-10">
+        <div className="flex items-center gap-3 relative z-10">
           <button onClick={fetchArchivos} disabled={loading} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all disabled:opacity-50" title="Sincronizar">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
+          
+          {/* --- NUEVO BOTÓN DE REPORTE --- */}
+          <button 
+            onClick={handleGenerarReporte} 
+            disabled={isGeneratingReport || loading} 
+            className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-3 rounded-2xl font-bold hover:bg-emerald-100 hover:text-emerald-700 transition-all disabled:opacity-50 active:scale-95 border border-emerald-100/50"
+            title="Exportar Reporte a Google Sheets"
+          >
+            {isGeneratingReport ? <Loader2 size={20} className="animate-spin" /> : <FileSpreadsheet size={20} />}
+            <span className="hidden lg:inline">Generar Reporte</span>
+          </button>
+
           <button onClick={handleOpenUpload} className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-900/20 active:scale-95">
             <Plus size={20} />
-            <span>Subir Archivo</span>
+            <span className="hidden sm:inline">Subir Archivo</span>
           </button>
         </div>
       </header>
