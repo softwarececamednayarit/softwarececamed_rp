@@ -28,6 +28,10 @@ const ArchivoModel = {
       quienRecibe: data.quienRecibe || '',
       observaciones: data.observaciones || '',
 
+      // Nuevos atributos con valores por defecto
+      estatusActual: data.estatusActual || '',
+      porcentajeAvance: data.porcentajeAvance !== undefined ? Number(data.porcentajeAvance) : 0,
+
       // Trazabilidad
       propietarioRol: user.role || 'General',
       propietarioId: user.id,
