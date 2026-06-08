@@ -54,7 +54,9 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
     asunto: '',
     dirigidoA: '',
     quienRecibe: user?.nombre ||  '',
-    observaciones: ''
+    observaciones: '',
+    estatusActual: '',
+    porcentajeAvance: 0
   });
 
   useEffect(() => {
@@ -71,7 +73,9 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
           asunto: archivoParaEditar.asunto || '',
           dirigidoA: archivoParaEditar.dirigidoA || '',
           quienRecibe: archivoParaEditar.quienRecibe || '',
-          observaciones: archivoParaEditar.observaciones || ''
+          observaciones: archivoParaEditar.observaciones || '',
+          estatusActual: archivoParaEditar.estatusActual || '',
+          porcentajeAvance: archivoParaEditar.porcentajeAvance || 0
         });
         setCustomFileName(archivoParaEditar.nombreOriginal || '');
       } else {
@@ -85,7 +89,9 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
           asunto: '',
           dirigidoA: '',
           quienRecibe: user?.nombre ||  '',
-          observaciones: ''
+          observaciones: '',
+          estatusActual: '',
+          porcentajeAvance: 0
         });
         setFile(null);
         setCustomFileName('');
@@ -208,6 +214,8 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                {/* --- COLUMNA IZQUIERDA --- */}
                 <div className="space-y-5">
                   <SectionHeader color="text-indigo-500" title="Información del Documento" />
                   <div>
@@ -230,8 +238,12 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
                     <InputGroup label="Cargo Remitente" name="cargo" value={formData.cargo} onChange={handleInputChange} placeholder="Puesto" />
                   </div>
                   <InputGroup label="Origen / Institución" name="origen" value={formData.origen} onChange={handleInputChange} placeholder="Entidad que envía" required />
+                  
+                  {/* ASUNTO MOVIDO AQUÍ (Corto y debajo de origen) */}
+                  <InputGroup label="Asunto" name="asunto" value={formData.asunto} onChange={handleInputChange} placeholder="Descripción breve del trámite" required />
                 </div>
 
+                {/* --- COLUMNA DERECHA --- */}
                 <div className="space-y-5">
                   <SectionHeader color="text-emerald-500" title="Datos de Recepción" />
                   <div className="grid grid-cols-2 gap-4">
@@ -240,17 +252,16 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
                   </div>
                   <InputGroup label="A quién va dirigido" name="dirigidoA" value={formData.dirigidoA} onChange={handleInputChange} required />
                   <InputGroup label="Quién recibe" name="quienRecibe" value={formData.quienRecibe} onChange={handleInputChange} placeholder="Nombre de quien recibe" />
+                  
+                  {/* ESTATUS Y AVANCE INTEGRADOS EN EL FLUJO (Alineados con Asunto) */}
+                  <InputGroup label="Estatus Actual" name="estatusActual" value={formData.estatusActual} onChange={handleInputChange} placeholder="Ej. En revisión, Pendiente, etc." />
+                  <InputGroup label="Porcentaje de Avance (%)" name="porcentajeAvance" type="number" min="0" max="100" value={formData.porcentajeAvance} onChange={handleInputChange} placeholder="Ej. 50" />
                 </div>
 
+                {/* --- ZONA INFERIOR (Ocupa ambas columnas) --- */}
                 <div className="md:col-span-2 space-y-6 pt-4 border-t border-slate-100">
-                  <div className="space-y-2">
-                    <label className="block text-xs font-black text-slate-500 uppercase ml-1">
-                      <span>Asunto</span>
-                    </label>
-                    <textarea required name="asunto" value={formData.asunto} onChange={handleInputChange} rows="2" 
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none transition-all" 
-                      placeholder="Descripción del trámite..." />
-                  </div>
+                  
+                  {/* Se eliminó el textarea largo de asunto que estaba aquí */}
 
                   {!isEditing || file ? (
                     <div className={`relative border-2 border-dashed rounded-[2rem] p-10 transition-all flex flex-col items-center justify-center 
@@ -282,8 +293,9 @@ const UploadModal = ({ isOpen, onClose, archivoParaEditar = null }) => {
                       </div>
                     </div>
                   )}
-                  <div className="pt-4">
-                    <InputGroup label="Observaciones" name="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Notas adicionales..." />
+                  
+                  <div className="pt-2">
+                    <InputGroup label="Observaciones" name="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Notas adicionales o comentarios..." />
                   </div>
                 </div>
               </div>
