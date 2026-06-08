@@ -163,7 +163,8 @@ exports.editarArchivo = async (req, res) => {
     const { id } = req.params;
     const {
       tipoDocumento, noOficio, asunto, nombreOriginal, fechaDocumento,
-      origen, cargo, fechaRecibido, horaRecibido, dirigidoA, quienRecibe, observaciones
+      origen, cargo, fechaRecibido, horaRecibido, dirigidoA, quienRecibe, observaciones,
+      estatusActual, porcentajeAvance 
     } = req.body;
     
     const archivoActual = await ArchivoModel.obtenerPorId(id);
@@ -173,12 +174,15 @@ exports.editarArchivo = async (req, res) => {
       await driveService.actualizarNombreArchivo(archivoActual.driveId, nombreOriginal);
     }
 
+    // 2. Incluirlos en el objeto de mapeo que se envía al modelo
     const camposAActualizar = { 
       tipoDocumento, noOficio, asunto, nombreOriginal,
       fechaDocumento: fechaDocumento || null, origen: origen || '',
       cargoRemitente: cargo || '', fechaRecibido: fechaRecibido || null,
       horaRecibido: horaRecibido || null, dirigidoA: dirigidoA || '',
-      quienRecibe: quienRecibe || '', observaciones: observaciones || ''
+      quienRecibe: quienRecibe || '', observaciones: observaciones || '',
+      estatusActual: estatusActual || '', 
+      porcentajeAvance: porcentajeAvance !== undefined ? Number(porcentajeAvance) : 0
     };
 
     await ArchivoModel.actualizar(id, camposAActualizar);
