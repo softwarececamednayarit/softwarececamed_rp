@@ -6,6 +6,7 @@
 const SolicitudModel = require('../models/solicitudModel');
 const sheetsService = require('../services/googleSheetsService');
 const LoggerService = require('../services/loggerService');
+const { enviarCorreoNotificacion } = require('../services/emailService');
 
 // Obtener solicitudes por estado (query: status)
 exports.obtenerPorStatus = async (req, res) => {
@@ -30,7 +31,7 @@ exports.actualizarSeguimiento = async (req, res) => {
   const { status_llamada, notas_nuevas, usuario } = req.body;
 
   try {
-    // 👇 REFACTOR: Toda la lógica de arrays y fechas se fue al modelo
+    // REFACTOR: Toda la lógica de arrays y fechas se fue al modelo
     const nuevoIntento = await SolicitudModel.agregarSeguimiento(id, {
         status_llamada,
         notas_nuevas,
@@ -56,10 +57,10 @@ exports.actualizarSeguimiento = async (req, res) => {
 // Agendar cita: exporta a Excel y marca la solicitud como 'agendado'
 exports.agendarCita = async (req, res) => {
   const { id } = req.params;
-  const { tipo_asignado, fecha_cita, instrucciones, datos_completos } = req.body;
-
+  // Asegurarse de extraer 'correoElectronico' de req.body o de 'datos_completos'
+  const { tipo_asignado, fecha_cita, instrucciones, datos_completos, correoElectronico } = req.body;
   try {
-    // A. Excel (Esto está bien aquí, el modelo no debe saber de Excel)
+    // 1. Guardado en Excel (Google Sheets)
     const expedienteFinal = {
       ...datos_completos,
       tipo_asignado,
@@ -67,27 +68,51 @@ exports.agendarCita = async (req, res) => {
       notas_seguimiento: instrucciones,
       status: 'agendado' 
     };
-
     await sheetsService.agregarAAgenda(expedienteFinal);
 
-    // B. Base de Datos
+    // 2. Actualización en Base de Datos
     await SolicitudModel.marcarComoAgendado(id, {
       tipo_asignado,
       cita_programada: fecha_cita,
       notas_seguimiento: instrucciones
     });
 
-    // LOG
+    // 3. Registro en Bitácora (LOG)
     LoggerService.log(
       req.user, 'AGENDAR', 'AGENDA', 
       `Agendó cita para solicitud ${id}`, 
       { fecha_cita, tipo: tipo_asignado }
     );
 
-    res.json({ success: true, message: 'Agendado y exportado.' });
+    // 4. Preparamos y enviamos el correo (Asíncrono)
+    // Validamos que exista el correo para evitar errores de la API
+    if (correoElectronico) {
+      const asunto = 'Actualización de Instrucciones - Plataforma SACRE';
+      const htmlBody = `
+        <h2>Hola, tienes nuevas instrucciones de CECAMED</h2>
+        <p>Se han generado las siguientes instrucciones para tu solicitud:</p>
+        <blockquote style="background: #f9f9f9; padding: 15px; border-left: 5px solid #ccc;">
+          ${instrucciones}
+        </blockquote>
+        <br/>
+        <p><small>Solicitud procesada por la Plataforma SACRE | CECAMED</small></p>
+      `;
+
+      // Fire and forget: disparamos la promesa pero no la esperamos (no hay 'await')
+      enviarCorreoNotificacion(correoElectronico, asunto, htmlBody)
+        .catch(err => console.error("Fallo silencioso en envío de correo:", err.message));
+    }
+
+    // 5. Respondemos al frontend una sola vez y de inmediato
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Cita agendada, exportada y notificación en proceso de envío.' 
+    });
+
   } catch (error) {
     console.error("Error Agendar:", error);
-    res.status(500).json({ error: 'Error al agendar.' });
+    // Un solo catch para atrapar errores de Sheets o DB
+    return res.status(500).json({ success: false, error: 'Error al agendar la cita.' });
   }
 };
 
