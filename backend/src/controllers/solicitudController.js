@@ -57,10 +57,15 @@ exports.actualizarSeguimiento = async (req, res) => {
 // Agendar cita: exporta a Excel y marca la solicitud como 'agendado'
 exports.agendarCita = async (req, res) => {
   const { id } = req.params;
-  // Asegurarse de extraer 'correoElectronico' de req.body o de 'datos_completos'
-  const { tipo_asignado, fecha_cita, instrucciones, datos_completos, correoElectronico } = req.body;
+  
+  // 1. Ya no intentamos sacar correoElectronico directamente del destructuring
+  const { tipo_asignado, fecha_cita, instrucciones, datos_completos } = req.body;
+
   try {
-    // 1. Guardado en Excel (Google Sheets)
+    // 2. Extraemos el correo de manera segura desde datos_completos
+    const correoDestino = req.body.correoElectronico || datos_completos?.correoElectronico;
+
+    // Guardado en Excel (Google Sheets)
     const expedienteFinal = {
       ...datos_completos,
       tipo_asignado,
@@ -70,48 +75,70 @@ exports.agendarCita = async (req, res) => {
     };
     await sheetsService.agregarAAgenda(expedienteFinal);
 
-    // 2. Actualización en Base de Datos
+    // Actualización en Base de Datos
     await SolicitudModel.marcarComoAgendado(id, {
       tipo_asignado,
       cita_programada: fecha_cita,
       notas_seguimiento: instrucciones
     });
 
-    // 3. Registro en Bitácora (LOG)
+    // Registro en Bitácora (LOG)
     LoggerService.log(
       req.user, 'AGENDAR', 'AGENDA', 
       `Agendó cita para solicitud ${id}`, 
       { fecha_cita, tipo: tipo_asignado }
     );
 
-    // 4. Preparamos y enviamos el correo (Asíncrono)
-    // Validamos que exista el correo para evitar errores de la API
-    if (correoElectronico) {
-      const asunto = 'Actualización de Instrucciones - Plataforma SACRE';
+    // 3. Evaluamos con la nueva variable 'correoDestino'
+    if (correoDestino) {
+      const asunto = 'CECAMED: Notificación de seguimiento a su solicitud';
+      // Personalización de datos
+      const nombreAtendido = `${datos_completos.nombre || ''} ${datos_completos.apellido_paterno || ''}`.trim() || 'Ciudadano';
+      // Usamos los últimos 6 caracteres del ID como un "Folio" temporal para que se vea formal
+      // Plantilla HTML Formal y Responsiva
       const htmlBody = `
-        <h2>Hola, tienes nuevas instrucciones de CECAMED</h2>
-        <p>Se han generado las siguientes instrucciones para tu solicitud:</p>
-        <blockquote style="background: #f9f9f9; padding: 15px; border-left: 5px solid #ccc;">
-          ${instrucciones}
-        </blockquote>
-        <br/>
-        <p><small>Solicitud procesada por la Plataforma SACRE | CECAMED</small></p>
+        <div style="font-family: Arial, Helvetica, sans-serif; color: #334155; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <div style="background-color: #0f172a; color: #ffffff; padding: 25px; text-align: center;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px;">Comisión Estatal de Conciliación y Arbitraje Médico</h2>
+            <p style="margin: 6px 0 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Plataforma Digital</p>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="font-size: 16px;">Estimado/a <strong>${nombreAtendido}</strong>,</p>
+            <p style="line-height: 1.6;">Por medio del presente comunicado se le notifica que su solicitud ha sido actualizada en nuestro sistema.</p>
+            <p style="line-height: 1.6;">Se han emitido las siguientes instrucciones oficiales respecto a su trámite:</p>
+
+            <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 20px; margin: 25px 0; border-radius: 0 6px 6px 0;">
+              <p style="margin: 0; font-size: 15px; color: #1e293b; font-style: italic; line-height: 1.6;">
+                "${instrucciones}"
+              </p>
+            </div>
+
+            <p style="line-height: 1.6;">Le sugerimos presentarse puntualmente y cumplir con los requisitos descritos para agilizar su atención en nuestras instalaciones.</p>
+            
+            <br/>
+            <p style="margin: 0; color: #64748b;">Atentamente,</p>
+            <p style="margin: 5px 0 0; font-weight: bold; color: #0f172a;">CECAMED Nayarit</p>
+          </div>
+
+          <div style="background-color: #f1f5f9; border-top: 1px solid #e2e8f0; padding: 15px; text-align: center;">
+            <p style="margin: 0; font-size: 11px; color: #94a3b8;">Este mensaje es generado automáticamente por la plataforma interna (SACRE). Por favor, evite responder a este correo.</p>
+          </div>
+        </div>
       `;
 
-      // Fire and forget: disparamos la promesa pero no la esperamos (no hay 'await')
-      enviarCorreoNotificacion(correoElectronico, asunto, htmlBody)
+      // Fire and forget
+      enviarCorreoNotificacion(correoDestino, asunto, htmlBody)
         .catch(err => console.error("Fallo silencioso en envío de correo:", err.message));
     }
 
-    // 5. Respondemos al frontend una sola vez y de inmediato
     return res.status(200).json({ 
       success: true, 
-      message: 'Cita agendada, exportada y notificación en proceso de envío.' 
+      message: 'Cita agendada, exportada y notificación procesada.' 
     });
 
   } catch (error) {
     console.error("Error Agendar:", error);
-    // Un solo catch para atrapar errores de Sheets o DB
     return res.status(500).json({ success: false, error: 'Error al agendar la cita.' });
   }
 };

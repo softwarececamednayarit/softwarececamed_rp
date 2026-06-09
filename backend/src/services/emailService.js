@@ -1,18 +1,15 @@
 const { google } = require('googleapis');
 
-// Inicializamos el cliente OAuth2 con las credenciales de tu .env
 const oAuth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI // Si no lo usas, puedes omitirlo
+  process.env.GOOGLE_REDIRECT_URI 
 );
 
-// Seteamos el refresh token que ya tienes
 oAuth2Client.setCredentials({
   refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
 });
 
-// Instanciamos la API de Gmail
 const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
 /**
@@ -23,32 +20,32 @@ const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
  */
 const enviarCorreoNotificacion = async (destinatario, asunto, contenidoHTML) => {
   try {
-    // La API de Gmail requiere que el correo esté en formato RFC 5322 y codificado en Base64 URL-safe.
+    // Solución para acentos en el asunto: Codificación MIME explícita para UTF-8
+    const asuntoCodificado = `=?utf-8?B?${Buffer.from(asunto, 'utf-8').toString('base64')}?=`;
+
     const rawMessage = [
       `To: ${destinatario}`,
-      `Subject: ${asunto}`,
+      `Subject: ${asuntoCodificado}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
       '',
       contenidoHTML,
     ].join('\n');
 
-    // Codificación segura para URLs
-    const encodedMessage = Buffer.from(rawMessage)
+    // Especificar explícitamente 'utf-8' al crear el buffer del mensaje completo
+    const encodedMessage = Buffer.from(rawMessage, 'utf-8')
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    // Llamada a la API de Google
     const response = await gmail.users.messages.send({
-      userId: 'me', // 'me' indica que se envíe desde la cuenta autenticada
+      userId: 'me',
       requestBody: {
         raw: encodedMessage,
       },
     });
 
-    console.log(`Correo enviado con éxito a ${destinatario}. ID: ${response.data.id}`);
     return { success: true, messageId: response.data.id };
 
   } catch (error) {
