@@ -2,8 +2,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatName } from './formatters';
 
-// --- CONFIGURACIÓN MODULAR DE CAMPOS PARA DOCUMENTOS ---
-
 // Configuración de secciones para el Acta
 const SECCIONES_CONFIG = {
   RECEPCION: {
@@ -60,6 +58,8 @@ const SECCIONES_CONFIG = {
 
 const CONFIG_CAMPOS_CARNET = [
   { label: 'NACIONALIDAD',        keys: ['nacionalidad'] },
+  { label: 'FOLIO DE ATENCIÓN', keys: ['no_asignado'] },
+  { label: 'FOLIO DE EXPEDIENTE', keys: ['servicio'] },
   { label: 'IDENTIFICACIÓN',      keys: ['identificacion', 'tipo_identificacion'] },
   { label: 'NO. IDENTIFICACIÓN',  keys: ['no_identificacion', 'num_identificacion'] },
   { label: 'CURP',                keys: ['curp'] },
@@ -452,20 +452,26 @@ export const generarPDFActa = (exp) => {
 };
 
 // ===========================================================================
-// 3. GENERACIÓN DE CARNETS DE SEGUIMIENTO (DISEÑO FORMAL)
+// 3. GENERACIÓN DE CARNETS DE SEGUIMIENTO (DISEÑO FORMAL OPTIMIZADO)
 // ===========================================================================
 export const generarPDFCarnet = (exp, notaSeguimientoSeleccionada) => {
   const doc = new jsPDF({ orientation: 'portrait' });
 
-  const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'seguimiento').toLowerCase();
-  const tituloDocumento = `CARNET DE SEGUIMIENTO DE ${tipoAsunto.toUpperCase()}`;
+  const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'seguimiento').toUpperCase();
+  const tituloDocumento = `CARNET DE SEGUIMIENTO DE ${tipoAsunto}`;
+
+  // 1. PREPARACIÓN INSTITUCIONAL (Al principio para evitar superposición de capas)
+  encapsularDiseñoInstitucional(doc, tipoAsunto);
 
   const copiaExpediente = { 
     ...exp, 
     notas_seguimiento: notaSeguimientoSeleccionada || exp.notas_seguimiento 
   };
 
+  // 2. RECOPILACIÓN DE DATOS (Bloque único continuo, sin divisiones por secciones)
   const filasTabla = [];
+
+  // Carga del resto de los campos base del carnet
   CONFIG_CAMPOS_CARNET.forEach(campo => {
     const valor = buscarValorCampo(copiaExpediente, campo.keys);
     if (valor) {
@@ -473,69 +479,72 @@ export const generarPDFCarnet = (exp, notaSeguimientoSeleccionada) => {
     }
   });
 
-  // Título elegante
+  // Título alineado al estándar del Acta
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(20, 20, 20);
-  doc.text(tituloDocumento, 105, 48, { align: 'center' });
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineWidth(0.3);
-  doc.line(15, 52, 195, 52);
+  doc.text(tituloDocumento, 105, 35, { align: 'center' });
 
-  // Tabla principal
+  // 3. TABLA PRINCIPAL DE CONTENIDO
   autoTable(doc, {
-    startY: 57,
+    startY: 45,
     body: filasTabla,
     theme: 'plain',
     styles: { 
-      fontSize: 10, 
-      cellPadding: { top: 4, right: 2, bottom: 4, left: 0 }, 
+      fontSize: 9, // Consistencia de tamaño con el acta
+      cellPadding: { top: 3, bottom: 3, left: 0, right: 2 }, 
       lineColor: [220, 220, 220], 
       lineWidth: { bottom: 0.2 }, 
       valign: 'top',
       font: 'helvetica'
     },
     columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 55, textColor: [40, 40, 40] },
-      1: { cellWidth: 125, textColor: [0, 0, 0], halign: 'justify' }
+      0: { fontStyle: 'bold', cellWidth: 50, textColor: [70, 70, 70] }, // Estilo elegante grisáceo
+      1: { cellWidth: 130, textColor: [0, 0, 0], halign: 'justify' }
     },
-    margin: { left: 15, right: 15, top: 55, bottom: 65 }
+    margin: { left: 15, right: 15, top: 15, bottom: 25 }
   });
 
-  // --- FIRMAS (Dibujadas con coordenadas fijas para evitar desfases) ---
-  const esQueja = tipoAsunto.includes('queja');
+  // 4. BLOQUE DE FIRMAS (Migrado a autoTable para controlar saltos de página de forma automática)
+  const esQueja = tipoAsunto.includes('QUEJA');
   const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
   const firmaIzquierda = `TITULAR DE LA UNIDAD DE\n${unidadTexto}`;
   const firmaDerecha = `AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`;
   const firmaCentro = `FIRMA DEL ${ETIQUETA_FIRMA_USUARIO}`;
 
-  let y = doc.lastAutoTable.finalY + 20;
+  let startYFirmas = doc.lastAutoTable.finalY + 15;
   
-  // Si no hay espacio suficiente, saltamos página
-  if (y > 220) {
-    doc.addPage();
-    y = 30;
+  // Validación de espacio disponible para el bloque de firmas completo
+  if (startYFirmas + 35 > 275) { 
+    doc.addPage(); 
+    startYFirmas = 25; 
   }
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(20, 20, 20);
-
-  // 1. Líneas y texto de Titular y Auxiliar
-  doc.setDrawColor(0, 0, 0);
-  doc.line(30, y, 80, y);     // Línea Titular
-  doc.line(130, y, 180, y);   // Línea Auxiliar
-  
-  doc.text(firmaIzquierda, 55, y + 5, { align: 'center' });
-  doc.text(firmaDerecha, 155, y + 5, { align: 'center' });
-
-  // 2. Línea y texto de Compareciente (Centrado abajo)
-  const yCentro = y + 30;
-  doc.line(80, yCentro, 130, yCentro);
-  doc.text(firmaCentro, 105, yCentro + 5, { align: 'center' });
-
-  // Aplicar el pie de página institucional al final
-  encapsularDiseñoInstitucional(doc, tipoAsunto);
+  autoTable(doc, {
+    startY: startYFirmas,
+    body: [
+      ['___________________________________', '___________________________________'],
+      [firmaIzquierda, firmaDerecha],
+      ['', ''], 
+      ['', '___________________________________'],
+      ['', firmaCentro]
+    ],
+    theme: 'plain',
+    styles: { 
+      halign: 'center', 
+      fontSize: 9, 
+      cellPadding: 1, 
+      valign: 'top', 
+      font: 'helvetica', 
+      textColor: [20, 20, 20] 
+    },
+    columnStyles: { 
+      0: { cellWidth: 90 }, 
+      1: { cellWidth: 90 } 
+    },
+    margin: { left: 15, right: 15 },
+    pageBreak: 'avoid' // Previene que las firmas se dividan entre dos páginas
+  });
 
   doc.save(`Carnet_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`);
 };
