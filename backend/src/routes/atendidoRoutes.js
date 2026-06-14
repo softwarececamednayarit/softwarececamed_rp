@@ -49,8 +49,8 @@ router.get('/:id/seguimientos', atendidoController.getSeguimientos);
 router.post('/:id/seguimientos', atendidoController.addSeguimiento);
 
 // Rutas exclusivas para el Representante
-router.get('/:id/representante', AtendidoController.getRepresentante);
-router.post('/:id/representante', AtendidoController.addRepresentante);
-router.put('/:id/representante', AtendidoController.updateRepresentante);
+router.get('/:id/representante', atendidoController.getRepresentante);
+router.post('/:id/representante', atendidoController.addRepresentante);
+router.put('/:id/representante', atendidoController.updateRepresentante);
 
 module.exports = router;
