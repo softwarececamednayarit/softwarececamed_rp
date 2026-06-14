@@ -346,6 +346,58 @@ const getSeguimientos = async (req, res) => {
   }
 };
 
+// =========================================================================
+// CONTROLADORES DE REPRESENTANTE
+// =========================================================================
+const getRepresentante = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const representante = await AtendidoModel.getRepresentante(id);
+    
+    if (!representante) {
+      return res.status(404).json({ message: 'No se encontró representante para este expediente.' });
+    }
+    
+    res.status(200).json(representante);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+const addRepresentante = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    
+    const nuevoRepresentante = await AtendidoModel.addRepresentante(id, data);
+    res.status(201).json({ 
+      message: 'Representante agregado exitosamente.', 
+      representante: nuevoRepresentante 
+    });
+  } catch (error) {
+    // Manejar específicamente el error de duplicidad
+    if (error.message.includes('ya cuenta con un representante')) {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+}
+
+const updateRepresentante = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    
+    const representanteActualizado = await AtendidoModel.updateRepresentante(id, data);
+    res.status(200).json({ 
+      message: 'Representante actualizado exitosamente.', 
+      representante: representanteActualizado 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 module.exports = {
   getAtendidos,
   getAtendidoById,
@@ -359,5 +411,8 @@ module.exports = {
   migrarExpedientes,
   deleteExpediente,
   addSeguimiento,
-  getSeguimientos
+  getSeguimientos,
+  getRepresentante,
+  addRepresentante,
+  updateRepresentante
 };

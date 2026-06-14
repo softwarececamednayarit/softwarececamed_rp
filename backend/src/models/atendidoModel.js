@@ -208,6 +208,51 @@ class AtendidoModel {
     }
   }
 
+  // Consultar el representante de un expediente
+  static async getRepresentante(id) {
+    try {
+      const doc = await db.collection('expedientes_detalle').doc(id).get();
+      if (!doc.exists) return null;
+      
+      const data = doc.data();
+      return data.representante || null; // Devuelve el map si existe, o null
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.getRepresentante: ' + error.message);
+    }
+  }
+
+  // Agregar representante (verifica si ya existe uno antes de agregarlo)
+  static async addRepresentante(id, data) {
+    try {
+      const docRef = db.collection('expedientes_detalle').doc(id);
+      const doc = await docRef.get();
+
+      // Si el documento existe y ya tiene el mapa "representante"
+      if (doc.exists && doc.data().representante) {
+        throw new Error('Este expediente ya cuenta con un representante registrado.');
+      }
+
+      // Se usa merge: true para inyectar el mapa sin sobreescribir el resto del documento
+      await docRef.set({ representante: data }, { merge: true });
+      return data;
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.addRepresentante: ' + error.message);
+    }
+  }
+
+  // Actualizar representante (reemplaza los datos del map actual)
+  static async updateRepresentante(id, data) {
+    try {
+      const docRef = db.collection('expedientes_detalle').doc(id);
+      
+      // Firestore reemplazará el mapa "representante" con el nuevo objeto "data"
+      await docRef.set({ representante: data }, { merge: true });
+      return data;
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.updateRepresentante: ' + error.message);
+    }
+  }
+
 }
 
 module.exports = AtendidoModel;

@@ -48,4 +48,9 @@ router.delete('/:id', atendidoController.deleteExpediente);
 router.get('/:id/seguimientos', atendidoController.getSeguimientos);
 router.post('/:id/seguimientos', atendidoController.addSeguimiento);
 
+// Rutas exclusivas para el Representante
+router.get('/:id/representante', AtendidoController.getRepresentante);
+router.post('/:id/representante', AtendidoController.addRepresentante);
+router.put('/:id/representante', AtendidoController.updateRepresentante);
+
 module.exports = router;
