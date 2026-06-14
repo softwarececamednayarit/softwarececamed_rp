@@ -352,7 +352,7 @@ const getSeguimientos = async (req, res) => {
 const getRepresentante = async (req, res) => {
   try {
     const { id } = req.params;
-    const representante = await AtendidoModel.getRepresentante(id);
+    const representante = await Atendido.getRepresentante(id);
     
     if (!representante) {
       return res.status(404).json({ message: 'No se encontró representante para este expediente.' });
@@ -369,7 +369,7 @@ const addRepresentante = async (req, res) => {
     const { id } = req.params;
     const data = req.body;
     
-    const nuevoRepresentante = await AtendidoModel.addRepresentante(id, data);
+    const nuevoRepresentante = await Atendido.addRepresentante(id, data);
     res.status(201).json({ 
       message: 'Representante agregado exitosamente.', 
       representante: nuevoRepresentante 
@@ -388,7 +388,7 @@ const updateRepresentante = async (req, res) => {
     const { id } = req.params;
     const data = req.body;
     
-    const representanteActualizado = await AtendidoModel.updateRepresentante(id, data);
+    const representanteActualizado = await Atendido.updateRepresentante(id, data);
     res.status(200).json({ 
       message: 'Representante actualizado exitosamente.', 
       representante: representanteActualizado 
