@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Fingerprint, Loader2, Layout, FileEdit, Ban, Save, Trash2, Copy 
+  X, Fingerprint, Loader2, Layout, FileEdit, Ban, Save, Trash2, Copy, Users 
 } from 'lucide-react';
 import { getStatusColor } from '../utils/formatters';
 import { AtendidosService } from '../services/atendidosService'; 
@@ -11,12 +11,13 @@ import Swal from 'sweetalert2';
 // Subcomponentes importados
 import { DetailGeneralTab } from './DetailGeneralTab';
 import { DetailPadronTab } from './DetailPadronTab';
+import { DetailRepresentanteTab } from './DetailRepresentanteTab';
 
 // Modal de detalle completo de expediente.
 // Props:
 // - item: registro base (necesita `id`) para cargar datos completos
 // - onClose: función para cerrar el modal
-// - initialTab: 'general' | 'padron' (pestaña inicial)
+// - initialTab: 'general' | 'padron' | 'representante' (pestaña inicial)
 // Comportamiento: carga datos completos desde el servicio, permite editar padrón y administrar estado.
 export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   if (!item) return null;
@@ -34,6 +35,8 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
 
   const [statusSiremed, setStatusSiremed] = useState('PENDIENTE');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const [representanteData, setRepresentanteData] = useState(null);
 
   const [padronForm, setPadronForm] = useState({
     tipo_beneficiario: '', criterio_seleccion: '', tipo_apoyo: '', monto_apoyo: '',
@@ -64,6 +67,11 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
           setFullData(data);
           setStatusSiremed(data.estatus_siremed || 'PENDIENTE');
           
+          // Guardar datos del representante si existen en la respuesta
+          if (data.representante) {
+            setRepresentanteData(data.representante);
+          }
+
           const espViene = data.especialidad || '';
           if (espViene && !ESPECIALIDADES_LISTA.includes(espViene)) setIsOtherSpecialty(true);
 
@@ -123,13 +131,10 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
   }, [item.id]);
 
   // --- HANDLERS ---
-  // handleInputChange: actualiza el estado controlado `padronForm`.
-  // Convierte checks a booleanos y normaliza folios a mayúsculas.
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     let val = type === 'checkbox' ? checked : value;
 
-    // AGREGAR ESTA CONDICIÓN PARA EL FOLIO
     if (name === 'servicio' && typeof val === 'string') {
         val = val.toUpperCase().trim();
     }
@@ -144,8 +149,6 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     });
   };
 
-  // handleStatusChange: actualiza el estatus SIREMED en backend
-  // y refleja el resultado en `statusSiremed` y `fullData`.
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     try {
@@ -161,8 +164,6 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
-  // handleSpecialtyChange: si el usuario elige 'OTROS' activa el input libre
-  // para escribir una especialidad no listada.
   const handleSpecialtyChange = (e) => {
     const val = e.target.value;
     if (val === 'OTROS') {
@@ -174,8 +175,6 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
-  // handleSubmotivoSelectorChange: similar a specialty, activa el input
-  // 'OTRO (ESPECIFIQUE)' cuando corresponde.
   const handleSubmotivoSelectorChange = (e) => {
     const val = e.target.value;
     if (val === 'OTRO (ESPECIFIQUE)') {
@@ -187,27 +186,22 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
-  // handleSavePadron: persiste los cambios del formulario `padronForm`.
-  // Actualiza `fullData` localmente y cierra el modo edición en caso de éxito.
   const handleSavePadron = async () => {
     try {
       setSaving(true);
       await AtendidosService.updatePadron(item.id, padronForm);
-      toast("✅ Información actualizada correctamente.");
+      toast.success("Información actualizada correctamente.");
       setFullData(prev => ({ ...prev, ...padronForm }));
       setIsEditingPadron(false); 
     } catch (error) {
       console.error(error);
-      toast.error("❌ Error al guardar la información.");
+      toast.error("Error al guardar la información.");
     } finally {
       setSaving(false);
     }
   };
 
-  // handleDelete: muestra confirmación y, si confirma, elimina el expediente.
-  // Notifica al usuario con toasts y cierra el modal tras eliminar.
   const handleDelete = async () => {
-    // 1. Configuramos la alerta moderna
     const result = await Swal.fire({
       title: '¿ELIMINAR ESTE EXPEDIENTE?',
       html: `
@@ -220,24 +214,21 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
       `,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#e11d48', // Un rojo intenso para peligro
+      confirmButtonColor: '#e11d48', 
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
       customClass: {
-        popup: 'rounded-3xl' // Para que combine con tus otros modales
+        popup: 'rounded-3xl' 
       }
     });
 
-    // 2. Si el usuario cierra o cancela, detenemos la ejecución
     if (!result.isConfirmed) return;
 
-    // 3. Si confirmó, procedemos con la lógica que ya tenías
     try {
       setIsDeleting(true);
       await AtendidosService.deleteAtendido(item.id);
       
-      // Cambiamos el toast genérico por uno de éxito (en verde)
       toast.success("Expediente eliminado correctamente.");
       onClose(); 
     } catch (error) {
@@ -248,8 +239,6 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
     }
   };
 
-  // handleCopyForPlatform: copia los datos básicos del expediente al portapapeles
-  // (útil para pegar en otras plataformas o reportes rápidos).
   const handleCopyForPlatform = async () => {
     try {
       document.body.style.cursor = 'wait';
@@ -323,20 +312,27 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
              </div>
           </div>
 
-          <div className="flex gap-4 mt-8 border-b border-white/10">
+          <div className="flex gap-4 mt-8 border-b border-white/10 overflow-x-auto custom-scrollbar">
             <button
               onClick={() => setActiveTab('general')}
-              className={`pb-3 text-sm font-bold transition-all relative ${activeTab === 'general' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+              className={`pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${activeTab === 'general' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
             >
               <span className="flex items-center gap-2"><Layout size={16}/> Vista General</span>
               {activeTab === 'general' && <span className="absolute bottom-0 left-0 w-full h-1 bg-indigo-500 rounded-t-full"></span>}
             </button>
             <button
               onClick={() => setActiveTab('padron')}
-              className={`pb-3 text-sm font-bold transition-all relative ${activeTab === 'padron' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+              className={`pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${activeTab === 'padron' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
             >
               <span className="flex items-center gap-2"><FileEdit size={16}/> Padrón y Clasificación</span>
               {activeTab === 'padron' && <span className="absolute bottom-0 left-0 w-full h-1 bg-emerald-500 rounded-t-full"></span>}
+            </button>
+            <button
+              onClick={() => setActiveTab('representante')}
+              className={`pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${activeTab === 'representante' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <span className="flex items-center gap-2"><Users size={16}/> Representante Legal</span>
+              {activeTab === 'representante' && <span className="absolute bottom-0 left-0 w-full h-1 bg-amber-500 rounded-t-full"></span>}
             </button>
           </div>
         </div>
@@ -364,6 +360,14 @@ export const DetailModal = ({ item, onClose, initialTab = 'general' }) => {
                 handleSubmotivoSelectorChange={handleSubmotivoSelectorChange}
                 isOtherSpecialty={isOtherSpecialty}
                 isOtherSubmotivo={isOtherSubmotivo}
+             />
+          )}
+
+          {activeTab === 'representante' && (
+             <DetailRepresentanteTab 
+                expedienteId={item.id} 
+                initialData={representanteData}
+                onSaveSuccess={(newData) => setRepresentanteData(newData)}
              />
           )}
         </div>
