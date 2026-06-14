@@ -136,6 +136,39 @@ export const AtendidosService = {
       console.error("Error en service addSeguimiento:", error);
       throw error;
     }
+  },
+
+  // 13. Obtener el representante del expediente
+  getRepresentante: async (id) => {
+    try {
+      const response = await api.get(`${ENDPOINT}/${id}/representante`);
+      return response.data;
+    } catch (error) {
+      console.error("Error en service getRepresentante:", error);
+      throw error;
+    }
+  },
+
+  // 14. Agregar un nuevo representante al expediente
+  addRepresentante: async (id, datosRepresentante) => {
+    try {
+      const response = await api.post(`${ENDPOINT}/${id}/representante`, datosRepresentante);
+      return response.data;
+    } catch (error) {
+      console.error("Error en service addRepresentante:", error);
+      throw error;
+    }
+  },
+
+  // 15. Actualizar el representante del expediente (Reemplazo de datos)
+  updateRepresentante: async (id, datosRepresentante) => {
+    try {
+      const response = await api.put(`${ENDPOINT}/${id}/representante`, datosRepresentante);
+      return response.data;
+    } catch (error) {
+      console.error("Error en service updateRepresentante:", error);
+      throw error;
+    }
   }
 
 };
