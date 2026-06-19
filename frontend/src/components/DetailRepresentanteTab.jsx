@@ -38,7 +38,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value.toUpperCase() })); // Convertimos a mayúsculas para mantener estándar
+    setFormData(prev => ({ ...prev, [name]: value })); // Convertimos a mayúsculas para mantener estándar
   };
 
   const handleSave = async () => {
@@ -135,7 +135,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500">Nombre Completo</label>
             {isEditing ? (
-              <input type="text" name="nombre_completo" value={formData.nombre_completo} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="EJ. JUAN PEREZ LOPEZ" />
+              <input type="text" name="nombre_completo" value={formData.nombre_completo} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ej. Juan Pérez López" />
             ) : (
               <p className="text-sm font-medium text-slate-800 p-2.5 bg-slate-50/50 rounded-xl border border-transparent">{formData.nombre_completo || 'N/A'}</p>
             )}
@@ -144,7 +144,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500">Parentesco / Relación</label>
             {isEditing ? (
-              <input type="text" name="parentezco" value={formData.parentezco} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="EJ. HIJO, ESPOSO, ABOGADO" />
+              <input type="text" name="parentezco" value={formData.parentezco} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ej. Hijo, esposo, abogado" />
             ) : (
               <p className="text-sm font-medium text-slate-800 p-2.5 bg-slate-50/50 rounded-xl border border-transparent">{formData.parentezco || 'N/A'}</p>
             )}
@@ -153,7 +153,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500">Causa de Representación</label>
             {isEditing ? (
-              <input type="text" name="causa_representacion" value={formData.causa_representacion} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="EJ. PACIENTE MENOR DE EDAD, DISCAPACIDAD" />
+              <input type="text" name="causa_representacion" value={formData.causa_representacion} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ej. Paciente menor de edad, discapacidad" />
             ) : (
               <p className="text-sm font-medium text-slate-800 p-2.5 bg-slate-50/50 rounded-xl border border-transparent">{formData.causa_representacion || 'N/A'}</p>
             )}
@@ -162,7 +162,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500">Documento de Acreditación</label>
             {isEditing ? (
-              <input type="text" name="acreditacion" value={formData.acreditacion} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="EJ. CARTA PODER, ACTA NACIMIENTO" />
+              <input type="text" name="acreditacion" value={formData.acreditacion} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ej. Carta Poder, Acta de Nacimiento" />
             ) : (
               <p className="text-sm font-medium text-slate-800 p-2.5 bg-slate-50/50 rounded-xl border border-transparent">{formData.acreditacion || 'N/A'}</p>
             )}
@@ -171,7 +171,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
           <div className="space-y-1 md:col-span-2">
             <label className="text-xs font-bold text-slate-500">Domicilio</label>
             {isEditing ? (
-              <input type="text" name="domicilio" value={formData.domicilio} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+              <input type="text" name="domicilio" value={formData.domicilio} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ej. Calle 123, Colonia XYZ" />
             ) : (
               <p className="text-sm font-medium text-slate-800 p-2.5 bg-slate-50/50 rounded-xl border border-transparent">{formData.domicilio || 'N/A'}</p>
             )}
@@ -180,7 +180,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500">Entidad / Estado</label>
             {isEditing ? (
-              <input type="text" name="entidad" value={formData.entidad} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+              <input type="text" name="entidad" value={formData.entidad} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ej. Nayarit" />
             ) : (
               <p className="text-sm font-medium text-slate-800 p-2.5 bg-slate-50/50 rounded-xl border border-transparent">{formData.entidad || 'N/A'}</p>
             )}
@@ -189,7 +189,7 @@ export const DetailRepresentanteTab = ({ expedienteId, initialData, onSaveSucces
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500">Municipio</label>
             {isEditing ? (
-              <input type="text" name="municipio" value={formData.municipio} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+              <input type="text" name="municipio" value={formData.municipio} onChange={handleChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ej. Tepic" />
             ) : (
               <p className="text-sm font-medium text-slate-800 p-2.5 bg-slate-50/50 rounded-xl border border-transparent">{formData.municipio || 'N/A'}</p>
             )}

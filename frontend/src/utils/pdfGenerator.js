@@ -5,53 +5,62 @@ import { formatName } from './formatters';
 // Configuración de secciones para el Acta
 const SECCIONES_CONFIG = {
   RECEPCION: {
-    titulo: '1. DATOS DE LA RECEPCIÓN',
-    campos: [
-      { label: 'Tipo de Asunto', key: 'tipo' },
-      { label: 'Fecha Recepción', key: 'fecha_recepcion' },
-      { label: 'Folio de atención', key: 'no_asignado' },
-      { label: 'Folio de expediente', key: 'servicio' },
-      { label: 'Forma Rec.', key: 'forma_recepcion' },
-      { label: 'Autoridad Sol.', key: 'autoridad_solicitante' }
+    titulo: 'DATOS DE LA RECEPCIÓN',
+    filas: [
+      [{ label: 'Tipo de asunto:', key: 'tipo' }],
+      [{ label: 'Forma de recepción:', key: 'forma_recepcion' }],
+      [{ label: 'Folio de atención:', key: 'no_asignado' }],
+      [{ label: 'Folio de expediente:', key: 'servicio' }],
+      [{ label: 'Fecha de registro:', key: 'fecha_recepcion' }]
     ]
   },
   USUARIO: {
-    titulo: '2. DATOS DEL USUARIO / PACIENTE',
-    campos: [
-      { label: 'Nombre Completo', key: 'nombre_completo' },
-      { label: 'Edad', key: 'edad_o_nacimiento' },
-      { label: 'Sexo', key: 'sexo' },
-      { label: 'CURP', key: 'curp' },
-      { label: 'Estado Civil', key: 'estado_civil' },
-      { label: 'Ocupación', key: 'ocupacion' },
-      { label: 'Domicilio', key: 'domicilio_ciudadano' },
-      { label: 'Municipio / Localidad', key: 'municipio_localidad' },
-      { label: 'Teléfono', key: 'telefono' },
-      { label: 'Correo', key: 'correo' },
-      { label: 'Representante', key: 'representante' },
-      { label: 'Parentesco', key: 'parentesco' }
+    titulo: 'DATOS DEL USUARIO',
+    filas: [
+      [{ label: 'Nombre:', key: 'nombre_completo' }],
+      [{ label: 'Sexo:', key: 'sexo' }, { label: 'Edad:', key: 'edad_o_nacimiento' }],
+      [{ label: 'Domicilio:', key: 'domicilio_ciudadano' }],
+      [{ label: 'Entidad:', key: 'entidad' }, { label: 'Municipio:', key: 'municipio_localidad' }],
+      [{ label: 'Teléfono:', key: 'telefono' }, { label: 'Nacionalidad:', key: 'nacionalidad' }],
+      [{ label: 'Identificación:', key: 'identificacion' }]
+    ]
+  },
+  REPRESENTANTE: {
+    titulo: 'DATOS DEL REPRESENTANTE',
+    // Esta sección tiene una condición, solo se procesa si devuelve true
+    condicion: (datos) => datos.rep_nombre_completo && datos.rep_nombre_completo !== '',
+    filas: [
+      [{ label: 'Nombre:', key: 'rep_nombre_completo' }],
+      [{ label: 'Domicilio:', key: 'rep_domicilio' }],
+      [{ label: 'Entidad:', key: 'rep_entidad' }, { label: 'Municipio:', key: 'rep_municipio' }],
+      [{ label: 'Teléfono:', key: 'rep_telefono' }, { label: 'Acreditación:', key: 'rep_acreditacion' }],
+      [{ label: 'Causa rep.:', key: 'rep_causa' }, { label: 'Parentesco:', key: 'rep_parentesco' }]
     ]
   },
   PRESTADOR: {
-    titulo: '3. DATOS DEL (LOS) PRESTADOR(ES)',
-    campos: [
-      { label: 'Médico / Inst.', key: 'medico_nombre' },
-      { label: 'Domicilio UM', key: 'unidad_medica_domicilio' },
-      { label: 'Especialidad', key: 'especialidad_medica' },
-      { label: 'Institución', key: 'institucion' }
+    titulo: 'PRESTADOR(ES) DEL(LOS) SERVICIO(S)',
+    filas: [
+      [{ label: 'Nombre:', key: 'medico_nombre' }],
+      [{ label: 'Domicilio:', key: 'unidad_medica_domicilio' }],
+      [{ label: 'Entidad:', key: 'pres_entidad' }, { label: 'Municipio:', key: 'pres_municipio' }],
+      [{ label: 'Teléfono:', key: 'pres_telefono' }],
+      [{ label: 'Sector:', key: 'sector' }],
+      [{ label: 'Tipo de Institución:', key: 'tipo_institucion' }],
+      [{ label: 'Institución:', key: 'institucion' }],
+      [{ label: 'Especialidad:', key: 'especialidad_medica' }]
     ]
   },
   ATENCION: {
-    titulo: '4. DATOS DE LA ATENCIÓN',
-    campos: [
-      { label: 'Motivo', key: 'motivo_principal' },
-      { label: 'Submotivo', key: 'submotivo' },
-      { label: 'Pretensiones', key: 'pretensiones' },
-      { label: 'Descripción Hechos', key: 'descripcion_hechos' },
-      { label: 'Diagnóstico', key: 'diagnostico' },
-      { label: 'Criterio Médico', key: 'criterio_medico' },
-      { label: 'Notas Seguimiento', key: 'notas_seguimiento' },
-      { label: 'Observaciones', key: 'observaciones_servicio' },
+    titulo: 'DATOS DE LA ATENCIÓN',
+    filas: [
+      [{ label: 'Motivo:', key: 'motivo_principal' }],
+      [{ label: 'Submotivo:', key: 'submotivo' }],
+      [{ label: 'Hechos:', key: 'descripcion_hechos' }],
+      [{ label: 'Diagnóstico:', key: 'diagnostico' }],
+      [{ label: 'Pretensiones:', key: 'pretensiones' }],
+      [{ label: 'Criterio Médico:', key: 'criterio_medico' }],
+      [{ label: 'Notas Seguimiento:', key: 'notas_seguimiento' }],
+      [{ label: 'Observaciones:', key: 'observaciones_servicio' }]
     ]
   }
 };
@@ -368,58 +377,103 @@ export const generarPDFMensual = (data, fechaInicio, fechaFin) => {
 export const generarPDFActa = (exp) => {
   const doc = new jsPDF({ orientation: 'portrait' });
   
-  // 1. PREPARACIÓN DE DATOS (Priorización y Normalización)
+  // Extraemos el mapa del representante (asegurando de que no de error si no existe)
+  const rep = exp.representante || {};
+
+  // 1. PREPARACIÓN Y NORMALIZACIÓN DE DATOS
   const expP = {
     ...exp,
-    nombre_completo: `${exp.nombre || ''} ${exp.apellido_paterno || ''} ${exp.apellido_materno || ''}`.trim(),
-    municipio_localidad: `${exp.municipio || ''} ${exp.localidad ? '(' + exp.localidad + ')' : ''}`.trim(),
-    ocupacion: exp.cargo_ocupacion || exp.ocupacion || 'No especificada',
-    monto_apoyo: exp.monto_apoyo ? `$${exp.monto_apoyo}` : 'N/A'
+    nombre_completo: `${exp.nombre || ''} ${exp.apellido_paterno || ''} ${exp.apellido_materno || ''}`.trim() || 'NO PROPORCIONÓ',
+    municipio_localidad: exp.municipio || exp.localidad || 'NO PROPORCIONÓ',
+    domicilio_ciudadano: exp.domicilio_ciudadano || exp.domicilio || 'NO PROPORCIONÓ',
+    entidad: exp.entidad || 'Nayarit', // Por defecto si así lo requiere
+    nacionalidad: exp.nacionalidad || 'Mexicana',
+    identificacion: exp.identificacion || 'NO PROPORCIONÓ',
+    
+    // --- Mapeo de Datos del Representante ---
+    rep_nombre_completo: rep.nombre_completo || '',
+    rep_domicilio: rep.domicilio || 'NO PROPORCIONÓ',
+    rep_entidad: rep.entidad || 'NO PROPORCIONÓ',
+    rep_municipio: rep.municipio || 'NO PROPORCIONÓ',
+    rep_telefono: rep.telefono || 'NO PROPORCIONÓ',
+    rep_causa: rep.causa_representacion || 'NO PROPORCIONÓ',
+    rep_acreditacion: rep.acreditacion || 'NO PROPORCIONÓ',
+    rep_parentesco: rep.parentezco || 'NO PROPORCIONÓ', // Ojo a tu typo original "parentezco"
   };
 
   const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'gestión').toUpperCase();
   const tituloDocumento = `ACTA DE ${tipoAsunto}`;
 
-  // Encabezado institucional (Logo)
-  encapsularDiseñoInstitucional(doc, tipoAsunto);
-
-  // Título elegante
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(20, 20, 20);
-  doc.text(tituloDocumento, 105, 35, { align: 'center' });
+  // Encabezado institucional (Asegúrate de tener esta función definida en tu código)
+  if (typeof encapsularDiseñoInstitucional === 'function') {
+     encapsularDiseñoInstitucional(doc, tipoAsunto);
+  }
 
   // 2. RENDERIZADO DE SECCIONES
-  let currentY = 45;
+  let currentY = 45; // Posición de inicio debajo del encabezado
+
   Object.values(SECCIONES_CONFIG).forEach((seccion) => {
-    // Si no hay espacio, nueva página
-    if (currentY > 240) {
+    // Si la sección tiene condición (como el Representante) y no se cumple, nos la saltamos
+    if (seccion.condicion && !seccion.condicion(expP)) return;
+
+    // Control de salto de página
+    if (currentY > 250) {
       doc.addPage();
       currentY = 20;
     }
 
-    // Título de Sección
-    doc.setFontSize(11);
+    // --- BARRA GRIS DE TÍTULO DE SECCIÓN (Similar a las imágenes) ---
+    doc.setFillColor(180, 180, 180); // Color de relleno gris claro
+    doc.rect(15, currentY, 180, 6, 'F'); // (x, y, ancho, alto, 'F' = Fill)
+    
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 51, 102); // Azul formal para títulos de sección
-    doc.text(seccion.titulo, 15, currentY);
+    doc.setTextColor(50, 50, 50); // Texto gris oscuro/casi negro
+    doc.text(seccion.titulo, 105, currentY + 4.5, { align: 'center' });
+    
+    currentY += 8; // Espaciado después del título
 
-    const filas = [];
-    seccion.campos.forEach(c => {
-      if (expP[c.key]) filas.push([c.label, expP[c.key]]);
+    // --- CONSTRUCCIÓN DEL CUERPO DE LA TABLA A 2 COLUMNAS ---
+    const filasTabla = [];
+    
+    seccion.filas.forEach(fila => {
+      let row = [];
+      if (fila.length === 1) {
+        // Fila que ocupa todo el ancho (1 Etiqueta + 1 Valor ancho)
+        row.push({ content: fila[0].label, styles: { fontStyle: 'bold' } });
+        row.push({ content: expP[fila[0].key] || '', colSpan: 3 });
+      } else if (fila.length === 2) {
+        // Fila dividida en dos columnas (Etiqueta 1 + Valor 1 | Etiqueta 2 + Valor 2)
+        row.push({ content: fila[0].label, styles: { fontStyle: 'bold' } });
+        row.push({ content: expP[fila[0].key] || '' });
+        row.push({ content: fila[1].label, styles: { fontStyle: 'bold' } });
+        row.push({ content: expP[fila[1].key] || '' });
+      }
+      filasTabla.push(row);
     });
 
-    // Tabla de sección
+    // --- TABLA INVISIBLE PARA ALINEAR TEXTOS ---
     autoTable(doc, {
-      startY: currentY + 3,
-      body: filas,
-      theme: 'plain',
-      styles: { fontSize: 9, cellPadding: { top: 2, bottom: 2 }, lineColor: [220, 220, 220], lineWidth: { bottom: 0.2 } },
-      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50, textColor: [70, 70, 70] }, 1: { cellWidth: 130 } },
-      margin: { left: 15, right: 15, top: 15, bottom: 25 },
+      startY: currentY,
+      body: filasTabla,
+      theme: 'plain', // Sin bordes ni estilos extraños
+      styles: { 
+        fontSize: 9, 
+        cellPadding: { top: 1, bottom: 1, left: 0, right: 0 }, 
+        textColor: [40, 40, 40],
+        font: 'helvetica'
+      },
+      // Forzamos anchos de columna para que parezca una cuadrícula de 2 columnas (A4 = ~210 ancho)
+      columnStyles: { 
+        0: { cellWidth: 35 },  // Label 1
+        1: { cellWidth: 65 },  // Value 1
+        2: { cellWidth: 35 },  // Label 2
+        3: { cellWidth: 45 }   // Value 2
+      },
+      margin: { left: 15, right: 15 },
     });
     
-    currentY = doc.lastAutoTable.finalY + 10;
+    currentY = doc.lastAutoTable.finalY + 5; // Actualizamos currentY con pequeño margen
   });
 
   // 3. FIRMAS
@@ -427,10 +481,10 @@ export const generarPDFActa = (exp) => {
   const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
   const firmaIzquierda = `TITULAR DE LA UNIDAD DE\n${unidadTexto}`;
   const firmaDerecha = `AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`;
-  const firmaCentro = `FIRMA DEL ${ETIQUETA_FIRMA_USUARIO}`;
+  const firmaCentro = `FIRMA DEL USUARIO / REPRESENTANTE`;
 
-  let startYFirmas = currentY + 10;
-  if (startYFirmas + 30 > 280) { doc.addPage(); startYFirmas = 20; }
+  let startYFirmas = currentY + 15;
+  if (startYFirmas + 35 > 280) { doc.addPage(); startYFirmas = 20; }
 
   autoTable(doc, {
     startY: startYFirmas,
@@ -442,12 +496,13 @@ export const generarPDFActa = (exp) => {
       ['', firmaCentro]
     ],
     theme: 'plain',
-    styles: { halign: 'center', fontSize: 9, cellPadding: 1, valign: 'top', font: 'helvetica', textColor: [20, 20, 20] },
+    styles: { halign: 'center', fontSize: 9, cellPadding: 1, font: 'helvetica', textColor: [20, 20, 20] },
     columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } },
     margin: { left: 15, right: 15 },
     pageBreak: 'avoid' 
   });
 
+  // Exportar Documento
   doc.save(`Acta_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`);
 };
 
