@@ -414,7 +414,7 @@ exports.generarReporteArchivos = async (listaDatos) => {
           dato.asunto || '',                           // Columna H: asunto
           dato.dirigidoA || '',                        // Columna I: dirigidoA
           dato.quienRecibe || '',                      // Columna J: quienRecibe
-          dato.url ? `=HYPERLINK("${dato.url}", "[enlace]")` : '', // Columna K: Hipervínculo a la URL de la BD
+          dato.url ? `=HYPERLINK("${dato.url}", "OFICIO")` : '', // Columna K: Hipervínculo a la URL de la BD
           dato.estatusActual || '',                    // Columna L: estatusActual
           dato.porcentajeAvance || '',                 // Columna M: porcentajeAvance
           dato.observaciones || ''                     // Columna N: observaciones
