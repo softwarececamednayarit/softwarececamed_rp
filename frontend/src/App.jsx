@@ -22,7 +22,7 @@ import Bitacora from './pages/Bitacora'; // 1. IMPORTAR BITÁCORA
 
 const AppContent = () => {
   const { user, loading, logout } = useAuth();
-  const [currentView, setCurrentView] = useState('atendidos');
+  const [currentView, setCurrentView] = useState('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // --- PANTALLA DE CARGA ---
