@@ -8,6 +8,15 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext'; 
 import solicitudesService from '../services/solicitudesService';
 
+// Arreglo derivado de tu MAPA_DESTINOS para renderizar las opciones únicas en el select
+const OPCIONES_TIPO_ASIGNADO = [
+  { id: 'ASESORIA', label: 'Asesorías' },
+  { id: 'GESTION', label: 'Gestiones' },
+  { id: 'QUEJA', label: 'Quejas' },
+  { id: 'ASESORÍA INMEDIATA', label: 'Asesorías inmediatas' },
+  { id: 'ORIENTACIÓN', label: 'Orientaciones' }
+];
+
 // Modal para gestionar una solicitud (llamadas, asignaciones, notas).
 // Props:
 // - solicitud: objeto con la información de la solicitud
@@ -21,6 +30,9 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
   const [statusLlamada, setStatusLlamada] = useState(solicitud.status_llamada || 'pendiente');
   const [notas, setNotas] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  
+  // === NUEVO ESTADO: Controla el tipo asignado para la cita ===
+  const [tipoAsignado, setTipoAsignado] = useState('ASESORIA'); 
   
   // Detectamos si es agendado para deshabilitar el flujo de llamadas
   const esAgendado = solicitud.status === 'agendado';
@@ -60,13 +72,13 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
     try {
       if (statusLlamada === 'contactado') {
         await solicitudesService.agendarCita(solicitud.id, {
-          tipo_asignado: 'ASESORIA',
+          tipo_asignado: tipoAsignado, // <-- Usamos el estado dinámico aquí
           fecha_cita: 'POR DEFINIR',
           instrucciones: instrucciones,
           datos_completos: solicitud 
         });
         
-        toast("✅ Solicitud procesada como ASESORÍA.");
+        toast(`✅ Solicitud procesada como ${tipoAsignado}.`);
         onRefresh(); 
         onClose();   
 
@@ -367,12 +379,22 @@ const GestionarSolicitudModal = ({ solicitud, onClose, onRefresh }) => {
                     <CheckCircle size={18} /> Asignar Cita
                   </h4>
                   
-                  <div className="mb-4 flex items-center justify-between bg-white/80 p-3 rounded-lg border border-green-100">
-                    <div>
-                      <label className="text-[10px] font-bold text-green-600 uppercase tracking-wider block">Tipo de Atención</label>
-                      <span className="font-black text-green-900 text-lg">ASESORÍA</span>
-                    </div>
-                    <span className="bg-green-200 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold">AUTOMÁTICO</span>
+                  {/* === SELECT DE TIPO DE ATENCIÓN AÑADIDO AQUÍ === */}
+                  <div className="mb-4 flex flex-col bg-white/80 p-3 rounded-lg border border-green-200 shadow-sm">
+                    <label className="text-[10px] font-bold text-green-600 uppercase tracking-wider block mb-1">
+                      Tipo de Atención
+                    </label>
+                    <select
+                      value={tipoAsignado}
+                      onChange={(e) => setTipoAsignado(e.target.value)}
+                      className="w-full p-2 rounded-md border border-green-300 text-sm font-black text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    >
+                      {OPCIONES_TIPO_ASIGNADO.map((opcion) => (
+                        <option key={opcion.id} value={opcion.id}>
+                          {opcion.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
