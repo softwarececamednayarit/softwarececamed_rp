@@ -5,6 +5,7 @@ import { DataTable } from '../components/DataTable';
 import DocumentosModal from '../components/DocumentosModal';
 import { SearchFilters } from '../components/SearchFilters';
 import { DetailModal } from '../components/DetailModal';
+import DocumentosQuejaModal from '../components/DocumentosQuejaModal';
 import { normalizeText } from '../utils/formatters';
 import { Users, MessageSquare, AlertCircle, Compass, RefreshCw, Briefcase, Zap, FileText, Scale } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -13,6 +14,7 @@ const Atendidos = () => {
   const [atendidos, setAtendidos] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [documentItem, setDocumentItem] = useState(null);
+  const [documentQuejaItem, setDocumentQuejaItem] = useState(null);
   const [loading, setLoading] = useState(true);
   
   const [filters, setFilters] = useState({ 
@@ -62,6 +64,21 @@ const Atendidos = () => {
       // 3. Ahora sí, seteamos el estado con los datos limpios
       setDocumentItem(finalData);
       
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error("Error al cargar datos completos:", err);
+      toast.error("No se pudo cargar la información del expediente", { id: toastId });
+    }
+  };
+
+  const handleDocumentQuejaClick = async (item) => {
+    const toastId = toast.loading("Cargando expediente para Queja...");
+    
+    try {
+      const dataCompleta = await AtendidosService.getCompleto(item.id);
+      const finalData = dataCompleta.data || dataCompleta;
+      
+      setDocumentQuejaItem(finalData); // Seteamos el estado del nuevo modal
       toast.dismiss(toastId);
     } catch (err) {
       console.error("Error al cargar datos completos:", err);
@@ -249,7 +266,8 @@ const Atendidos = () => {
               <DataTable 
                 data={dataFiltrada} 
                 onDetailClick={setSelectedItem} 
-                onDocumentClick={handleDocumentClick} // <--- AHORA LLAMA A NUESTRA FUNCIÓN
+                onDocumentClick={handleDocumentClick}
+                onDocumentQuejaClick={handleDocumentQuejaClick} // <--- AHORA LLAMA A NUESTRA FUNCIÓN
               />
             )}
           </div>
@@ -264,6 +282,14 @@ const Atendidos = () => {
           isOpen={!!documentItem} 
           onClose={() => setDocumentItem(null)} 
           item={documentItem} 
+        />
+      )}
+
+      {documentQuejaItem && (
+        <DocumentosQuejaModal 
+          isOpen={!!documentQuejaItem} 
+          onClose={() => setDocumentQuejaItem(null)} 
+          item={documentQuejaItem} 
         />
       )}
     </div>

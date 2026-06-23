@@ -5,8 +5,9 @@ import { Eye, FileText, Scale } from 'lucide-react';
 // Props:
 // - data: array de registros a mostrar
 // - onDetailClick: callback cuando se solicita ver detalle (recibe el item)
-// - onDocumentClick: callback cuando se solicita generar documentos (recibe el item) 👈 NUEVA PROP
-export const DataTable = ({ data, onDetailClick, onDocumentClick }) => {
+// - onDocumentClick: callback cuando se solicita generar documentos genéricos (recibe el item)
+// - onDocumentQuejaClick: callback específico para lanzar el futuro modal de Quejas (recibe el item) 👈 NUEVA PROP
+export const DataTable = ({ data, onDetailClick, onDocumentClick, onDocumentQuejaClick }) => {
 
   const getBadgeStyle = (tipoRaw) => {
     const tipo = (tipoRaw || '').toLowerCase();
@@ -47,6 +48,7 @@ export const DataTable = ({ data, onDetailClick, onDocumentClick }) => {
             {data.map((item) => {
               const badgeStyle = getBadgeStyle(item.tipo);
               const nombreCompleto = formatName(`${item.nombre} ${item.apellido_paterno} ${item.apellido_materno || ''}`);
+              const esQueja = (item.tipo || '').toLowerCase().includes('queja'); // 👈 Validación del tipo
 
               return (
                 <tr 
@@ -102,14 +104,26 @@ export const DataTable = ({ data, onDetailClick, onDocumentClick }) => {
                   <td className="px-6 py-5 whitespace-nowrap text-right pr-2">
                     <div className="inline-flex gap-2 justify-end w-full">
                       
-                      {/* 👇 NUEVO BOTÓN: GENERAR DOCUMENTACIÓN */}
+                      {/* 👇 BOTÓN: GENERAR DOCUMENTACIÓN CONDICIONAL */}
                       <button 
                         onClick={(e) => {
                           e.stopPropagation(); // Evita abrir el detalle de la fila completa
-                          onDocumentClick(item);
+                          
+                          // Lógica de bifurcación: Si es queja, lanza la prop nueva, si no, la normal.
+                          if (esQueja && onDocumentQuejaClick) {
+                            onDocumentQuejaClick(item);
+                          } else {
+                            onDocumentClick(item);
+                          }
                         }}
-                        className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm group-hover:scale-100 scale-95 opacity-0 group-hover:opacity-100"
-                        title="Generar Documentación"
+                        // Cambiamos sutilmente el color hover a rose si es queja para dar feedback visual
+                        className={`inline-flex items-center justify-center h-9 w-9 rounded-xl bg-white border border-slate-200 text-slate-400 transition-all shadow-sm group-hover:scale-100 scale-95 opacity-0 group-hover:opacity-100
+                          ${esQueja 
+                            ? 'hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50' 
+                            : 'hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50'
+                          }
+                        `}
+                        title={esQueja ? "Generar Documentación de Queja" : "Generar Documentación"}
                       >
                         <FileText size={16} />
                       </button>
