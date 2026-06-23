@@ -169,6 +169,28 @@ export const AtendidosService = {
       console.error("Error en service updateRepresentante:", error);
       throw error;
     }
+  },
+
+  // 16. Agregar nuevos datos de documentos al expediente
+  addDatosDocs: async (id, datosDocs) => {
+    try {
+      const response = await api.post(`${ENDPOINT}/${id}/datos-docs`, datosDocs);
+      return response.data;
+    } catch (error) {
+      console.error("Error en service addDatosDocs:", error);
+      throw error;
+    }
+  },
+
+  // 17. Actualizar los datos de documentos del expediente (Reemplazo de datos)
+  updateDatosDocs: async (id, datosDocs) => {
+    try {
+      const response = await api.put(`${ENDPOINT}/${id}/datos-docs`, datosDocs);
+      return response.data;
+    } catch (error) {
+      console.error("Error en service updateDatosDocs:", error);
+      throw error;
+    }
   }
 
 };
