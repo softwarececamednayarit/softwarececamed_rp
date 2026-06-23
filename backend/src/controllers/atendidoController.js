@@ -404,7 +404,7 @@ const addDatosDocs = async (req, res) => {
     const { id } = req.params;
     const datosDocs = req.body;
     
-    const resultado = await AtendidoModel.addDatosDocs(id, datosDocs);
+    const resultado = await Atendido.addDatosDocs(id, datosDocs);
     
     res.status(201).json({
       ok: true,
@@ -424,8 +424,8 @@ const updateDatosDocs = async (req, res) => {
     const { id } = req.params;
     const datosDocs = req.body;
     
-    const resultado = await AtendidoModel.updateDatosDocs(id, datosDocs);
-    
+    const resultado = await Atendido.updateDatosDocs(id, datosDocs);
+
     res.status(200).json({
       ok: true,
       message: 'Datos de documentos actualizados correctamente.',
