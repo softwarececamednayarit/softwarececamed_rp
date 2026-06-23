@@ -122,14 +122,24 @@ const obtenerMesAnio = (fechaString) => {
   return `${meses[parseInt(mes) - 1]} DE ${anio}`;
 };
 
-// --- AYUDANTE GLOBAL: INYECTOR DE ENCABEZADO Y PIE GUBERNAMENTAL ---
-const encapsularDiseñoInstitucional = (doc, tipoAsunto) => {
-  const totalPaginas = doc.internal.getNumberOfPages();
-  const esQueja = tipoAsunto.toLowerCase().includes('queja');
+const formatearFechaJuridica = (fechaIso) => {
+  if (!fechaIso) return '___ HORAS DEL DÍA ___ DE ___ DE ___';
+  const fecha = new Date(fechaIso);
   
-  const unidadTexto = esQueja 
-    ? 'UNIDAD DE CONCILIACIÓN Y ARBITRAJE MÉDICO' 
-    : 'UNIDAD DE ORIENTACIÓN';
+  const horas = String(fecha.getHours()).padStart(2, '0');
+  const minutos = String(fecha.getMinutes()).padStart(2, '0');
+  const dia = fecha.getDate();
+  const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+  const mes = meses[fecha.getMonth()];
+  const anio = fecha.getFullYear();
+
+  return `${horas}:${minutos} HORAS DEL DÍA ${dia} DE ${mes} DE ${anio}`;
+};
+
+// --- AYUDANTE GLOBAL: INYECTOR DE ENCABEZADO Y PIE GUBERNAMENTAL (ORIENTACIÓN / ASESORÍA) ---
+const encapsularDiseñoInstitucional = (doc) => {
+  const totalPaginas = doc.internal.getNumberOfPages();
+  const unidadTexto = 'UNIDAD DE ORIENTACIÓN';
 
   for (let i = 1; i <= totalPaginas; i++) {
     doc.setPage(i);
@@ -141,7 +151,6 @@ const encapsularDiseñoInstitucional = (doc, tipoAsunto) => {
     doc.addImage('/pie_acta_carnet.jpg', 'JPEG', 0, 251, 210, 46);
     
     // 3. Textos institucionales estampados EN CIMA del Pie de Página
-    // AJUSTE: Letra más pequeña y coordenadas Y desplazadas hacia abajo
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5); 
     doc.setTextColor(150, 150, 150); 
@@ -149,6 +158,37 @@ const encapsularDiseñoInstitucional = (doc, tipoAsunto) => {
     doc.text(`[${unidadTexto}]`, 105, 278, { align: 'center' });
     doc.text("Av. Jacarandas #204, San Juan C.P 63130 Tepic, Nayarit.", 105, 281.5, { align: 'center' });
     doc.text("3112103283 | 311 2104276", 105, 285, { align: 'center' });
+  }
+};
+
+// --- AYUDANTE GLOBAL: INYECTOR DE ENCABEZADO Y PIE CON AVISO DE PRIVACIDAD (QUEJAS) ---
+const encapsularDiseñoInstitucionalQueja = (doc) => {
+  const totalPaginas = doc.internal.getNumberOfPages();
+  
+  const avisoPrivacidadTitulo = "AVISO DE PRIVACIDAD";
+  const avisoPrivacidadCuerpo = "Los datos personales proporcionados a la COMISIÓN ESTATAL DE CONCILIACIÓN Y ARBITRAJE MÉDICO PARA EL ESTADO DE NAYARIT (CECAMED) ubicada en Av. Jacarandas # 204, C.P. 63130, colonia San Juan, de esta ciudad de Tepic, Nayarit, serán protegidos conforme a lo dispuesto por los artículos 16, 17, 18, fracción I incisos a, b y c de la Ley de Protección de Datos Personales en Posesión de los Sujetos Obligados para el Estado de Nayarit, y demás normatividad aplicable. Los servicios que brinda esta institución son gratuitos en términos de su artículo 6 del Reglamento de Procedimientos para la Atención de Quejas Médicas y Gestión Pericial de la Comisión Estatal de Conciliación y Arbitraje Médico para el Estado de Nayarit. Artículo 82 de Ley de Transparencia y Acceso a la Información Pública del Estado de Nayarit. La información confidencial que usted proporcione como usuario de los servicios que brinda la Comisión será utilizada únicamente para los efectos de una adecuada integración de su expediente de: Orientación, Asesoría, Gestión Inmediata, Queja, Conciliación o Arbitraje según sea el caso.";
+
+  for (let i = 1; i <= totalPaginas; i++) {
+    doc.setPage(i);
+    
+    // 1. Encabezado Oficial
+    doc.addImage('/encabezado_acta_carnet.png', 'PNG', 0, 0, 210, 43.8);
+    
+    // 2. Pie de Página
+    doc.addImage('/pie_acta_carnet.jpg', 'JPEG', 0, 251, 210, 46);
+    
+    // 3. Aviso de Privacidad
+    doc.setFont('calibri', 'bold'); 
+    doc.setFontSize(7);
+    doc.setTextColor(50, 50, 50); 
+    
+    // Título centrado
+    doc.text(avisoPrivacidadTitulo, 105, 255, { align: 'center' });
+    
+    // Cuerpo centrado con salto de línea automático
+    doc.setFont('calibri', 'normal');
+    doc.setFontSize(5);
+    doc.text(avisoPrivacidadCuerpo, 105, 258, { align: 'center', maxWidth: 190 });
   }
 };
 
@@ -504,6 +544,189 @@ export const generarPDFActa = (exp) => {
 
   // Exportar Documento
   doc.save(`Acta_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`);
+};
+
+
+export const generarPDFActaQueja = (exp) => {
+  const doc = new jsPDF({ orientation: 'portrait' });
+  
+  // 1. OBTENCIÓN DE DATOS
+  // Asumimos que los datos del modal vienen en exp.datos_docs, si no, usamos valores por defecto
+  const qData = exp.datos_docs || {};
+  const rep = exp.representante || {};
+
+  const nombreUsuario = `${exp.nombre || ''} ${exp.apellido_paterno || ''} ${exp.apellido_materno || ''}`.trim() || 'NO PROPORCIONÓ';
+  const fechaInicioFormal = formatearFechaJuridica(qData.fecha_hora_inicio);
+  const fechaConclusionFormal = formatearFechaJuridica(qData.fecha_hora_conclusion);
+  
+  // Si encapsularDiseñoInstitucionalQueja está definida, la llamamos
+  if (typeof encapsularDiseñoInstitucionalQueja === 'function') {
+      encapsularDiseñoInstitucionalQueja(doc);
+  }
+
+  let currentY = 50; // Comenzamos debajo del encabezado institucional
+
+  // --- AYUDANTE PARA IMPRIMIR TEXTO CON SALTO DE PÁGINA AUTOMÁTICO ---
+  const printText = (text, options = {}) => {
+    const { fontSize = 9, isBold = false, align = 'justify', x = 15, maxWidth = 180, lineSpacing = 5 } = options;
+    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+    doc.setFontSize(fontSize);
+    
+    const lines = doc.splitTextToSize(text, maxWidth);
+    const textHeight = lines.length * (fontSize * 0.35); // Aproximación de altura
+
+    if (currentY + textHeight > 240) { // Margen inferior antes del pie de página
+      doc.addPage();
+      currentY = 50; // Reset Y debajo del encabezado en la nueva página
+    }
+    
+    doc.text(lines, x, currentY, { align, maxWidth });
+    currentY += textHeight + lineSpacing;
+  };
+
+  // 2. ENCABEZADO DEL DOCUMENTO
+  printText('ACTA DE QUEJA', { fontSize: 12, isBold: true, align: 'center' });
+  currentY -= 2;
+  printText(`NÚMERO DE EXPEDIENTE: ${exp.folio || 'S/N'}`, { align: 'right', isBold: true });
+  currentY -= 2;
+  printText(`FECHA DE REGISTRO: ${exp.fecha_recepcion || 'S/F'}`, { align: 'right', isBold: true });
+  currentY += 5;
+
+  // 3. TABLAS DE DATOS (Usando autoTable para las fichas técnicas)
+  const themePlano = {
+    theme: 'plain',
+    styles: { fontSize: 8, cellPadding: 1, textColor: [40, 40, 40], font: 'helvetica' },
+    margin: { left: 15, right: 15 }
+  };
+
+  // 3.1 Datos del Usuario
+  autoTable(doc, {
+    ...themePlano,
+    startY: currentY,
+    body: [
+      [{ content: 'DATOS DEL USUARIO DE LOS SERVICIOS MÉDICOS', colSpan: 4, styles: { fontStyle: 'bold', fillColor: [230, 230, 230] } }],
+      ['NOMBRE:', nombreUsuario, 'SEXO:', exp.sexo || ''],
+      ['EDAD:', `${exp.edad_o_nacimiento || ''} AÑOS`, 'DOMICILIO:', exp.domicilio_ciudadano || exp.domicilio || ''],
+      ['MUNICIPIO:', exp.municipio || exp.localidad || '', 'ESTADO CIVIL:', exp.estado_civil || ''],
+      ['TELÉFONO:', exp.telefonoFijo || '', 'CELULAR:', exp.telefonoCel || exp.telefono || ''],
+      ['ENTIDAD:', exp.entidad || 'NAYARIT', 'INSTITUCIÓN:', exp.institucion || ''],
+      ['AFILIACIÓN:', exp.afiliacion || '', 'IDENTIFICACIÓN:', exp.identificacion || ''],
+      ['CURP:', exp.curp || '', '', '']
+    ]
+  });
+  currentY = doc.lastAutoTable.finalY + 5;
+
+  // 3.2 Datos del Promovente (Representante)
+  if (rep.nombre_completo) {
+    autoTable(doc, {
+      ...themePlano,
+      startY: currentY,
+      body: [
+        [{ content: 'DATOS DEL PROMOVENTE', colSpan: 4, styles: { fontStyle: 'bold', fillColor: [230, 230, 230] } }],
+        ['NOMBRE:', rep.nombre_completo, 'EDAD:', rep.edad || ''],
+        ['DOMICILIO:', rep.domicilio || '', 'TELÉFONO:', rep.telefono || ''],
+        ['DOCUMENTO DE ACREDITACIÓN:', rep.acreditacion || '', '', '']
+      ]
+    });
+    currentY = doc.lastAutoTable.finalY + 5;
+  }
+
+  // 3.3 Datos del Prestador del Servicio
+  autoTable(doc, {
+    ...themePlano,
+    startY: currentY,
+    body: [
+      [{ content: 'PRESTADOR DEL SERVICIO', colSpan: 4, styles: { fontStyle: 'bold', fillColor: [230, 230, 230] } }],
+      ['NOMBRE:', qData.contra_quien || exp.medico_nombre || '', 'ESPECIALIDAD:', qData.profesion_especialidad || ''],
+      ['DOMICILIO:', exp.medico_domicilio || '', 'TELÉFONO:', exp.medico_telefono || '']
+    ]
+  });
+  currentY = doc.lastAutoTable.finalY + 5;
+
+  // 3.4 Personal de la Comisión
+  autoTable(doc, {
+    ...themePlano,
+    startY: currentY,
+    body: [
+      [{ content: 'PERSONAL QUE RECIBE Y ATIENDE LA QUEJA', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [230, 230, 230] } }],
+      ['FORMA DE RECEPCIÓN:', exp.forma_recepcion || 'PRESENCIAL'],
+      ['CONSULTOR MÉDICO:', qData.consultor_medico || 'DRA. AMERICA IVONNE GAMEROS ORTIZ'],
+      ['CONSULTOR JURÍDICO:', qData.consultor_juridico || 'LCDA. ROSA GLORIA AGUILAR SARTIAGUÍN']
+    ]
+  });
+  currentY = doc.lastAutoTable.finalY + 8;
+
+  // 4. DECLARACIONES Y HECHOS (Narrativa)
+  printText(`SIENDO LAS ${fechaInicioFormal}, EL USUARIO DE SERVICIO MÉDICO C. ${nombreUsuario}, CON EL CARÁCTER Y DOMICILIO ARRIBA SEÑALADOS, ME PRESENTO ANTE ESTA COMISIÓN ESTATAL DE ARBITRAJE MÉDICO, MANIFIESTO QUE ES MI VOLUNTAD INICIAR TRÁMITE DE INCONFORMIDAD EN CONTRA DEL PRESTADOR DE SERVICIO ANTES MENCIONADO, POR ACTOS MÉDICOS QUE PUDIERAN ENTRAÑAR MALA PRÁCTICA.`);
+  
+  printText('EN ESOS TÉRMINOS MANIFIESTO BAJO PROTESTA DE DECIR LA VERDAD QUE HE SIDO INFORMADA DE LO SIGUIENTE:', { isBold: true });
+  
+  const disclaimers = [
+    "A) EL ARBITRAJE ES UNA INSTITUCIÓN CIVIL, QUE PERMITE LA SOLUCIÓN DE LAS DIFERENCIAS ENTRE LAS PARTES.",
+    "B) LAS ETAPAS DE PROCEDIMIENTO ARBITRAL ANTE ESTA COMISIÓN NACIONAL, SON DOS: LA CONCILIATORIA EN QUE SE BUSCARÁ EL AVENIMIENTO DE LAS PARTES, SIN PREJUZGAR SOBRE EL FONDO DE LOS HECHOS Y EN SU CASO, SE PODRÁ OBTENER UN CONVENIO QUE TENDRÁ POR OBJETO DAR FIN A LA CONTROVERSIA, EN LOS TÉRMINOS ACORDADOS POR LAS PARTES. LA SEGUNDA ETAPA TENDRÁ POR FINALIDAD BUSCAR EL PRONUNCIAMIENTO ARBITRAL, BAJO LA MODALIDAD QUE ACORDEMOS LAS PARTES (ESTRICTO DERECHO O EN CONCIENCIA).",
+    "C) QUE, TRATÁNDOSE DE UN MEDIO ALTERNO PARA LA SOLUCIÓN DE CONTROVERSIAS, LAS REGLAS DEL PROCEDIMIENTO, ESTARÁN SUJETAS, NECESARIAMENTE, A LA ACEPTACIÓN DEL PRESTADOR DEL SERVICIO.",
+    "D) QUE AL COMPROMETER EN ÁRBITROS SE GENERAN OBLIGACIONES PARA LAS PARTES (AJUSTARSE A LO PACTADO PARA EL PROCEDIMIENTO, ATENDER LOS REQUERIMIENTOS DE CECAMED), EN LA INTELIGENCIA QUE DURANTE SU TRAMITACIÓN NO PODRÁ SER VENTILADA LA CONTROVERSIA ANTE OTRA INSTANCIA, POR ELLO MANIFIESTO QUE NO EXISTE JUICIO PENDIENTE DE TRÁMITE.",
+    "E) QUE EL ARBITRAJE MÉDICO OPERA BAJO REGLAS DE ESTRICTA CONFIDENCIALIDAD, POR ELLO EXCEPCIONALMENTE PODRÁ HACERSE PÚBLICA LA INFORMACIÓN Y RESOLUCIÓN ARBITRALES, CUANDO EXISTA INCUMPLIMIENTO DE OBLIGACIONES Y SOLO PARA BUSCAR SU CUMPLIMIENTO, DE NINGUNA SUERTE PARA AFECTAR LA IMAGEN PÚBLICA DE LAS PARTES, APELANDO A LAS REGLAS QUE RIGEN EL SECRETO PROFESIONAL MÉDICO."
+  ];
+
+  disclaimers.forEach(d => printText(d, { x: 20, maxWidth: 170 }));
+
+  printText('DEBIDAMENTE ENTERADA DE LO ANTERIOR, ACEPTO, DE MI LIBRE Y ESPONTÁNEA VOLUNTAD LAS REGLAS ANTERIORMENTE ENUNCIADAS.', { isBold: true });
+  
+  printText(`CONFORME A LO ANTERIOR MANIFIESTO QUE EL MOTIVO DE LA QUEJA ES: ${qData.motivo_queja || exp.submotivo_catalogo || '---'}, EN BASE A LO SIGUIENTE:`);
+
+  // HECHOS
+  printText('H E C H O S', { align: 'center', isBold: true, fontSize: 10, lineSpacing: 6 });
+  
+  const narrativaHechos = `MI NOMBRE ES ${nombreUsuario}, DE ${exp.edad_o_nacimiento || '___'} AÑOS DE EDAD, QUIEN ME PRESENTO A ESTA COMISIÓN A INTERPONER MI INCONFORMIDAD EN CONTRA DEL ${qData.contra_quien || '___'}, ${qData.profesion_especialidad || '___'}. ${qData.hechos_ocurridos || 'NO SE REDACTARON HECHOS.'}`;
+  printText(narrativaHechos);
+
+  printText(`POR LO ANTERIOR SOLICITO: ${qData.pretensiones_generales || exp.pretensiones || '---'}`);
+
+  printText('CON APOYO DE LOS HECHOS Y PRECEPTOS JURÍDICOS SEÑALADOS, SOLICITO A ESTA COMISIÓN ESTATAL DE ARBITRAJE MÉDICO, INTERVENGA EN MI ASUNTO EN RELACIÓN AL (LOS) PRESTADOR (ES) DE SERVICIOS CITADO (S), REQUIRIÉNDOLE :');
+
+  const peticionesLegales = [
+    "PRIMERA.- TENER POR PRESENTADA LA INCONFORMIDAD AL TENOR DE LOS HECHOS EXPRESADOS.",
+    "SEGUNDA.- TENER POR ACEPTADAS DE MI PARTE, LAS REGLAS Y CONDICIONES DE LAS QUE HE SIDO INFORMADO EN LOS INCISOS A AL E, DEL PRESENTE ESCRITO.",
+    "TERCERA.- CONVOCAR AL (LOS) PRESTADOR (ES) DE SERVICIOS PARA LAS DILIGENCIAS ARBITRALES A QUE HAYA LUGAR E INTERPONER SUS BUENOS OFICIOS, A EFECTO DE BUSCAR SOLUCIÓN CONCILIATORIA.",
+    "CUARTA.- CORRER TRASLADO AL (LOS) PRESTADOR (ES) DE SERVICIOS EN TÉRMINOS DEL PRESENTE ESCRITO, A FIN DE QUE ENTREGUE RESUMEN Y/O EXPEDIENTE CLÍNICO DE LA ATENCIÓN PRESTADA, EN TÉRMINOS DEL ARTÍCULO 29 DEL REGLAMENTO DE LA LEY GENERAL DE SALUD EN MATERIA DE PRESTACIÓN DE SERVICIOS DE ATENCIÓN MÉDICA.",
+    "QUINTA.- TENER COMO CONFIDENCIAL LA INFORMACIÓN PROPORCIONADA PARA EFECTOS DE DESAHOGAR MI INCONFORMIDAD."
+  ];
+
+  peticionesLegales.forEach(p => printText(p));
+
+  // PRETENSIONES HACIA EL PRESTADOR
+  printText('PRETENSIONES HACIA EL PRESTADOR DE SERVICIO', { isBold: true, lineSpacing: 6 });
+  const listaPretensiones = Array.isArray(qData.pretensiones_listadas) && qData.pretensiones_listadas.length > 0
+    ? qData.pretensiones_listadas 
+    : ['NO SE ESPECIFICARON PRETENSIONES.'];
+    
+  listaPretensiones.forEach(pretension => printText(`• ${pretension}`, { x: 20, maxWidth: 170 }));
+
+  // DOCUMENTACIÓN RECIBIDA
+  printText('DOCUMENTACIÓN RECIBIDA:', { isBold: true, lineSpacing: 6 });
+  const listaDocumentos = Array.isArray(qData.documentacion_recibida) && qData.documentacion_recibida.length > 0
+    ? qData.documentacion_recibida 
+    : ['1. COPIA SIMPLE DE INE.', '2. COPIA SIMPLE DE COMPROBANTE DE DOMICILIO CFE.'];
+    
+  listaDocumentos.forEach((docu, i) => printText(`${i + 1}. ${docu}`, { x: 20, maxWidth: 170 }));
+
+  // CONCLUSIÓN
+  currentY += 5;
+  printText(`SE CONCLUYE LA PRESENTE A LAS ${fechaConclusionFormal}. EN LA CIUDAD DE TEPIC, NAYARIT, EN EL DÍA QUE SE ACTÚA.`, { isBold: true, align: 'center' });
+
+  // 5. FIRMA
+  currentY += 20;
+  if (currentY > 250) { doc.addPage(); currentY = 50; }
+  
+  printText('PROTESTO LO NECESARIO', { align: 'center', isBold: true });
+  currentY += 15;
+  printText('___________________________________________________', { align: 'center' });
+  printText(`C. ${nombreUsuario}`, { align: 'center', isBold: true });
+  printText('USUARIO DE SERVICIO MÉDICO', { align: 'center' });
+
+  // Exportar Documento
+  doc.save(`Acta_Queja_${exp.id || 'Exp'}.pdf`);
 };
 
 // ===========================================================================
