@@ -91,15 +91,22 @@ const DocumentosQuejaModal = ({ isOpen, onClose, item }) => {
   // 4. GENERAR PDF
   const handleGeneratePDF = async () => {
     setGenerando(true);
+    const toastId = toast.loading('Guardando datos y generando PDF...');
+    
     try {
-      // Inyectamos el formData actual al item para mandarlo al PDF
+      // 1. PRIMERO GUARDAMOS EN LA BASE DE DATOS
+      await AtendidosService.updateDatosDocs(item.id, formData);
+
+      // 2. LUEGO PREPARAMOS LOS DATOS PARA EL PDF
       const expActualizado = { ...item, datos_docs: formData };
-      // Llamamos a tu función de PDF (asegúrate de que esa función lea `exp.datos_docs` y no `exp.datos_queja`)
+      
+      // 3. FINALMENTE GENERAMOS EL PDF
       generarPDFActaQueja(expActualizado);
-      toast.success('PDF Generado correctamente');
+      
+      toast.success('Datos guardados y PDF generado exitosamente', { id: toastId });
     } catch (error) {
-      console.error("Error generando PDF:", error);
-      toast.error('Ocurrió un error al generar el PDF.');
+      console.error("Error guardando o generando PDF:", error);
+      toast.error('Error al guardar o generar el PDF. Verifica tu conexión.', { id: toastId });
     } finally {
       setGenerando(false);
     }
