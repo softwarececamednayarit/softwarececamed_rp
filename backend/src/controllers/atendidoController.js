@@ -398,6 +398,46 @@ const updateRepresentante = async (req, res) => {
   }
 }
 
+// Agregar datos de documentos a un expediente
+const addDatosDocs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const datosDocs = req.body;
+    
+    const resultado = await AtendidoModel.addDatosDocs(id, datosDocs);
+    
+    res.status(201).json({
+      ok: true,
+      message: 'Datos de documentos agregados correctamente.',
+      data: resultado
+    });
+  } catch (error) {
+    console.error("Error en addDatosDocs:", error);
+    // Usamos 400 por si el error es la validación de que ya existe
+    res.status(400).json({ ok: false, message: error.message });
+  }
+};
+
+// Actualizar datos de documentos de un expediente
+const updateDatosDocs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const datosDocs = req.body;
+    
+    const resultado = await AtendidoModel.updateDatosDocs(id, datosDocs);
+    
+    res.status(200).json({
+      ok: true,
+      message: 'Datos de documentos actualizados correctamente.',
+      data: resultado
+    });
+  } catch (error) {
+    console.error("Error en updateDatosDocs:", error);
+    res.status(500).json({ ok: false, message: error.message });
+  }
+};
+
+
 module.exports = {
   getAtendidos,
   getAtendidoById,
@@ -414,5 +454,7 @@ module.exports = {
   getSeguimientos,
   getRepresentante,
   addRepresentante,
-  updateRepresentante
+  updateRepresentante,
+  addDatosDocs,
+  updateDatosDocs
 };

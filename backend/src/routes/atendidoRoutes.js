@@ -53,4 +53,8 @@ router.get('/:id/representante', atendidoController.getRepresentante);
 router.post('/:id/representante', atendidoController.addRepresentante);
 router.put('/:id/representante', atendidoController.updateRepresentante);
 
+// Rutas para datos de documentos (datos_docs)
+router.post('/:id/datos-docs', atendidoController.addDatosDocs);
+router.put('/:id/datos-docs', atendidoController.updateDatosDocs);
+
 module.exports = router;

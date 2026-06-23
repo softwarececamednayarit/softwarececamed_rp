@@ -253,6 +253,38 @@ class AtendidoModel {
     }
   }
 
+  // Agregar datos de documentos (verifica si ya existen antes de agregarlos)
+  static async addDatosDocs(id, data) {
+    try {
+      const docRef = db.collection('expedientes_detalle').doc(id);
+      const doc = await docRef.get();
+
+      // Si el documento existe y ya tiene el mapa "datos_docs"
+      if (doc.exists && doc.data().datos_docs) {
+        throw new Error('Este expediente ya cuenta con datos de documentos registrados.');
+      }
+
+      // Se usa merge: true para inyectar el mapa sin sobreescribir el resto del documento
+      await docRef.set({ datos_docs: data }, { merge: true });
+      return data;
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.addDatosDocs: ' + error.message);
+    }
+  }
+
+  // Actualizar datos de documentos (reemplaza los datos del map actual)
+  static async updateDatosDocs(id, data) {
+    try {
+      const docRef = db.collection('expedientes_detalle').doc(id);
+      
+      // Firestore reemplazará el mapa "datos_docs" con el nuevo objeto "data"
+      await docRef.set({ datos_docs: data }, { merge: true });
+      return data;
+    } catch (error) {
+      throw new Error('Error en AtendidoModel.updateDatosDocs: ' + error.message);
+    }
+  }
+
 }
 
 module.exports = AtendidoModel;
