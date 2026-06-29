@@ -136,6 +136,23 @@ const formatearFechaJuridica = (fechaIso) => {
   return `${horas}:${minutos} HORAS DEL DÍA ${dia} DE ${mes} DE ${anio}`;
 };
 
+const obtenerFechaCorta = (dateStr) => {
+  const date = new Date(dateStr);
+  const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  return `${date.getDate()} de ${meses[date.getMonth()]} del ${date.getFullYear()}`;
+}
+
+const obtenerFechaLargaAudiencia = (dateStr) => {
+  // Lógica sugerida para el formato largo de la audiencia (Requiere una librería de números a letras o switch)
+  // Retorna un formato similar a: "a las 10:00 horas del día jueves 22 veintidós de enero del 2026 dos mil veintiséis"
+  const date = new Date(dateStr);
+  const hora = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  
+  // Puedes usar una librería como 'numero-a-letras' para resolver los números
+  return `a las ${hora}:${min} horas del día [DIA_SEMANA] [DIA_NUMERO] [DIA_LETRAS] de [MES] del [AÑO_NUMERO] [AÑO_LETRAS]`;
+}
+
 // --- AYUDANTE GLOBAL: INYECTOR DE ENCABEZADO Y PIE GUBERNAMENTAL (ORIENTACIÓN / ASESORÍA) ---
 const encapsularDiseñoInstitucional = (doc) => {
   const totalPaginas = doc.internal.getNumberOfPages();
@@ -157,7 +174,7 @@ const encapsularDiseñoInstitucional = (doc) => {
     
     doc.text(`[${unidadTexto}]`, 105, 278, { align: 'center' });
     doc.text("Av. Jacarandas #204, San Juan C.P 63130 Tepic, Nayarit.", 105, 281.5, { align: 'center' });
-    doc.text("3112103283 | 311 2104276", 105, 285, { align: 'center' });
+    doc.text("3112103283 | 3112104276", 105, 285, { align: 'center' });
   }
 };
 
@@ -727,6 +744,139 @@ export const generarPDFActaQueja = (exp) => {
   }
 
   doc.save(`Acta_Queja_${exp.id || 'Exp'}.pdf`);
+};
+
+export const generarPDFAudienciaInformativa = (exp) => {
+  const doc = new jsPDF({ orientation: 'portrait' });
+  
+  // 1. EXTRACCIÓN Y MAPEO DE DATOS SEGÚN INSTRUCCIONES
+  const qData = exp.datos_docs || {};
+  const domicilio = qData.domicilio || {};
+
+  // Determinación de género
+  const esFemenino = exp.sexo === 'Femenino';
+  const articuloGenero = esFemenino ? 'la' : 'el';
+  const sustantivoUsuario = esFemenino ? 'Usuaria' : 'Usuario';
+
+  // Mapeo de variables
+  const servicio = exp.servicio || 'SERVICIO MÉDICO';
+  
+  // Fechas (No se guardan en BD, se sugieren las actuales/recepción)
+  const fechaDocumento = obtenerFechaCorta(new Date()); // ej: "12 de octubre de 2026"
+  const fechaQueja = obtenerFechaCorta(exp.fecha_recepcion ? new Date(exp.fecha_recepcion) : new Date());
+  const fechaHoraAudiencia = obtenerFechaLargaAudiencia(new Date()); // ej: "a las 10:00 horas del día..."
+
+  // Textos y Nombres
+  const nombreOficio = qData.nombre_oficio || 'OFICIO No. SM/UC/001/01/2026';
+  const nombreUsuario = qData.nombre_usuario || `${exp.nombre || ''} ${exp.apellido_paterno || ''} ${exp.apellido_materno || ''}`.trim();
+  const titularConciliacion = 'AMÉRICA IVONNE GAMEROS ORTIZ';
+
+  // Médico
+  let medicoNombre = qData.medico_nombre || qData.contra_quien || '';
+  if (medicoNombre && !medicoNombre.toUpperCase().startsWith('DR')) {
+    medicoNombre = `Dr. ${medicoNombre}`; // Sugerencia de prefijo por default
+  }
+
+  // Domicilio Médico (Map)
+  const domCalle = domicilio.calle || 'CONOCIDA';
+  const domNumExt = domicilio.numero_exterior || domicilio.numero || 'S/N';
+  const domNumInt = domicilio.numero_interior ? ` INT. ${domicilio.numero_interior}` : '';
+  const domColonia = domicilio.colonia || 'CENTRO';
+  const domMunicipio = domicilio.municipio || 'TEPIC';
+  const domEstado = domicilio.estado || 'NAYARIT';
+
+  let currentY = 45; // Empezamos debajo del membrete institucional
+
+  // 🛠️ AYUDANTE DE TEXTO INTELIGENTE
+  const printText = (text, options = {}) => {
+    const { fontSize = 10, isBold = false, align = 'justify', maxWidth = 170, lineSpacing = 6 } = options;
+    
+    let x = options.x;
+    if (x === undefined) {
+      if (align === 'center') x = 105; 
+      else if (align === 'right') x = 185; 
+      else x = 20; // Márgenes de oficio más amplios
+    }
+
+    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+    doc.setFontSize(fontSize);
+    
+    const lines = doc.splitTextToSize(text, maxWidth);
+    const textHeight = lines.length * (fontSize * 0.35);
+
+    if (currentY + textHeight > 250) { 
+      doc.addPage();
+      currentY = 40; // Margen superior para páginas nuevas
+    }
+    
+    const textOpts = { align };
+    if (align === 'justify') textOpts.maxWidth = maxWidth;
+    
+    doc.text(lines, x, currentY, textOpts);
+    currentY += textHeight + lineSpacing;
+  };
+
+  // 2. ENCABEZADO DERECHO DEL OFICIO
+  printText(servicio.toUpperCase(), { align: 'right', isBold: true });
+  currentY -= 2;
+  printText(`Tepic, Nayarit; ${fechaDocumento}`, { align: 'right' });
+  currentY -= 2;
+  printText(nombreOficio, { align: 'right', isBold: true });
+  currentY += 10;
+
+  // 3. DESTINATARIO (Izquierda)
+  printText(medicoNombre.toUpperCase(), { isBold: true });
+  currentY -= 2;
+  printText(`DOMICILIO. ${domCalle} ${domNumExt}${domNumInt}`);
+  currentY -= 2;
+  printText(`COL. ${domColonia}`);
+  currentY -= 2;
+  printText(`${domMunicipio}, ${domEstado}.`);
+  currentY -= 2;
+  printText('P R E S E N T E.', { isBold: true });
+  currentY += 10;
+
+  // 4. CUERPO DEL OFICIO (Justificado)
+  const parrafo1 = `Por este medio se le hace de su conocimiento, que con fecha ${fechaQueja}, ${articuloGenero} ${nombreUsuario} de Servicio Médico presentó una queja con motivo de la Atención Médica proporcionada por Usted, por lo que se le invita a comparecer a esta H. Comisión Estatal de Conciliación y Arbitraje Médico, misma que se encuentra ubicada en calle Av. Jacarandas 204 Sur, Colonia San Juan, Tepic, Nayarit, ${fechaHoraAudiencia}, con la finalidad de llevar a cabo una AUDIENCIA INFORMATIVA respecto de la Queja, de las atribuciones y procedimientos de la CECAMED y en su momento exprese voluntariamente si es su interés aceptar someterse al procedimiento arbitral de nuestra Institución, para tal efecto solicito a Usted tenga a bien presentarse con una copia de su identificación oficial, copia de su cedula profesional.`;
+  printText(parrafo1);
+
+  const parrafo2 = `No omito manifestarle a Usted que entre las ventajas de que el procedimiento sea llevado ante esta Comisión Estatal, se encuentran entre otras, el trámite es personal, confidencial, gratuito, no requiere aseguranza, no interviene Autoridad Judicial y la solución es a corto plazo.`;
+  printText(parrafo2);
+
+  const parrafo3 = `Así mismo anexamos a la presente, en sobre cerrado con efectos de notificación personal, copia con firmas originales de la queja presentada ante esta Comisión Estatal por ${articuloGenero} ${nombreUsuario}, ${sustantivoUsuario} de Servicio Médico.`;
+  printText(parrafo3);
+
+  const parrafo4 = `Lo anterior con fundamento en lo dispuesto por el artículo 9 fracción II del Decreto Número 8292 de Creación de la Comisión Estatal de Conciliación y Arbitraje Médico para el Estado de Nayarit, publicado en el periódico oficial número 49 de fecha 16 de Diciembre de 2000, así como de los artículos 18 fracción X y 24 fracción III párrafo del Reglamento Interno para el Funcionamiento de la misma, y en los numerales 26, 55 y 56 del Reglamento de Procedimientos para la Atención de Quejas Médicas y Gestión Pericial de la CECAMED.`;
+  printText(parrafo4);
+
+  const parrafo5 = `Sin otro particular por el momento, quedo de Usted a sus apreciables órdenes.`;
+  printText(parrafo5);
+
+  currentY += 15;
+
+  // 5. FIRMAS Y CC (Centro e Izquierda Inferior)
+  printText('ATENTAMENTE', { align: 'center', isBold: true });
+  currentY += 20; // Espacio para la firma
+  
+  printText(titularConciliacion, { align: 'center', isBold: true });
+  currentY -= 2;
+  printText('JEFE DE LA UNIDAD DE CONCILIACIÓN', { align: 'center' });
+  currentY -= 2;
+  printText('UNIDAD DE CONCILIACIÓN', { align: 'center' });
+  
+  currentY += 15;
+  printText('Rgas.', { fontSize: 8 });
+  currentY -= 4;
+  printText('C.c.p.- Minutario', { fontSize: 8 });
+  currentY -= 4;
+  printText('Archivo.', { fontSize: 8 });
+
+  // Inyección de diseño institucional (Membrete, pie de página, logos)
+  if (typeof encapsularDiseñoInstitucional === 'function') {
+    encapsularDiseñoInstitucional(doc);
+  }
+
+  doc.save(`Oficio_Audiencia_${exp.id || 'Exp'}.pdf`);
 };
 
 // ===========================================================================

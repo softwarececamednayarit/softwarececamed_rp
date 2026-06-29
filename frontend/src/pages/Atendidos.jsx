@@ -3,9 +3,11 @@ import { AtendidosService } from '../services/atendidosService';
 import { StatCard } from '../components/StatCard';
 import { DataTable } from '../components/DataTable';
 import DocumentosModal from '../components/DocumentosModal';
+import MenuQuejasModal from '../components/MenuQuejasModal';
 import { SearchFilters } from '../components/SearchFilters';
 import { DetailModal } from '../components/DetailModal';
 import DocumentosQuejaModal from '../components/DocumentosQuejaModal';
+import DocumentosAudienciaModal from '../components/DocumentosAudienciaModal';
 import { normalizeText } from '../utils/formatters';
 import { Users, MessageSquare, AlertCircle, Compass, RefreshCw, Briefcase, Zap, FileText, Scale } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -15,7 +17,9 @@ const Atendidos = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [documentItem, setDocumentItem] = useState(null);
   const [documentQuejaItem, setDocumentQuejaItem] = useState(null);
+  const [documentAudienciaItem, setDocumentAudienciaItem] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [menuQuejaItem, setMenuQuejaItem] = useState(null);
   
   const [filters, setFilters] = useState({ 
     nombre: '', 
@@ -79,6 +83,19 @@ const Atendidos = () => {
       const finalData = dataCompleta.data || dataCompleta;
       
       setDocumentQuejaItem(finalData); // Seteamos el estado del nuevo modal
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error("Error al cargar datos completos:", err);
+      toast.error("No se pudo cargar la información del expediente", { id: toastId });
+    }
+  };
+
+  const handleDocumentAudienciaClick = async (item) => {
+    const toastId = toast.loading("Cargando expediente para Audiencia...");
+    try {
+      const dataCompleta = await AtendidosService.getCompleto(item.id);
+      const finalData = dataCompleta.data || dataCompleta;
+      setDocumentAudienciaItem(finalData);
       toast.dismiss(toastId);
     } catch (err) {
       console.error("Error al cargar datos completos:", err);
@@ -267,7 +284,7 @@ const Atendidos = () => {
                 data={dataFiltrada} 
                 onDetailClick={setSelectedItem} 
                 onDocumentClick={handleDocumentClick}
-                onDocumentQuejaClick={handleDocumentQuejaClick} // <--- AHORA LLAMA A NUESTRA FUNCIÓN
+                onOpenMenuQueja={setMenuQuejaItem}
               />
             )}
           </div>
@@ -285,11 +302,27 @@ const Atendidos = () => {
         />
       )}
 
+      <MenuQuejasModal
+        isOpen={!!menuQuejaItem}
+        onClose={() => setMenuQuejaItem(null)}
+        item={menuQuejaItem}
+        onOpenDocumentos={handleDocumentQuejaClick}
+        onOpenAudiencia={handleDocumentAudienciaClick}
+      />
+
       {documentQuejaItem && (
         <DocumentosQuejaModal 
           isOpen={!!documentQuejaItem} 
           onClose={() => setDocumentQuejaItem(null)} 
           item={documentQuejaItem} 
+        />
+      )}
+
+      {documentAudienciaItem && (
+        <DocumentosAudienciaModal 
+          isOpen={!!documentAudienciaItem} 
+          onClose={() => setDocumentAudienciaItem(null)} 
+          item={documentAudienciaItem} 
         />
       )}
     </div>
