@@ -11,7 +11,9 @@
     "start": "vite"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "axios": "1.13.2",
+    "buffer": "^6.0.3",
     "framer-motion": "^12.38.0",
     "jspdf": "4.1.0",
     "jspdf-autotable": "5.0.7",

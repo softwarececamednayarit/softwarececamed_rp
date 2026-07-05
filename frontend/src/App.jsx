@@ -19,6 +19,11 @@ import Archivos from './pages/Archivos';
 import Estadisticas from './pages/Estadisticas';
 import Usuarios from './pages/Usuarios';
 import Bitacora from './pages/Bitacora'; // 1. IMPORTAR BITÁCORA
+import { Buffer } from 'buffer';
+
+if (typeof window !== 'undefined') {
+  window.Buffer = window.Buffer || Buffer;
+}
 
 const AppContent = () => {
   const { user, loading, logout } = useAuth();
