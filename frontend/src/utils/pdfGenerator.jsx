@@ -4,6 +4,9 @@ import { formatName } from './formatters';
 import { pdf } from '@react-pdf/renderer';
 import DocumentoActa from '../components/pdf/DocumentoActa';
 import DocumentoActaQueja from '../components/pdf/DocumentoActaQueja';
+import DocumentoAudiencia from '../components/pdf/DocumentoAudiencia';
+import DocumentoCarnet from '../components/pdf/DocumentoCarnet';
+import { CONFIG_CAMPOS_CARNET, ETIQUETA_FIRMA_USUARIO } from './pdfConfigs';
 
 // Diccionario simple para convertir días y años a texto sin librerías externas
 const numerosALetras = {
@@ -507,210 +510,106 @@ export const generarPDFActaQueja = async (exp) => {
 // ===========================================================================
 // OFICIO DE AUDIENCIA INFORMATIVA
 // ===========================================================================
-export const generarPDFAudienciaInformativa = (exp) => {
-  const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
-  
+export const generarPDFAudienciaInformativa = async (exp) => {
   const qData = exp.datos_docs || {};
   const domicilio = qData.domicilio || {};
 
   const esFemenino = exp.sexo === 'Femenino';
-  const articuloGenero = esFemenino ? 'la' : 'el';
-  const sustantivoUsuario = esFemenino ? 'Usuaria' : 'Usuario';
-
-  const fechaDocumento = obtenerFechaCorta(new Date()); 
-  const fechaQueja = obtenerFechaCorta(exp.fecha_recepcion ? new Date(exp.fecha_recepcion) : new Date());
-  const fechaHoraAudiencia = obtenerFechaLargaAudiencia(new Date()); 
-
-  const nombreOficio = qData.nombre_oficio || 'OFICIO No. SM/UC/001/01/2026';
-  const nombreUsuario = qData.nombre_usuario || `${exp.nombre || ''} ${exp.apellido_paterno || ''} ${exp.apellido_materno || ''}`.trim();
-  const titularConciliacion = 'AMÉRICA IVONNE GAMEROS ORTIZ';
-
+  
   let medicoNombre = qData.medico_nombre || qData.contra_quien || '';
   if (medicoNombre && !medicoNombre.toUpperCase().startsWith('DR')) {
     medicoNombre = `Dr. ${medicoNombre}`; 
   }
 
-  const domCalle = domicilio.calle || 'CONOCIDA';
-  const domNumExt = domicilio.numero_exterior || domicilio.numero || 'S/N';
   const domNumInt = domicilio.numero_interior ? ` INT. ${domicilio.numero_interior}` : '';
-  const domColonia = domicilio.colonia || 'CENTRO';
-  const domMunicipio = domicilio.municipio || 'TEPIC';
-  const domEstado = domicilio.estado || 'NAYARIT';
 
-  // Empezamos bien arriba (coordenada 40) para maximizar el espacio de la hoja
-  let currentY = 40; 
-
-  const printText = (text, options = {}) => {
-    // FIX: Fuente tamaño 10 y lineSpacing de 3.5mm entre párrafos garantiza que quepa en 1 hoja
-    const { fontSize = 10, isBold = false, align = 'justify', maxWidth = 170, lineSpacing = 3.5 } = options;
-    
-    let x = options.x;
-    if (x === undefined) {
-      if (align === 'center') x = 105; 
-      else if (align === 'right') x = 190; 
-      else x = 20; 
+  // Empaquetamos todos los datos limpios
+  const datosProcesados = {
+    fechaDocumento: obtenerFechaCorta(new Date()),
+    fechaQueja: obtenerFechaCorta(exp.fecha_recepcion ? new Date(exp.fecha_recepcion) : new Date()),
+    fechaHoraAudiencia: obtenerFechaLargaAudiencia(new Date()),
+    nombreOficio: qData.nombre_oficio || 'OFICIO No. SM/UC/001/01/2026',
+    nombreUsuario: qData.nombre_usuario || `${exp.nombre || ''} ${exp.apellido_paterno || ''} ${exp.apellido_materno || ''}`.trim(),
+    titularConciliacion: 'AMÉRICA IVONNE GAMEROS ORTIZ',
+    medicoNombre,
+    articuloGenero: esFemenino ? 'la' : 'el',
+    sustantivoUsuario: esFemenino ? 'Usuaria' : 'Usuario',
+    domicilio: {
+      calleNum: `${domicilio.calle || 'CONOCIDA'} ${domicilio.numero_exterior || domicilio.numero || 'S/N'}${domNumInt}`,
+      colonia: domicilio.colonia || 'CENTRO',
+      municipioEstado: `${domicilio.municipio || 'TEPIC'}, ${domicilio.estado || 'NAYARIT'}`
     }
-
-    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-    doc.setFontSize(fontSize);
-    
-    const textOpts = { align, baseline: 'top', lineHeightFactor: 1.15 };
-    if (align === 'justify' || align === 'left') textOpts.maxWidth = maxWidth;
-
-    const textDimensions = doc.getTextDimensions(text, textOpts);
-    const textHeight = textDimensions.h;
-
-    // Salto de página de seguridad (aunque con estos ajustes no debería usarlo)
-    if (currentY + textHeight > 250) { 
-      doc.addPage();
-      currentY = 40; 
-    }
-    
-    doc.text(text, x, currentY, textOpts);
-    currentY += textHeight + lineSpacing;
   };
 
-  // --- CABECERA DERECHA (Normal según la imagen) ---
-  printText('SERVICIO MÉDICO', { align: 'right', lineSpacing: 1.5 });
-  printText(`Tepic, Nayarit; ${fechaDocumento}`, { align: 'right', lineSpacing: 1.5 });
-  printText(nombreOficio, { align: 'right', lineSpacing: 8 });
+  const nombreArchivo = `Oficio_Audiencia_${exp.id || 'Exp'}.pdf`;
 
-  // --- DESTINATARIO (Todo en Negrita y muy junto, según la imagen) ---
-  printText(medicoNombre.toUpperCase(), { isBold: true, lineSpacing: 1.5 });
-  printText(`DOMICILIO. ${domCalle} ${domNumExt}${domNumInt}`, { isBold: true, lineSpacing: 1.5 });
-  printText(`COL. ${domColonia}`, { isBold: true, lineSpacing: 1.5 });
-  printText(`${domMunicipio}, ${domEstado}.`, { isBold: true, lineSpacing: 1.5 });
-  printText('P R E S E N T E.', { isBold: true, lineSpacing: 6 });
-
-  // --- CUERPO DEL OFICIO ---
-  const parrafo1 = `Por este medio se le hace de su conocimiento, que con fecha ${fechaQueja}, ${articuloGenero} ${nombreUsuario} de Servicio Médico presentó una queja con motivo de la Atención Médica proporcionada por Usted, por lo que se le invita a comparecer a esta H. Comisión Estatal de Conciliación y Arbitraje Médico, misma que se encuentra ubicada en calle Av. Jacarandas 204 Sur, Colonia San Juan, Tepic, Nayarit, ${fechaHoraAudiencia}, con la finalidad de llevar a cabo una AUDIENCIA INFORMATIVA respecto de la Queja, de las atribuciones y procedimientos de la CECAMED y en su momento exprese voluntariamente si es su interés aceptar someterse al procedimiento arbitral de nuestra Institución, para tal efecto solicito a Usted tenga a bien presentarse con una copia de su identificación oficial, copia de su cedula profesional.`;
-  printText(parrafo1);
-
-  const parrafo2 = `No omito manifestarle a Usted que entre las ventajas de que el procedimiento sea llevado ante esta Comisión Estatal, se encuentran entre otras, el trámite es personal, confidencial, gratuito, no requiere aseguranza, no interviene Autoridad Judicial y la solución es a corto plazo.`;
-  printText(parrafo2);
-
-  const parrafo3 = `Así mismo anexamos a la presente, en sobre cerrado con efectos de notificación personal, copia con firmas originales de la queja presentada ante esta Comisión Estatal por ${articuloGenero} ${nombreUsuario}, ${sustantivoUsuario} de Servicio Médico.`;
-  printText(parrafo3);
-
-  const parrafo4 = `Lo anterior con fundamento en lo dispuesto por el artículo 9 fracción II del Decreto Número 8292 de Creación de la Comisión Estatal de Conciliación y Arbitraje Médico para el Estado de Nayarit, publicado en el periódico oficial número 49 de fecha 16 de Diciembre de 2000, así como de los artículos 18 fracción X y 24 fracción III párrafo del Reglamento Interno para el Funcionamiento de la misma, y en los numerales 26, 55 y 56 del Reglamento de Procedimientos para la Atención de Quejas Médicas y Gestión Pericial de la CECAMED.`;
-  printText(parrafo4);
-
-  const parrafo5 = `Sin otro particular por el momento, quedo de Usted a sus apreciables órdenes.`;
-  printText(parrafo5, { lineSpacing: 10 });
-
-  // --- FIRMAS (En negrita según la imagen) ---
-  printText('A T E N T A M E N T E', { align: 'center', isBold: true, lineSpacing: 15 });
-  
-  printText(titularConciliacion, { align: 'center', isBold: true, lineSpacing: 1.5 });
-  printText('JEFE DE LA UNIDAD DE CONCILIACIÓN', { align: 'center', isBold: true, lineSpacing: 10 });
-  
-  // --- COPIAS ARCHIVO ---
-  printText('Rgas.', { fontSize: 7, lineSpacing: 1 });
-  printText('Minutario', { fontSize: 7, lineSpacing: 1 });
-  printText('Archivo.', { fontSize: 7 });
-
-  if (typeof encapsularDiseñoInstitucional === 'function') {
-    // Asumo que esta función inyecta tu fondo con el escudo de Nayarit y el pie de página
-    encapsularDiseñoInstitucional(doc); 
+  try {
+    const docElement = <DocumentoAudiencia data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    // Descarga
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de Audiencia:", error);
   }
-
-  doc.save(`Oficio_Audiencia_${exp.id || 'Exp'}.pdf`);
 };
 
 // ===========================================================================
 // 3. GENERACIÓN DE CARNETS DE SEGUIMIENTO (DISEÑO FORMAL OPTIMIZADO)
 // ===========================================================================
-export const generarPDFCarnet = (exp, notaSeguimientoSeleccionada) => {
-  const doc = new jsPDF({ orientation: 'portrait' });
-
+export const generarPDFCarnet = async (exp, notaSeguimientoSeleccionada) => {
   const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'seguimiento').toUpperCase();
   const tituloDocumento = `CARNET DE SEGUIMIENTO DE ${tipoAsunto}`;
-
-  // 1. PREPARACIÓN INSTITUCIONAL (Al principio para evitar superposición de capas)
-  encapsularDiseñoInstitucional(doc, tipoAsunto);
+  const esQueja = tipoAsunto.includes('QUEJA');
+  const tipoFooter = esQueja ? 'queja' : 'orientacion';
 
   const copiaExpediente = { 
     ...exp, 
     notas_seguimiento: notaSeguimientoSeleccionada || exp.notas_seguimiento 
   };
 
-  // 2. RECOPILACIÓN DE DATOS (Bloque único continuo, sin divisiones por secciones)
+  // Recopilación de datos de la tabla
   const filasTabla = [];
-
-  // Carga del resto de los campos base del carnet
   CONFIG_CAMPOS_CARNET.forEach(campo => {
+    // Asumo que buscarValorCampo está importado en tu archivo
     const valor = buscarValorCampo(copiaExpediente, campo.keys);
     if (valor) {
-      filasTabla.push([campo.label, valor]);
+      filasTabla.push({ label: campo.label, value: valor });
     }
   });
 
-  // Título alineado al estándar del Acta
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(20, 20, 20);
-  doc.text(tituloDocumento, 105, 35, { align: 'center' });
+  const datosProcesados = {
+    tituloDocumento,
+    filasTabla,
+    esQueja,
+    tipoFooter,
+    // Asumiendo que ETIQUETA_FIRMA_USUARIO está en este scope, o puedes pasar el string directo
+    etiquetaFirmaUsuario: typeof ETIQUETA_FIRMA_USUARIO !== 'undefined' ? ETIQUETA_FIRMA_USUARIO : 'USUARIO'
+  };
 
-  // 3. TABLA PRINCIPAL DE CONTENIDO
-  autoTable(doc, {
-    startY: 45,
-    body: filasTabla,
-    theme: 'plain',
-    styles: { 
-      fontSize: 9, // Consistencia de tamaño con el acta
-      cellPadding: { top: 3, bottom: 3, left: 0, right: 2 }, 
-      lineColor: [220, 220, 220], 
-      lineWidth: { bottom: 0.2 }, 
-      valign: 'top',
-      font: 'helvetica'
-    },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 50, textColor: [70, 70, 70] }, // Estilo elegante grisáceo
-      1: { cellWidth: 130, textColor: [0, 0, 0], halign: 'justify' }
-    },
-    margin: { left: 15, right: 15, top: 15, bottom: 25 }
-  });
+  const nombreArchivo = `Carnet_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`;
 
-  // 4. BLOQUE DE FIRMAS (Migrado a autoTable para controlar saltos de página de forma automática)
-  const esQueja = tipoAsunto.includes('QUEJA');
-  const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
-  const firmaIzquierda = `TITULAR DE LA UNIDAD DE\n${unidadTexto}`;
-  const firmaDerecha = `AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`;
-  const firmaCentro = `FIRMA DEL ${ETIQUETA_FIRMA_USUARIO}`;
-
-  let startYFirmas = doc.lastAutoTable.finalY + 15;
-  
-  // Validación de espacio disponible para el bloque de firmas completo
-  if (startYFirmas + 35 > 275) { 
-    doc.addPage(); 
-    startYFirmas = 25; 
+  try {
+    const docElement = <DocumentoCarnet data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    // Descarga automática
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de Carnet:", error);
   }
-
-  autoTable(doc, {
-    startY: startYFirmas,
-    body: [
-      ['___________________________________', '___________________________________'],
-      [firmaIzquierda, firmaDerecha],
-      ['', ''], 
-      ['', '___________________________________'],
-      ['', firmaCentro]
-    ],
-    theme: 'plain',
-    styles: { 
-      halign: 'center', 
-      fontSize: 9, 
-      cellPadding: 1, 
-      valign: 'top', 
-      font: 'helvetica', 
-      textColor: [20, 20, 20] 
-    },
-    columnStyles: { 
-      0: { cellWidth: 90 }, 
-      1: { cellWidth: 90 } 
-    },
-    margin: { left: 15, right: 15 },
-    pageBreak: 'avoid' // Previene que las firmas se dividan entre dos páginas
-  });
-
-  doc.save(`Carnet_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`);
 };
