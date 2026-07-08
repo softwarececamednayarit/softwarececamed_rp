@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   titleSection: { fontSize: 11, fontWeight: 'bold', textAlign: 'center', backgroundColor: '#B4B4B4', color: '#323232', paddingVertical: '1.5mm', marginVertical: '4mm' }, // Acompañamos el tamaño de las secciones a 11
   // Tablas sin fondo gris (como en el PDF escaneado) 
   tableRow: { flexDirection: 'row', minHeight: '6mm', alignItems: 'center', paddingVertical: '1mm' },
-  tLabel: { width: '18%', fontFamily: 'tahoma', color: '#000000' }, // Negrita sólida
+  tLabel: { width: '18%', fontFamily: 'tahoma', fontWeight: 'bold', color: '#000000' }, // Negrita sólida
   tValue: { width: '38%', color: '#000000', paddingRight: '2mm' }, 
   tLabel2: { width: '16%', fontFamily: 'tahoma', color: '#000000' }, 
   tValue2: { width: '28%', color: '#000000' }, 

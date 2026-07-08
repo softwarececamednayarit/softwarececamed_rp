@@ -1,53 +1,72 @@
 import React from 'react';
 import { SECCIONES_CONFIG } from '../../utils/pdfConfigs';
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
 import { PDFHeader } from './PDFHeader'; 
 import { PDFFooter } from './PDFFooter';
 
+// REGISTRO DE FUENTES
+Font.register({
+  family: 'tahoma',
+  fonts: [
+    { src: '/fonts/tahoma.ttf' }, 
+    { src: '/fonts/tahomabd.ttf', fontWeight: 'bold' } 
+  ]
+});
+
+// ESTILOS AJUSTADOS EXACTAMENTE AL ACTA DE QUEJA
 const styles = StyleSheet.create({
   page: {
-    paddingTop: '45mm', // Espacio para el header
-    paddingBottom: '48mm', // Espacio para el footer
-    paddingHorizontal: '15mm', // Tus márgenes laterales originales
+    paddingTop: '45mm', 
+    paddingBottom: '48mm', 
+    paddingHorizontal: '15mm',
     backgroundColor: '#FFFFFF',
-    fontFamily: 'Helvetica',
+    fontFamily: 'tahoma',
+    fontSize: 11, // Regresamos al 11 original del Acta de Queja
+    textTransform: 'uppercase', 
   },
   sectionContainer: {
-    marginBottom: '5mm', // Espaciado entre secciones
+    marginBottom: '4mm', // Mismo margen vertical que el original
   },
   sectionTitleBox: {
-    backgroundColor: '#B4B4B4', // (180, 180, 180)
+    backgroundColor: '#B4B4B4',
     paddingVertical: '1.5mm',
     marginBottom: '2mm',
   },
   sectionTitleText: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: '#323232', // (50, 50, 50)
+    fontSize: 11,
+    fontFamily: 'tahoma',
+    fontWeight: 'bold',
+    color: '#323232',
     textAlign: 'center',
-    textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    borderBottomWidth: 0,
     minHeight: '6mm',
     alignItems: 'center',
     paddingVertical: '1mm',
   },
   
-  col1Label: { width: '19%', fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#282828', textTransform: 'uppercase' },
-  col1Value: { width: '36%', fontSize: 9, color: '#282828', textTransform: 'uppercase' },
-  col2Label: { width: '19%', fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#282828', textTransform: 'uppercase' },
-  col2Value: { width: '26%', fontSize: 9, color: '#282828', textTransform: 'uppercase' },
-  colFullValue: { width: '81%', fontSize: 9, color: '#282828', textTransform: 'uppercase' },
+  // WIDHTS RECALCULADOS PARA EVITAR EL DESBORDAMIENTO (WRAP) EN LETRA 11 BOLD
+  // -> Secciones de 2 columnas (Ej: Datos del Usuario)
+  tLabel: { width: '19%', fontFamily: 'tahoma', fontWeight: 'bold', color: '#000000' }, 
+  tValue: { width: '37%', color: '#000000', paddingRight: '2mm' }, 
+  tLabel2: { width: '18%', fontFamily: 'tahoma', fontWeight: 'bold', color: '#000000' }, // Ampliado para que quepa "NACIONALIDAD:"
+  tValue2: { width: '26%', color: '#000000' }, 
+  tValueFull: { width: '81%', color: '#000000' }, 
+  
+  // -> Secciones de 1 columna (Ej: Datos de Recepción)
+  tLabelSingle: { width: '28%', fontFamily: 'tahoma', fontWeight: 'bold', color: '#000000' }, // Ampliado para "FORMA DE RECEPCIÓN:"
+  tValueSingle: { width: '72%', color: '#000000' },
   
   // Bloque de firmas
   firmasContainer: {
-    marginTop: '15mm',
+    marginTop: '25mm',
+    alignItems: 'center',
   },
   firmasRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    width: '100%',
     marginBottom: '15mm',
   },
   firmaBlock: {
@@ -56,22 +75,22 @@ const styles = StyleSheet.create({
   },
   firmaCenter: {
     alignItems: 'center',
+    width: '100%',
   },
   firmaLinea: {
-    fontSize: 9,
-    color: '#141414',
-    marginBottom: '2mm',
+    marginBottom: '3mm',
+    color: '#000000',
   },
   firmaTexto: {
-    fontSize: 9,
-    color: '#141414',
+    fontFamily: 'tahoma',
+    fontWeight: 'bold',
     textAlign: 'center',
-    lineHeight: 1.2,
+    lineHeight: 1.3,
   }
 });
 
 const DocumentoActa = ({ expP, tipoAsunto }) => {
-  const esQueja = tipoAsunto.includes('QUEJA');
+  const esQueja = tipoAsunto?.includes('QUEJA');
   const unidadTexto = esQueja ? 'CONCILIACIÓN' : 'ORIENTACIÓN';
   const tipoFooter = esQueja ? 'queja' : 'orientacion';
 
@@ -82,39 +101,36 @@ const DocumentoActa = ({ expP, tipoAsunto }) => {
         
         {/* ITERACIÓN DE SECCIONES DINÁMICAS */}
         {Object.values(SECCIONES_CONFIG).map((seccion, index) => {
-          // Evaluar condición
           if (seccion.condicion && !seccion.condicion(expP)) return null;
 
-          // Detectar si la sección tiene al menos una fila con 2 columnas (Mixta)
+          // Si hay al menos una fila con 2 datos, toda la sección usará proporciones de 2 columnas
           const esSeccionMixta = seccion.filas.some(fila => fila.length > 1);
 
           return (
-            // wrap={false} asegura que si la sección no cabe, baje COMPLETA a la siguiente hoja
-            // en lugar de dejar el título gris huérfano al final de la página.
             <View key={index} style={styles.sectionContainer} wrap={false}>
               
-              {/* Título de la sección */}
               <View style={styles.sectionTitleBox}>
                 <Text style={styles.sectionTitleText}>{seccion.titulo}</Text>
               </View>
 
-              {/* Filas de la sección */}
               {seccion.filas.map((fila, filaIdx) => (
                 <View key={filaIdx} style={styles.tableRow}>
                   {fila.length === 1 ? (
                     <>
-                      <Text style={styles.col1Label}>{fila[0].label}</Text>
-                      {/* Lógica condicional: Si es mixta, topa al 36% y baja de renglón. Si es fila única, toma todo el ancho */}
-                      <Text style={esSeccionMixta ? styles.col1Value : styles.colFullValue}>
+                      {/* Aplicamos tLabelSingle para que los textos largos de 1 sola columna no se partan */}
+                      <Text style={esSeccionMixta ? styles.tLabel : styles.tLabelSingle}>
+                        {fila[0].label}
+                      </Text>
+                      <Text style={esSeccionMixta ? styles.tValueFull : styles.tValueSingle}>
                         {expP[fila[0].key] || ''}
                       </Text> 
                     </>
                   ) : (
                     <>
-                      <Text style={styles.col1Label}>{fila[0].label}</Text>
-                      <Text style={styles.col1Value}>{expP[fila[0].key] || ''}</Text>
-                      <Text style={styles.col2Label}>{fila[1].label}</Text>
-                      <Text style={styles.col2Value}>{expP[fila[1].key] || ''}</Text>
+                      <Text style={styles.tLabel}>{fila[0].label}</Text>
+                      <Text style={styles.tValue}>{expP[fila[0].key] || ''}</Text>
+                      <Text style={styles.tLabel2}>{fila[1].label}</Text>
+                      <Text style={styles.tValue2}>{expP[fila[1].key] || ''}</Text>
                     </>
                   )}
                 </View>
@@ -125,22 +141,27 @@ const DocumentoActa = ({ expP, tipoAsunto }) => {
 
         {/* SECCIÓN DE FIRMAS */}
         <View style={styles.firmasContainer} wrap={false}>
-          {/* Titular y Auxiliar */}
+          <Text style={[styles.firmaTexto, { marginBottom: '15mm' }]}>PROTESTO LO NECESARIO</Text>
+          
           <View style={styles.firmasRow}>
             <View style={styles.firmaBlock}>
-              <Text style={styles.firmaLinea}>___________________________________</Text>
-              <Text style={styles.firmaTexto}>{`TITULAR DE LA UNIDAD DE\n${unidadTexto}`}</Text>
+              <Text style={styles.firmaLinea}>___________________________________________________</Text>
+              <Text style={styles.firmaTexto}>{`TITULAR DE LA UNIDAD DE\n${unidadTexto}.`}</Text>
             </View>
             <View style={styles.firmaBlock}>
-              <Text style={styles.firmaLinea}>___________________________________</Text>
-              <Text style={styles.firmaTexto}>{`AUXILIAR DE LA UNIDAD DE\n${unidadTexto}`}</Text>
+              <Text style={styles.firmaLinea}>___________________________________________________</Text>
+              <Text style={styles.firmaTexto}>{`AUXILIAR DE LA UNIDAD DE\n${unidadTexto}.`}</Text>
             </View>
           </View>
           
-          {/* Usuario / Representante */}
           <View style={styles.firmaCenter}>
-            <Text style={styles.firmaLinea}>___________________________________</Text>
-            <Text style={styles.firmaTexto}>FIRMA DEL USUARIO / REPRESENTANTE</Text>
+            <Text style={styles.firmaLinea}>___________________________________________________</Text>
+            <Text style={styles.firmaTexto}>
+              C. {expP.nombreUsuario || expP.nombre_completo || 'USUARIO / REPRESENTANTE'}
+            </Text>
+            <Text style={{ fontFamily: 'tahoma', marginTop: '1mm' }}>
+              USUARIO DE SERVICIO MÉDICO.
+            </Text>
           </View>
         </View>
 
