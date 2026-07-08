@@ -8,6 +8,7 @@ import { SearchFilters } from '../components/SearchFilters';
 import { DetailModal } from '../components/DetailModal';
 import DocumentosQuejaModal from '../components/DocumentosQuejaModal';
 import DocumentosAudienciaModal from '../components/DocumentosAudienciaModal';
+import DocumentoRecepcionContestacionModal from '../components/DocumentoRecepcionContestacionModal';
 import { normalizeText } from '../utils/formatters';
 import { Users, MessageSquare, AlertCircle, Compass, RefreshCw, Briefcase, Zap, FileText, Scale } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -18,6 +19,7 @@ const Atendidos = () => {
   const [documentItem, setDocumentItem] = useState(null);
   const [documentQuejaItem, setDocumentQuejaItem] = useState(null);
   const [documentAudienciaItem, setDocumentAudienciaItem] = useState(null);
+  const [documentRecepcionContestacionItem, setDocumentRecepcionContestacionItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuQuejaItem, setMenuQuejaItem] = useState(null);
   
@@ -96,6 +98,19 @@ const Atendidos = () => {
       const dataCompleta = await AtendidosService.getCompleto(item.id);
       const finalData = dataCompleta.data || dataCompleta;
       setDocumentAudienciaItem(finalData);
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error("Error al cargar datos completos:", err);
+      toast.error("No se pudo cargar la información del expediente", { id: toastId });
+    }
+  };
+
+  const handleDocumentRecepcionClick = async (item) => {
+    const toastId = toast.loading("Cargando expediente para Auto de Recepción...");
+    try {
+      const dataCompleta = await AtendidosService.getCompleto(item.id);
+      const finalData = dataCompleta.data || dataCompleta;
+      setDocumentRecepcionContestacionItem(finalData);
       toast.dismiss(toastId);
     } catch (err) {
       console.error("Error al cargar datos completos:", err);
@@ -308,6 +323,7 @@ const Atendidos = () => {
         item={menuQuejaItem}
         onOpenDocumentos={handleDocumentQuejaClick}
         onOpenAudiencia={handleDocumentAudienciaClick}
+        onOpenRecepcion={handleDocumentRecepcionClick}
       />
 
       {documentQuejaItem && (
@@ -323,6 +339,14 @@ const Atendidos = () => {
           isOpen={!!documentAudienciaItem} 
           onClose={() => setDocumentAudienciaItem(null)} 
           item={documentAudienciaItem} 
+        />
+      )}
+
+      {documentRecepcionContestacionItem && (
+        <DocumentoRecepcionContestacionModal 
+          isOpen={!!documentRecepcionContestacionItem}
+          onClose={() => setDocumentRecepcionContestacionItem(null)}
+          item={documentRecepcionContestacionItem}
         />
       )}
     </div>

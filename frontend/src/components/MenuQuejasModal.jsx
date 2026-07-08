@@ -12,7 +12,8 @@ import {
   CalendarDays 
 } from 'lucide-react';
 
-const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia }) => {
+// 1. Agregamos la prop 'onOpenRecepcion' para abrir el nuevo modal
+const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia, onOpenRecepcion }) => {
   if (!isOpen) return null;
 
   const handleAction = (action) => {
@@ -20,7 +21,7 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
     onClose(); 
   };
 
-  // Los 7 botones mapeados con la información real, iconos semánticos y descripciones resumidas
+  // 2. Quitamos el ID 3 de este arreglo, ya que ahora será un botón activo
   const botonesExtra = [
     { 
       id: 1, 
@@ -34,13 +35,6 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
       label: 'No Sujeción al Procedimiento', 
       desc: 'El prestador rechaza el arbitraje. Se dejan a salvo los derechos del quejoso.',
       icon: <FileX size={26} />, 
-      status: 'En proceso' 
-    },
-    { 
-      id: 3, 
-      label: 'Auto de Recepción de Contestación', 
-      desc: 'Acuerdo que hace constar la entrada oficial del escrito de defensa a oficialía.',
-      icon: <Inbox size={26} />, 
       status: 'En proceso' 
     },
     { 
@@ -137,7 +131,26 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
               </div>
             </button>
 
-            {/* 🔴 BOTONES 3 al 9 (En proceso) */}
+            {/* 🟢 BOTÓN 3: Auto de Recepción de Contestación (NUEVO ACTIVO) */}
+            <button 
+              onClick={() => handleAction(onOpenRecepcion)}
+              className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
+            >
+              <div className="absolute -right-6 -top-6 text-rose-50 opacity-50 group-hover:text-rose-500/20 transition-colors">
+                 <Inbox size={100} />
+              </div>
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit group-hover:bg-white/20 group-hover:text-white transition-colors relative z-10">
+                <Inbox size={28} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="font-bold text-slate-800 group-hover:text-white mb-1">Recepción Contestación</h3>
+                <p className="text-xs text-slate-500 group-hover:text-rose-100 line-clamp-2">
+                  Acuerdo que hace constar la entrada oficial del escrito de defensa a oficialía.
+                </p>
+              </div>
+            </button>
+
+            {/* 🔴 BOTONES RESTANTES (En proceso) */}
             {botonesExtra.map((btn) => (
               <button 
                 key={btn.id}

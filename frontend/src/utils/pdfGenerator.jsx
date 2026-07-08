@@ -6,6 +6,7 @@ import DocumentoActa from '../components/pdf/DocumentoActa';
 import DocumentoActaQueja from '../components/pdf/DocumentoActaQueja';
 import DocumentoAudiencia from '../components/pdf/DocumentoAudiencia';
 import DocumentoCarnet from '../components/pdf/DocumentoCarnet';
+import DocumentoRecepcionContestacion from '../components/pdf/DocumentoRecepcionContestacion';
 import { CONFIG_CAMPOS_CARNET, ETIQUETA_FIRMA_USUARIO } from './pdfConfigs';
 
 // Diccionario simple para convertir días y años a texto sin librerías externas
@@ -611,5 +612,47 @@ export const generarPDFCarnet = async (exp, notaSeguimientoSeleccionada) => {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al generar PDF de Carnet:", error);
+  }
+};
+
+
+// ===========================================================================
+// 4. GENERACIÓN DE AUTO DE RECEPCIÓN DE CONTESTACIÓN (DISEÑO FORMAL)
+// ===========================================================================
+export const generarPDFRecepcionContestacion = async (exp) => {
+  const qData = exp.datos_docs || {};
+  
+  // Procesamos las fechas
+  const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
+  const fechaAud = exp.fecha_hora_audiencia ? new Date(exp.fecha_hora_audiencia) : new Date();
+
+  // Procesamos los datos
+  const datosProcesados = {
+    expediente: exp.servicio || 'S/N',
+    fechaDocumentoCorta: obtenerFechaCorta(fechaDoc),
+    medicoNombre: qData.medico_nombre || '___',
+    // Mantenemos mayúsculas y minúsculas normales para la redacción
+    titularConciliacion: exp.titular_conciliacion || 'América Ivonne Gameros Ortiz',
+    auxiliarConciliacion: exp.auxiliar_conciliacion || 'Rosa Gloria Aguilar Sartiaguín',
+    textoAnexos: exp.anexos_contestacion || '-----------',
+    fechaHoraAudienciaLarga: obtenerFechaLargaAudiencia(fechaAud) 
+  };
+
+  const nombreArchivo = `Acuerdo_Recepcion_${exp.id || 'Exp'}.pdf`;
+
+  try {
+    const docElement = <DocumentoRecepcionContestacion data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de Recepción:", error);
   }
 };
