@@ -12,8 +12,8 @@ import {
   CalendarDays 
 } from 'lucide-react';
 
-// 1. Agregamos la prop 'onOpenRecepcion' para abrir el nuevo modal
-const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia, onOpenRecepcion }) => {
+// 1. Agregamos la prop 'onOpenNoSujecion'
+const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia, onOpenRecepcion, onOpenNoSujecion, onOpenDeclaracionVoluntad }) => {
   if (!isOpen) return null;
 
   const handleAction = (action) => {
@@ -21,22 +21,8 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
     onClose(); 
   };
 
-  // 2. Quitamos el ID 3 de este arreglo, ya que ahora será un botón activo
+  // 2. Quitamos el ID 2 de este arreglo
   const botonesExtra = [
-    { 
-      id: 1, 
-      label: 'Declaración de Voluntad', 
-      desc: 'El médico acepta el arbitraje, asume confidencialidad y se fija plazo para expediente.',
-      icon: <FileCheck size={26} />, 
-      status: 'En proceso' 
-    },
-    { 
-      id: 2, 
-      label: 'No Sujeción al Procedimiento', 
-      desc: 'El prestador rechaza el arbitraje. Se dejan a salvo los derechos del quejoso.',
-      icon: <FileX size={26} />, 
-      status: 'En proceso' 
-    },
     { 
       id: 4, 
       label: 'Acuerdo y Señalamiento', 
@@ -81,7 +67,7 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
             </div>
             <h2 className="text-2xl font-black text-slate-800">Generación de Documentos</h2>
             <p className="text-sm text-slate-500 font-medium mt-1">
-              Seleccione el acto jurídico a generar para: <span className="font-bold text-slate-700">{item?.nombre} {item?.apellido_paterno}</span>
+              Seleccione el acto jurídico a generar para: <span className="font-bold text-slate-700">{item?.nombre} {item?.apellido_paterno} {item?.apellido_materno}</span>
             </p>
           </div>
           <button onClick={onClose} className="p-3 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-100 transition-colors">
@@ -93,7 +79,7 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
         <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-slate-50/30">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             
-            {/* 🟢 BOTÓN 1: Acta de Queja (Activo) */}
+            {/* 🟢 BOTÓN 1: Acta de Queja */}
             <button 
               onClick={() => handleAction(onOpenDocumentos)}
               className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
@@ -112,7 +98,7 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
               </div>
             </button>
 
-            {/* 🟢 BOTÓN 2: Notificación Audiencia (Activo) */}
+            {/* 🟢 BOTÓN 2: Notificación Audiencia */}
             <button 
               onClick={() => handleAction(onOpenAudiencia)}
               className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
@@ -131,7 +117,7 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
               </div>
             </button>
 
-            {/* 🟢 BOTÓN 3: Auto de Recepción de Contestación (NUEVO ACTIVO) */}
+            {/* 🟢 BOTÓN 3: Auto de Recepción de Contestación */}
             <button 
               onClick={() => handleAction(onOpenRecepcion)}
               className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
@@ -146,6 +132,44 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
                 <h3 className="font-bold text-slate-800 group-hover:text-white mb-1">Recepción Contestación</h3>
                 <p className="text-xs text-slate-500 group-hover:text-rose-100 line-clamp-2">
                   Acuerdo que hace constar la entrada oficial del escrito de defensa a oficialía.
+                </p>
+              </div>
+            </button>
+
+            {/* 🟢 BOTÓN 4: No Sujeción al Procedimiento (NUEVO) */}
+            <button 
+              onClick={() => handleAction(onOpenNoSujecion)}
+              className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
+            >
+              <div className="absolute -right-6 -top-6 text-rose-50 opacity-50 group-hover:text-rose-500/20 transition-colors">
+                 <FileX size={100} />
+              </div>
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit group-hover:bg-white/20 group-hover:text-white transition-colors relative z-10">
+                <FileX size={28} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="font-bold text-slate-800 group-hover:text-white mb-1">No Sujeción</h3>
+                <p className="text-xs text-slate-500 group-hover:text-rose-100 line-clamp-2">
+                  El prestador rechaza el arbitraje. Se dejan a salvo los derechos del quejoso.
+                </p>
+              </div>
+            </button>
+
+            {/* 🟢 BOTÓN 5: Declaración de Voluntad (NUEVO) */}
+            <button 
+              onClick={() => handleAction(onOpenDeclaracionVoluntad)}
+              className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
+            >
+              <div className="absolute -right-6 -top-6 text-rose-50 opacity-50 group-hover:text-rose-500/20 transition-colors">
+                 <FileCheck size={100} />
+              </div>
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit group-hover:bg-white/20 group-hover:text-white transition-colors relative z-10">
+                <FileCheck size={28} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="font-bold text-slate-800 group-hover:text-white mb-1">Declaración de Voluntad</h3>
+                <p className="text-xs text-slate-500 group-hover:text-rose-100 line-clamp-2">
+                  El médico acepta el arbitraje, asume confidencialidad y se fija plazo para expediente.
                 </p>
               </div>
             </button>

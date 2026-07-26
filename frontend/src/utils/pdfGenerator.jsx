@@ -7,6 +7,8 @@ import DocumentoActaQueja from '../components/pdf/DocumentoActaQueja';
 import DocumentoAudiencia from '../components/pdf/DocumentoAudiencia';
 import DocumentoCarnet from '../components/pdf/DocumentoCarnet';
 import DocumentoRecepcionContestacion from '../components/pdf/DocumentoRecepcionContestacion';
+import DocumentoNoSujecion from '../components/pdf/DocumentoNoSujecion';
+import DocumentoDeclaracionVoluntad from '../components/pdf/DocumentoDeclaracionVoluntad';
 import { CONFIG_CAMPOS_CARNET, ETIQUETA_FIRMA_USUARIO } from './pdfConfigs';
 
 // Diccionario simple para convertir días y años a texto sin librerías externas
@@ -654,5 +656,118 @@ export const generarPDFRecepcionContestacion = async (exp) => {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al generar PDF de Recepción:", error);
+  }
+};
+
+// ===========================================================================
+// 5. GENERACIÓN DE AUTO DE NO SUJECIÓN (DISEÑO FORMAL)
+// ===========================================================================
+export const generarPDFNoSujecion = async (exp) => {
+  const qData = exp.datos_docs || {};
+  
+  // Procesamiento de Género
+  const esFemenino = exp.sexo === 'Femenino';
+  const tituloSenor = esFemenino ? 'la señora' : 'el señor';
+  const sustantivoUsuario = esFemenino ? 'Usuaria' : 'Usuario';
+
+  // Procesamiento de Fecha
+  const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
+
+  // Diccionario de datos limpios
+  const datosProcesados = {
+    expediente: exp.servicio || 'S/N',
+    medicoNombre: qData.medico_nombre || '___',
+    medicoDomicilio: qData.medico_domicilio || '___',
+    medicoColonia: qData.medico_colonia_Med || '___',
+    medicoCiudad: qData.medico_ciudad || 'Tepic, Nayarit',
+    medicoCedula: qData.medico_cedula || '___',
+    medicoTelefono: qData.medico_telefono || '___',
+    
+    nombreUsuario: qData.nombre_usuario || '___',
+    tituloSenor,
+    sustantivoUsuario,
+    
+    fechaDocumentoCorta: obtenerFechaCorta(fechaDoc)
+  };
+
+  const nombreArchivo = `No_Sujecion_${exp.id || 'Exp'}.pdf`;
+
+  try {
+    const docElement = <DocumentoNoSujecion data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de No Sujeción:", error);
+  }
+};
+
+// ===========================================================================
+// 6. GENERACIÓN DE DECLARACIÓN DE VOLUNTAD (DISEÑO FORMAL)
+// ===========================================================================
+export const generarPDFDeclaracionVoluntad = async (exp) => {
+  const qData = exp.datos_docs || {};
+  
+  // Procesamiento Género del USUARIO
+  const esFemeninoUsuario = exp.sexo === 'Femenino';
+  const articuloUsuario = esFemeninoUsuario ? 'la' : 'el';
+  const sustantivoUsuario = esFemeninoUsuario ? 'Usuaria' : 'Usuario';
+  const pacienteArticulo = esFemeninoUsuario ? 'la paciente' : 'el paciente';
+
+  // Procesamiento Género del MÉDICO (Inteligente por prefijo)
+  const nombreMed = qData.medico_nombre || '___';
+  const esFemeninoMedico = nombreMed.toUpperCase().includes('DRA.') || nombreMed.toUpperCase().includes('DOCTORA');
+  const articuloMedico = esFemeninoMedico ? 'la' : 'el';
+  const alMedico = esFemeninoMedico ? 'a la' : 'al';
+
+  const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
+
+  // Diccionario
+  const datosProcesados = {
+    expediente: exp.servicio || 'S/N',
+    medicoNombre: nombreMed,
+    nombreUsuario: qData.nombre_usuario || '___',
+    
+    // Representante Legal
+    repNombre: qData.representanteMed_nombre || '___',
+    repDomicilio: qData.representanteMed_domicilio || '___',
+    repColonia: qData.representanteMed_colonia || '___',
+    repCiudad: qData.representanteMed_ciudad || '___',
+    repTelefono: qData.representanteMed_telefono || '___',
+    repCedula: qData.representanteMed_cedula || '___',
+    
+    // Gramática Dinámica
+    articuloUsuario,
+    sustantivoUsuario,
+    pacienteArticulo,
+    articuloMedico,
+    alMedico,
+    
+    fechaDocumentoCorta: obtenerFechaCorta(fechaDoc)
+  };
+
+  const nombreArchivo = `Declaracion_Voluntad_${exp.id || 'Exp'}.pdf`;
+
+  try {
+    const docElement = <DocumentoDeclaracionVoluntad data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de Declaración:", error);
   }
 };
