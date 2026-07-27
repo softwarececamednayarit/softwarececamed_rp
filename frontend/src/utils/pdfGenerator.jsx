@@ -9,6 +9,7 @@ import DocumentoCarnet from '../components/pdf/DocumentoCarnet';
 import DocumentoRecepcionContestacion from '../components/pdf/DocumentoRecepcionContestacion';
 import DocumentoNoSujecion from '../components/pdf/DocumentoNoSujecion';
 import DocumentoDeclaracionVoluntad from '../components/pdf/DocumentoDeclaracionVoluntad';
+import DocumentoAudienciaConciliacion from '../components/pdf/DocumentoAudienciaConciliacion';
 import { CONFIG_CAMPOS_CARNET, ETIQUETA_FIRMA_USUARIO } from './pdfConfigs';
 
 // Diccionario simple para convertir días y años a texto sin librerías externas
@@ -769,5 +770,76 @@ export const generarPDFDeclaracionVoluntad = async (exp) => {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al generar PDF de Declaración:", error);
+  }
+};
+
+
+// ===========================================================================
+// 7. GENERACIÓN DE AUDIENCIA DE CONCILIACIÓN (DISEÑO FORMAL)
+// ===========================================================================
+export const generarPDFAudienciaConciliacion = async (exp) => {
+  const qData = exp.datos_docs || {};
+  
+  // Procesamiento Género del USUARIO
+  const esFemeninoUsuario = exp.sexo === 'Femenino';
+  const tituloUsuario = esFemeninoUsuario ? 'SRA.' : 'SR.';
+  const elLaUsuario = esFemeninoUsuario ? 'LA SRA.' : 'EL SR.';
+  const sustantivoUsuario = esFemeninoUsuario ? 'USUARIA' : 'USUARIO';
+
+  // Procesamiento Género del MÉDICO (Inteligente por prefijo)
+  const nombreMed = qData.medico_nombre || '___';
+  const medUpper = nombreMed.toUpperCase();
+  const esFemeninoMedico = medUpper.includes('DRA.') || medUpper.includes('DOCTORA') || medUpper.includes('ENF.') || medUpper.includes('LICDA.');
+  const elLaMedico = esFemeninoMedico ? 'LA' : 'EL';
+  const prestadorSustantivo = esFemeninoMedico ? 'PRESTADORA' : 'PRESTADOR';
+
+  // Fechas y Horas
+  const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
+  const horaString = exp.hora_documento || '12:00'; // Formato HH:MM
+  const horaFinCalculada = `${horaString.split(':')[0]}:50`; // Se suma un aprox para el cierre
+
+  // Ordinales para cláusulas (Soporta hasta 10 cláusulas)
+  const ordinales = ['PRIMERA', 'SEGUNDA', 'TERCERA', 'CUARTA', 'QUINTA', 'SEXTA', 'SÉPTIMA', 'OCTAVA', 'NOVENA', 'DÉCIMA'];
+  const clausulasMapeadas = (qData.clausulas_listadas || []).map((texto, index) => ({
+    titulo: ordinales[index] || `CLÁUSULA ${index + 1}`,
+    texto: texto
+  }));
+
+  // Diccionario
+  const datosProcesados = {
+    expediente: exp.servicio || 'S/N',
+    medicoNombre: nombreMed,
+    nombreUsuario: qData.nombre_usuario || '___',
+    nombreTestigo: qData.nombre_testigo || '___',
+    clausulas: clausulasMapeadas,
+    
+    // Gramática Dinámica
+    tituloUsuario,
+    elLaUsuario,
+    sustantivoUsuario,
+    elLaMedico,
+    prestadorSustantivo,
+    
+    fechaDocumentoCorta: obtenerFechaCorta(fechaDoc),
+    horaInicio: horaString,
+    horaFin: horaFinCalculada
+  };
+
+  const nombreArchivo = `Audiencia_Conciliacion_${exp.id || 'Exp'}.pdf`;
+
+  try {
+    const docElement = <DocumentoAudienciaConciliacion data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de Audiencia:", error);
   }
 };

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 // 1. Agregamos la prop 'onOpenNoSujecion'
-const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia, onOpenRecepcion, onOpenNoSujecion, onOpenDeclaracionVoluntad }) => {
+const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia, onOpenRecepcion, onOpenNoSujecion, onOpenDeclaracionVoluntad, onOpenAudienciaConciliacion }) => {
   if (!isOpen) return null;
 
   const handleAction = (action) => {
@@ -28,13 +28,6 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
       label: 'Acuerdo y Señalamiento', 
       desc: 'Acusa de recibido el expediente y cita formalmente a la audiencia de conciliación.',
       icon: <CalendarDays size={26} />, 
-      status: 'En proceso' 
-    },
-    { 
-      id: 5, 
-      label: 'Conciliación con Convenio', 
-      desc: 'Resolución exitosa donde las partes firman acuerdo cerrando el caso con validez legal.',
-      icon: <Handshake size={26} />, 
       status: 'En proceso' 
     },
     { 
@@ -170,6 +163,25 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
                 <h3 className="font-bold text-slate-800 group-hover:text-white mb-1">Declaración de Voluntad</h3>
                 <p className="text-xs text-slate-500 group-hover:text-rose-100 line-clamp-2">
                   El médico acepta el arbitraje, asume confidencialidad y se fija plazo para expediente.
+                </p>
+              </div>
+            </button>
+
+            {/* 🟢 BOTÓN 6: Audiencia de Conciliación */}
+            <button 
+              onClick={() => handleAction(onOpenAudienciaConciliacion)}
+              className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
+            >
+              <div className="absolute -right-6 -top-6 text-rose-50 opacity-50 group-hover:text-rose-500/20 transition-colors">
+                 <Scale size={100} />
+              </div>
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit group-hover:bg-white/20 group-hover:text-white transition-colors relative z-10">
+                <Scale size={28} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="font-bold text-slate-800 group-hover:text-white mb-1">Audiencia de Conciliación</h3>
+                <p className="text-xs text-slate-500 group-hover:text-rose-100 line-clamp-2">
+                  Sesión donde las partes intentan llegar a un acuerdo fuera del tribunal.
                 </p>
               </div>
             </button>

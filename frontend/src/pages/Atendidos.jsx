@@ -11,6 +11,7 @@ import DocumentosAudienciaModal from '../components/DocumentosAudienciaModal';
 import DocumentoRecepcionContestacionModal from '../components/DocumentoRecepcionContestacionModal';
 import DocumentoNoSujecionModal from '../components/DocumentoNoSujecionModal';
 import DocumentoDeclaracionVoluntadModal from '../components/DocumentoDeclaracionVoluntadModal';
+import DocumentoAudienciaConciliacionModal from '../components/DocumentoAudienciaConciliacionModal';
 import { normalizeText } from '../utils/formatters';
 import { Users, MessageSquare, AlertCircle, Compass, RefreshCw, Briefcase, Zap, FileText, Scale } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -24,6 +25,7 @@ const Atendidos = () => {
   const [documentRecepcionContestacionItem, setDocumentRecepcionContestacionItem] = useState(null);
   const [documentNoSujecionItem, setDocumentNoSujecionItem] = useState(null);
   const [documentDeclaracionVoluntadItem, setDocumentDeclaracionVoluntadItem] = useState(null);
+  const [documentAudienciaConciliacionItem, setDocumentAudienciaConciliacionItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuQuejaItem, setMenuQuejaItem] = useState(null);
   
@@ -141,6 +143,19 @@ const Atendidos = () => {
       const dataCompleta = await AtendidosService.getCompleto(item.id);
       const finalData = dataCompleta.data || dataCompleta;
       setDocumentDeclaracionVoluntadItem(finalData);
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error("Error al cargar datos:", err);
+      toast.error("No se pudo cargar la información", { id: toastId });
+    }
+  };
+
+  const handleDocumentAudienciaConciliacionClick = async (item) => {
+    const toastId = toast.loading("Cargando expediente para Audiencia Conciliación...");
+    try {
+      const dataCompleta = await AtendidosService.getCompleto(item.id);
+      const finalData = dataCompleta.data || dataCompleta;
+      setDocumentAudienciaConciliacionItem(finalData);
       toast.dismiss(toastId);
     } catch (err) {
       console.error("Error al cargar datos:", err);
@@ -356,6 +371,7 @@ const Atendidos = () => {
         onOpenRecepcion={handleDocumentRecepcionClick}
         onOpenNoSujecion={handleDocumentNoSujecionClick}
         onOpenDeclaracionVoluntad={handleDocumentDeclaracionVoluntadClick}
+        onOpenAudienciaConciliacion={handleDocumentAudienciaConciliacionClick}
       />
 
       {documentQuejaItem && (
@@ -395,6 +411,14 @@ const Atendidos = () => {
           isOpen={!!documentDeclaracionVoluntadItem}
           onClose={() => setDocumentDeclaracionVoluntadItem(null)}
           item={documentDeclaracionVoluntadItem}
+        />
+      )}
+
+      {documentAudienciaConciliacionItem && (
+        <DocumentoAudienciaConciliacionModal 
+          isOpen={!!documentAudienciaConciliacionItem}
+          onClose={() => setDocumentAudienciaConciliacionItem(null)}
+          item={documentAudienciaConciliacionItem}
         />
       )}
     </div>
