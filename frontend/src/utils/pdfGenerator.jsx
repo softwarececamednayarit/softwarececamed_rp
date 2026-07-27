@@ -10,6 +10,7 @@ import DocumentoRecepcionContestacion from '../components/pdf/DocumentoRecepcion
 import DocumentoNoSujecion from '../components/pdf/DocumentoNoSujecion';
 import DocumentoDeclaracionVoluntad from '../components/pdf/DocumentoDeclaracionVoluntad';
 import DocumentoAudienciaConciliacion from '../components/pdf/DocumentoAudienciaConciliacion';
+import DocumentoAcuerdoSenalamiento from '../components/pdf/DocumentoAcuerdoSenalamiento';
 import { CONFIG_CAMPOS_CARNET, ETIQUETA_FIRMA_USUARIO } from './pdfConfigs';
 
 // Diccionario simple para convertir días y años a texto sin librerías externas
@@ -88,6 +89,14 @@ const formatearFechaJuridica = (fechaIso) => {
   return `${horas}:${minutos} HORAS DEL DÍA ${dia} DE ${mes} DE ${anio}`;
 };
 
+const obtenerFechaConAnio = (dateStr) => {
+  if (!dateStr) return "___ de ___ del año ___";
+  // Agregamos T12:00:00 para evitar desfases de zona horaria al usar type="date"
+  const date = new Date(`${dateStr}T12:00:00`);
+  const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  return `${date.getDate()} de ${meses[date.getMonth()]} del año ${date.getFullYear()}`;
+}
+
 const obtenerFechaCorta = (dateStr) => {
   const date = new Date(dateStr);
   const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -114,6 +123,78 @@ const obtenerFechaLargaAudiencia = (dateStr) => {
   
   return `a las ${hora}:${min} horas del día ${diaSemana} ${diaNumero} ${diaLetras} de ${mes} del ${anio} ${anioLetras}`;
 }
+
+const obtenerFechaJuridicaEscrita = (dateStr) => {
+  if (!dateStr) return "___ ___ DE ___ DEL ___";
+  
+  const date = new Date(dateStr);
+  
+  // 1. Día en número a dos dígitos (ej. "06")
+  const diaNumero = date.getDate();
+  const diaPad = String(diaNumero).padStart(2, '0');
+  
+  // 2. Mes en mayúsculas
+  const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+  const mes = meses[date.getMonth()];
+  
+  // 3. Año
+  const anio = date.getFullYear();
+  
+  // 4. Conversión a letras (asumiendo que tienes estas funciones en tu archivo)
+  // Se aplica .toUpperCase() por si tus funciones originales devuelven minúsculas
+  const diaLetras = numerosALetras[diaNumero]?.toUpperCase() || "";
+  const anioLetras = anioALetras(anio)?.toUpperCase() || "";
+  
+  return `${diaPad} ${diaLetras} DE ${mes} DEL ${anioLetras}`;
+}
+
+const obtenerFechaCitatorio = (dateStr) => {
+  if (!dateStr) return "___:___ ___ horas del día ___ ___ ___ de ___ del año ___";
+
+  const date = new Date(dateStr);
+  
+  // 1. Manejo de la hora
+  const hora = date.getHours();
+  const min = date.getMinutes();
+  const horaPad = String(hora).padStart(2, '0');
+  const minPad = String(min).padStart(2, '0');
+  
+  // Asume que tu arreglo numerosALetras cubre del 0 al 59
+  let horaLetras = (numerosALetras[hora] || "").toLowerCase();
+  // Capitalizamos la primera letra como en tu ejemplo: "Diez"
+  horaLetras = horaLetras.charAt(0).toUpperCase() + horaLetras.slice(1);
+  
+  let minutosLetras = "";
+  if (min > 0) {
+    minutosLetras = ` con ${(numerosALetras[min] || "").toLowerCase()} minutos`;
+  }
+
+  // 2. Días y Meses en minúsculas
+  const diasSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  
+  const diaSemana = diasSemana[date.getDay()];
+  const diaNumero = date.getDate();
+  const mes = meses[date.getMonth()];
+  const anio = date.getFullYear();
+  
+  const diaLetras = (numerosALetras[diaNumero] || "").toLowerCase();
+
+  // 3. Lógica del "Año en curso" vs "Siguiente año"
+  const anioActual = new Date().getFullYear();
+  let textoAnio = "";
+  
+  if (anio === anioActual) {
+    textoAnio = "del año en curso";
+  } else {
+    // Si es un año diferente (ej. 2027), usa tu función anioALetras
+    const anioLetrasStr = (anioALetras(anio) || "").toLowerCase();
+    textoAnio = `del año ${anioLetrasStr}`; // Resultado: "del año dos mil veintisiete"
+  }
+
+  // 4. Ensamblaje final
+  return `${horaPad}:${minPad} ${horaLetras} horas${minutosLetras} del día ${diaSemana} ${diaNumero} ${diaLetras} de ${mes} ${textoAnio}`;
+};
 
 // --- AYUDANTE GLOBAL: INYECTOR DE ENCABEZADO Y PIE GUBERNAMENTAL (ORIENTACIÓN / ASESORÍA) ---
 const encapsularDiseñoInstitucional = (doc) => {
@@ -841,5 +922,52 @@ export const generarPDFAudienciaConciliacion = async (exp) => {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al generar PDF de Audiencia:", error);
+  }
+};
+
+// ===========================================================================
+// 8. GENERACIÓN DE ACUERDO DE SEÑALAMIENTO (DISEÑO FORMAL)
+// ===========================================================================
+export const generarPDFAcuerdoSenalamiento = async (exp) => {
+  const qData = exp.datos_docs || {};
+  
+  const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
+  
+  // Diccionario
+  const datosProcesados = {
+    expediente: exp.servicio || 'S/N',
+    noOficio: qData.prestador_noOficio || '___',
+    
+    // Destinatario
+    usuarioNombre: qData.nombre_usuario || '___',
+    usuarioDomicilio: qData.usuario_domicilio || '___',
+    usuarioColonia: qData.usuario_colonia || '___',
+    usuarioCiudad: qData.usuario_ciudad || '___',
+    
+    medicoNombre: qData.medico_nombre || '___',
+    
+    // Fechas dinámicas 
+    fechaCorta: obtenerFechaCorta(fechaDoc),
+    fechaJuridica: obtenerFechaJuridicaEscrita(exp.fecha_documento),
+    fechaContestacionStr: obtenerFechaConAnio(exp.fecha_contestacion), // <-- VARIABLE NUEVA
+    fechaCitatorioStr: obtenerFechaCitatorio(exp.fecha_citatorio)
+  };
+
+  const nombreArchivo = `Acuerdo_Senalamiento_${exp.id || 'Exp'}.pdf`;
+
+  try {
+    const docElement = <DocumentoAcuerdoSenalamiento data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF de Acuerdo y Señalamiento:", error);
   }
 };
