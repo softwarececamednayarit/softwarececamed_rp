@@ -13,6 +13,7 @@ import DocumentoNoSujecionModal from '../components/DocumentoNoSujecionModal';
 import DocumentoDeclaracionVoluntadModal from '../components/DocumentoDeclaracionVoluntadModal';
 import DocumentoAudienciaConciliacionModal from '../components/DocumentoAudienciaConciliacionModal';
 import DocumentoAcuerdoSenalamientoModal from '../components/DocumentoAcuerdoSenalamientoModal';
+import DocumentoAudienciaNoConciliadaModal from '../components/DocumentoAudienciaNoConciliadaModal';
 import { normalizeText } from '../utils/formatters';
 import { Users, MessageSquare, AlertCircle, Compass, RefreshCw, Briefcase, Zap, FileText, Scale } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -28,6 +29,7 @@ const Atendidos = () => {
   const [documentDeclaracionVoluntadItem, setDocumentDeclaracionVoluntadItem] = useState(null);
   const [documentAudienciaConciliacionItem, setDocumentAudienciaConciliacionItem] = useState(null);
   const [documentAcuerdoSenalamientoItem, setDocumentAcuerdoSenalamientoItem] = useState(null);
+  const [documentAudienciaNoConciliadaItem, setDocumentAudienciaNoConciliadaItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuQuejaItem, setMenuQuejaItem] = useState(null);
   
@@ -171,6 +173,19 @@ const Atendidos = () => {
       const dataCompleta = await AtendidosService.getCompleto(item.id);
       const finalData = dataCompleta.data || dataCompleta;
       setDocumentAcuerdoSenalamientoItem(finalData);
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error("Error al cargar datos:", err);
+      toast.error("No se pudo cargar la información", { id: toastId });
+    }
+  };
+
+  const handleDocumentAudienciaNoConciliadaClick = async (item) => {
+    const toastId = toast.loading("Cargando expediente para Audiencia No Conciliada...");
+    try {
+      const dataCompleta = await AtendidosService.getCompleto(item.id);
+      const finalData = dataCompleta.data || dataCompleta;
+      setDocumentAudienciaNoConciliadaItem(finalData);
       toast.dismiss(toastId);
     } catch (err) {
       console.error("Error al cargar datos:", err);
@@ -388,6 +403,7 @@ const Atendidos = () => {
         onOpenDeclaracionVoluntad={handleDocumentDeclaracionVoluntadClick}
         onOpenAudienciaConciliacion={handleDocumentAudienciaConciliacionClick}
         onOpenAcuerdoSenalamiento={handleDocumentAcuerdoSenalamientoClick}
+        onOpenAudienciaNoConciliada={handleDocumentAudienciaNoConciliadaClick}
       />
 
       {documentQuejaItem && (
@@ -443,6 +459,14 @@ const Atendidos = () => {
           isOpen={!!documentAcuerdoSenalamientoItem}
           onClose={() => setDocumentAcuerdoSenalamientoItem(null)}
           item={documentAcuerdoSenalamientoItem}
+        />
+      )}
+
+      {documentAudienciaNoConciliadaItem && (
+        <DocumentoAudienciaNoConciliadaModal 
+          isOpen={!!documentAudienciaNoConciliadaItem}
+          onClose={() => setDocumentAudienciaNoConciliadaItem(null)}
+          item={documentAudienciaNoConciliadaItem}
         />
       )}
     </div>

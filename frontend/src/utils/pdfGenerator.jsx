@@ -11,6 +11,7 @@ import DocumentoNoSujecion from '../components/pdf/DocumentoNoSujecion';
 import DocumentoDeclaracionVoluntad from '../components/pdf/DocumentoDeclaracionVoluntad';
 import DocumentoAudienciaConciliacion from '../components/pdf/DocumentoAudienciaConciliacion';
 import DocumentoAcuerdoSenalamiento from '../components/pdf/DocumentoAcuerdoSenalamiento';
+import DocumentoAudienciaNoConciliada from '../components/pdf/DocumentoAudienciaNoConciliada';
 import { CONFIG_CAMPOS_CARNET, ETIQUETA_FIRMA_USUARIO } from './pdfConfigs';
 
 // Diccionario simple para convertir días y años a texto sin librerías externas
@@ -969,5 +970,69 @@ export const generarPDFAcuerdoSenalamiento = async (exp) => {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al generar PDF de Acuerdo y Señalamiento:", error);
+  }
+};
+
+// ===========================================================================
+// 9. GENERACIÓN DE AUDIENCIA NO CONCILIADA (DISEÑO FORMAL)
+// ===========================================================================
+export const generarPDFAudienciaNoConciliada = async (exp) => {
+  const qData = exp.datos_docs || {};
+  
+  // Procesamiento Género del USUARIO
+  const esFemeninoUsuario = exp.sexo === 'Femenino';
+  const tituloUsuario = esFemeninoUsuario ? 'Sra.' : 'Sr.';
+  const articuloUsuario = esFemeninoUsuario ? 'la' : 'el';
+  const sustantivoUsuario = esFemeninoUsuario ? 'usuaria' : 'usuario';
+
+  // Procesamiento Género del MÉDICO
+  const nombreMed = qData.medico_nombre || '___';
+  const esFemeninoMedico = nombreMed.toUpperCase().includes('DRA.') || nombreMed.toUpperCase().includes('DOCTORA') || nombreMed.toUpperCase().includes('ENF.');
+  const articuloMedico = esFemeninoMedico ? 'La' : 'El';
+
+  // Extraer Horas HH:MM
+  const getHoraString = (dateStr) => {
+    if(!dateStr) return "___:___";
+    const d = new Date(dateStr);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const fechaDocStr = exp.fecha_documento;
+  
+  const datosProcesados = {
+    expediente: exp.servicio || 'S/N',
+    medicoNombre: nombreMed,
+    nombreUsuario: qData.nombre_usuario || '___',
+    
+    usuarioManifestacion: qData.usuario_manifestacion || '________________________',
+    medicoManifestacion: qData.medico_manifestacion || '________________________',
+    
+    // Gramática Dinámica
+    tituloUsuario,
+    articuloUsuario,
+    sustantivoUsuario,
+    articuloMedico,
+    
+    fechaJuridica: obtenerFechaJuridicaEscrita(fechaDocStr),
+    horaInicio: getHoraString(fechaDocStr),
+    horaConclusion: getHoraString(exp.fecha_conclusion)
+  };
+
+  const nombreArchivo = `Audiencia_No_Conciliada_${exp.id || 'Exp'}.pdf`;
+
+  try {
+    const docElement = <DocumentoAudienciaNoConciliada data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF No Conciliada:", error);
   }
 };
