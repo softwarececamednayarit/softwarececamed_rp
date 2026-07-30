@@ -13,24 +13,13 @@ import {
 } from 'lucide-react';
 
 // 1. Agregamos la prop 'onOpenNoSujecion'
-const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia, onOpenRecepcion, onOpenNoSujecion, onOpenDeclaracionVoluntad, onOpenAudienciaConciliacion, onOpenAcuerdoSenalamiento, onOpenAudienciaNoConciliada }) => {
+const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudiencia, onOpenRecepcion, onOpenNoSujecion, onOpenDeclaracionVoluntad, onOpenAudienciaConciliacion, onOpenAcuerdoSenalamiento, onOpenAudienciaNoConciliada, onOpenDiferimientoAudiencia }) => {
   if (!isOpen) return null;
 
   const handleAction = (action) => {
     action(item);
     onClose(); 
   };
-
-  // 2. Quitamos el ID 2 de este arreglo
-  const botonesExtra = [
-    { 
-      id: 7, 
-      label: 'Diferimiento de Audiencia', 
-      desc: 'Se establece una nueva fecha para que las partes reconsideren propuestas.',
-      icon: <FileClock size={26} />, 
-      status: 'En proceso' 
-    },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm">
@@ -210,30 +199,24 @@ const MenuQuejasModal = ({ isOpen, onClose, item, onOpenDocumentos, onOpenAudien
               </div>
             </button>
 
-            {/* 🔴 BOTONES RESTANTES (En proceso) */}
-            {botonesExtra.map((btn) => (
-              <button 
-                key={btn.id}
-                disabled
-                className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-slate-100 bg-white opacity-70 cursor-not-allowed"
-              >
-                <div className="flex items-start justify-between w-full">
-                   <div className="p-3 bg-slate-100 text-slate-400 rounded-xl w-fit">
-                     {btn.icon}
-                   </div>
-                   <span className="text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-500 px-2 py-1 rounded-md">
-                     {btn.status}
-                   </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-600 mb-1 leading-tight">{btn.label}</h3>
-                  <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-3">
-                    {btn.desc}
-                  </p>
-                </div>
-              </button>
-            ))}
-
+            {/* 🟢 BOTÓN 9: Diferimiento de Audiencia */}
+            <button 
+              onClick={() => handleAction(onOpenDiferimientoAudiencia)}
+              className="relative flex flex-col text-left p-6 gap-4 rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-600 hover:border-rose-600 group transition-all shadow-sm hover:shadow-xl hover:shadow-rose-200 hover:-translate-y-1 overflow-hidden"
+            >
+              <div className="absolute -right-6 -top-6 text-rose-50 opacity-50 group-hover:text-rose-500/20 transition-colors">
+                 <FileClock size={100} />
+              </div>
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit group-hover:bg-white/20 group-hover:text-white transition-colors relative z-10">
+                <FileClock size={28} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="font-bold text-slate-800 group-hover:text-white mb-1">Diferimiento de Audiencia</h3>
+                <p className="text-xs text-slate-500 group-hover:text-rose-100 line-clamp-2">
+                  Se establece una nueva fecha para que las partes reconsideren propuestas.
+                </p>
+              </div>
+            </button>
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@ import DocumentoDeclaracionVoluntad from '../components/pdf/DocumentoDeclaracion
 import DocumentoAudienciaConciliacion from '../components/pdf/DocumentoAudienciaConciliacion';
 import DocumentoAcuerdoSenalamiento from '../components/pdf/DocumentoAcuerdoSenalamiento';
 import DocumentoAudienciaNoConciliada from '../components/pdf/DocumentoAudienciaNoConciliada';
+import DocumentoDiferimientoAudiencia from '../components/pdf/DocumentoDiferimientoAudiencia';
 import { CONFIG_CAMPOS_CARNET, ETIQUETA_FIRMA_USUARIO } from './pdfConfigs';
 
 // Diccionario simple para convertir días y años a texto sin librerías externas
@@ -1034,5 +1035,76 @@ export const generarPDFAudienciaNoConciliada = async (exp) => {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al generar PDF No Conciliada:", error);
+  }
+};
+
+// ===========================================================================
+// 10. GENERACIÓN DE DIFERIMIENTO DE AUDIENCIA (DISEÑO FORMAL)
+// ===========================================================================
+export const generarPDFDiferimientoAudiencia = async (exp) => {
+  const qData = exp.datos_docs || {};
+  
+  // Procesamiento Género del USUARIO
+  const esFemeninoUsuario = exp.sexo === 'Femenino';
+  const tituloUsuario = esFemeninoUsuario ? 'Sra.' : 'Sr.';
+  const articuloUsuario = esFemeninoUsuario ? 'La' : 'El'; // Capitalizado para inicio de oración
+  const articuloUsuarioMin = esFemeninoUsuario ? 'la' : 'el'; // Minúscula
+  const sustantivoUsuario = esFemeninoUsuario ? 'Usuaria' : 'Usuario';
+  const sustantivoUsuarioMin = esFemeninoUsuario ? 'usuaria' : 'usuario';
+
+  // Procesamiento Género del MÉDICO
+  const nombreMed = qData.medico_nombre || '___';
+  const upperMed = nombreMed.toUpperCase();
+  const esFemeninoMedico = upperMed.includes('DRA.') || upperMed.includes('DOCTORA') || upperMed.includes('ENF.');
+  const articuloMedico = esFemeninoMedico ? 'la' : 'el';
+  const articuloMedicoCap = esFemeninoMedico ? 'La' : 'El';
+
+  // Extraer Horas HH:MM
+  const getHoraString = (dateStr) => {
+    if(!dateStr) return "___:___";
+    const d = new Date(dateStr);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const fechaDocStr = exp.fecha_documento;
+  
+  const datosProcesados = {
+    expediente: exp.servicio || 'S/N',
+    medicoNombre: nombreMed,
+    nombreUsuario: qData.nombre_usuario || '___',
+    
+    usuarioManifestacion: qData.usuario_manifestacion || '________________________',
+    
+    // Gramática Dinámica
+    tituloUsuario,
+    articuloUsuario,
+    articuloUsuarioMin,
+    sustantivoUsuario,
+    sustantivoUsuarioMin,
+    articuloMedico,
+    articuloMedicoCap,
+    
+    fechaJuridica: obtenerFechaJuridicaEscrita(fechaDocStr),
+    horaInicio: getHoraString(fechaDocStr),
+    horaConclusion: getHoraString(exp.fecha_conclusion),
+    fechaCitatorioStr: obtenerFechaCitatorio(exp.fecha_citatorio)
+  };
+
+  const nombreArchivo = `Diferimiento_Audiencia_${exp.id || 'Exp'}.pdf`;
+
+  try {
+    const docElement = <DocumentoDiferimientoAudiencia data={datosProcesados} />;
+    const blob = await pdf(docElement).toBlob();
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar PDF Diferimiento:", error);
   }
 };
