@@ -93,7 +93,6 @@ const formatearFechaJuridica = (fechaIso) => {
 
 const obtenerFechaConAnio = (dateStr) => {
   if (!dateStr) return "___ de ___ del año ___";
-  // Agregamos T12:00:00 para evitar desfases de zona horaria al usar type="date"
   const date = new Date(`${dateStr}T12:00:00`);
   const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   return `${date.getDate()} de ${meses[date.getMonth()]} del año ${date.getFullYear()}`;
@@ -131,19 +130,14 @@ const obtenerFechaJuridicaEscrita = (dateStr) => {
   
   const date = new Date(dateStr);
   
-  // 1. Día en número a dos dígitos (ej. "06")
   const diaNumero = date.getDate();
   const diaPad = String(diaNumero).padStart(2, '0');
   
-  // 2. Mes en mayúsculas
   const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
   const mes = meses[date.getMonth()];
   
-  // 3. Año
   const anio = date.getFullYear();
   
-  // 4. Conversión a letras (asumiendo que tienes estas funciones en tu archivo)
-  // Se aplica .toUpperCase() por si tus funciones originales devuelven minúsculas
   const diaLetras = numerosALetras[diaNumero]?.toUpperCase() || "";
   const anioLetras = anioALetras(anio)?.toUpperCase() || "";
   
@@ -155,15 +149,12 @@ const obtenerFechaCitatorio = (dateStr) => {
 
   const date = new Date(dateStr);
   
-  // 1. Manejo de la hora
   const hora = date.getHours();
   const min = date.getMinutes();
   const horaPad = String(hora).padStart(2, '0');
   const minPad = String(min).padStart(2, '0');
   
-  // Asume que tu arreglo numerosALetras cubre del 0 al 59
   let horaLetras = (numerosALetras[hora] || "").toLowerCase();
-  // Capitalizamos la primera letra como en tu ejemplo: "Diez"
   horaLetras = horaLetras.charAt(0).toUpperCase() + horaLetras.slice(1);
   
   let minutosLetras = "";
@@ -171,7 +162,6 @@ const obtenerFechaCitatorio = (dateStr) => {
     minutosLetras = ` con ${(numerosALetras[min] || "").toLowerCase()} minutos`;
   }
 
-  // 2. Días y Meses en minúsculas
   const diasSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   
@@ -182,37 +172,29 @@ const obtenerFechaCitatorio = (dateStr) => {
   
   const diaLetras = (numerosALetras[diaNumero] || "").toLowerCase();
 
-  // 3. Lógica del "Año en curso" vs "Siguiente año"
   const anioActual = new Date().getFullYear();
   let textoAnio = "";
   
   if (anio === anioActual) {
     textoAnio = "del año en curso";
   } else {
-    // Si es un año diferente (ej. 2027), usa tu función anioALetras
     const anioLetrasStr = (anioALetras(anio) || "").toLowerCase();
-    textoAnio = `del año ${anioLetrasStr}`; // Resultado: "del año dos mil veintisiete"
+    textoAnio = `del año ${anioLetrasStr}`; 
   }
 
-  // 4. Ensamblaje final
   return `${horaPad}:${minPad} ${horaLetras} horas${minutosLetras} del día ${diaSemana} ${diaNumero} ${diaLetras} de ${mes} ${textoAnio}`;
 };
 
-// --- AYUDANTE GLOBAL: INYECTOR DE ENCABEZADO Y PIE GUBERNAMENTAL (ORIENTACIÓN / ASESORÍA) ---
+// --- AYUDANTES GLOBALES ---
 const encapsularDiseñoInstitucional = (doc) => {
   const totalPaginas = doc.internal.getNumberOfPages();
   const unidadTexto = 'UNIDAD DE ORIENTACIÓN';
 
   for (let i = 1; i <= totalPaginas; i++) {
     doc.setPage(i);
-    
-    // 1. Encabezado Oficial
     doc.addImage('/encabezado_acta_carnet.png', 'PNG', 0, 0, 210, 43.8);
-    
-    // 2. Pie de Página
     doc.addImage('/pie_acta_carnet.jpg', 'JPEG', 0, 251, 210, 46);
     
-    // 3. Textos institucionales estampados EN CIMA del Pie de Página
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5); 
     doc.setTextColor(150, 150, 150); 
@@ -222,7 +204,6 @@ const encapsularDiseñoInstitucional = (doc) => {
     doc.text("3112103283 | 3112104276", 105, 285, { align: 'center' });
   }
 };
-
 
 const encapsularDiseñoInstitucionalQ = (doc) => {
   const totalPaginas = doc.internal.getNumberOfPages();
@@ -230,14 +211,9 @@ const encapsularDiseñoInstitucionalQ = (doc) => {
 
   for (let i = 1; i <= totalPaginas; i++) {
     doc.setPage(i);
-    
-    // 1. Encabezado Oficial
     doc.addImage('/encabezado_acta_carnet.png', 'PNG', 0, 0, 210, 43.8);
-    
-    // 2. Pie de Página
     doc.addImage('/pie_acta_carnet.jpg', 'JPEG', 0, 251, 210, 46);
     
-    // 3. Textos institucionales estampados EN CIMA del Pie de Página
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5); 
     doc.setTextColor(150, 150, 150); 
@@ -248,257 +224,146 @@ const encapsularDiseñoInstitucionalQ = (doc) => {
   }
 };
 
-// --- AYUDANTE GLOBAL: INYECTOR DE ENCABEZADO Y PIE CON AVISO DE PRIVACIDAD (QUEJAS) ---
 export const encapsularDiseñoInstitucionalQueja = (doc) => {
   const totalPaginas = doc.internal.getNumberOfPages();
   const avisoPrivacidadCuerpo = "Los datos personales proporcionados a la COMISIÓN ESTATAL DE CONCILIACIÓN Y ARBITRAJE MÉDICO PARA EL ESTADO DE NAYARIT (CECAMED) ubicada en Av. Jacarandas # 204, C.P. 63130, colonia San Juan, de esta ciudad de Tepic, Nayarit, serán protegidos conforme a lo dispuesto por los artículos 16, 17, 18, fracción I incisos a, b y c de la Ley de Protección de Datos Personales en Posesión de los Sujetos Obligados para el Estado de Nayarit, y demás normatividad aplicable. Los servicios que brinda esta institución son gratuitos en términos de su artículo 6 del Reglamento de Procedimientos para la Atención de Quejas Médicas y Gestión Pericial de la Comisión Estatal de Conciliación y Arbitraje Médico para el Estado de Nayarit. Artículo 82 de Ley de Transparencia y Acceso a la Información Pública del Estado de Nayarit. La información confidencial que usted proporcione como usuario de los servicios que brinda la Comisión será utilizada únicamente para los efectos de una adecuada integración de su expediente de: Orientación, Asesoría, Gestión Inmediata, Queja, Conciliación o Arbitraje según sea el caso.";
 
   for (let i = 1; i <= totalPaginas; i++) {
     doc.setPage(i);
-    // 1. Encabezado Oficial
     doc.addImage('/encabezado_acta_carnet.png', 'PNG', 0, 0, 210, 43.8);
-    // 2. Pie de Página
     doc.addImage('/pie_acta_carnet.jpg', 'JPEG', 0, 251, 210, 46);
     
-    // 3. Aviso de Privacidad
     doc.setFont('helvetica', 'bold'); 
     doc.setFontSize(6);
     doc.setTextColor(80, 80, 80); 
     
-    // Bajamos la coordenada Y a 272 para que cuadre con la imagen
     doc.setFontSize(5);
     doc.text("AVISO DE PRIVACIDAD", 105, 276, { align: 'center', baseline: 'top' });
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(4);
-    // Bajamos a 275 y mantenemos centrado
     doc.text(avisoPrivacidadCuerpo, 100, 279, { align: 'center', maxWidth: 150, baseline: 'top', lineHeightFactor: 1.15 });
   }
 };
-// ===========================================================================
 
+// ===========================================================================
 // 1. GENERACIÓN REPORTE MENSUAL
-
 // ===========================================================================
-
-export const generarPDFMensual = (data, fechaInicio, fechaFin) => {
-
+export const generarPDFMensual = (data, fechaInicio, fechaFin, accion = 'descargar') => {
   const doc = new jsPDF({ orientation: 'landscape' });
-
   const periodoTexto = obtenerMesAnio(fechaInicio);
 
-
-
   const stats = {
-
     imss: { orientaciones: 0, asesorias: 0, gestiones: 0, quejas: 0, dictamenes: 0 },
-
     issste: { orientaciones: 0, asesorias: 0, gestiones: 0, quejas: 0, dictamenes: 0 },
-
     ssn: { orientaciones: 0, asesorias: 0, gestiones: 0, quejas: 0, dictamenes: 0 },
-
     priv: { orientaciones: 0, asesorias: 0, gestiones: 0, quejas: 0, dictamenes: 0 },
-
     otros: { orientaciones: 0, asesorias: 0, gestiones: 0, quejas: 0, dictamenes: 0 },
-
   };
 
-
-
   let totalHombres = 0;
-
   let totalMujeres = 0;
-
   let totalForaneos = 0;
-
   const filasDetalle = [];
 
-
-
   data.forEach(exp => {
-
     const instKey = clasificarInstitucion(exp.prestador_nombre || exp.institucion);
-
     const asuntoKey = clasificarActividad(exp.actividad_apoyo || exp.tipo_asunto);
 
-
-
     if (asuntoKey && stats[instKey]) {
-
       stats[instKey][asuntoKey]++;
-
     }
-
-
 
     const sexo = (exp.sexo || '').toUpperCase();
-
     if (sexo.startsWith('H') || sexo.startsWith('MASC')) {
-
         totalHombres++;
-
     } else if (sexo.startsWith('F') || sexo.startsWith('MUJ') || sexo === 'M') {
-
         totalMujeres++;
-
     }
-
-
 
     if (exp.foraneo === true || exp.foraneo === 'true') totalForaneos++;
 
-
-
     if (asuntoKey === 'gestiones' || asuntoKey === 'quejas' || asuntoKey === 'dictamenes') {
-
       filasDetalle.push([
-
         exp.servicio || `G-${String(exp.id).substring(0,4).toUpperCase()}`,
-
         formatName(exp.prestador_nombre || exp.institucion || 'NO ESPECIFICADO'),
-
         (exp.especialidad || '---').toUpperCase(),
-
         (exp.motivo_inconformidad || '---').toUpperCase(),
-
         exp.edad ? `${exp.edad}` : '---',
-
         sexo.substring(0,1),
-
         (exp.diagnostico || '---').toUpperCase(),
-
         exp.fecha_recepcion || ''
-
       ]);
-
     }
-
   });
 
-
-
   const sumRow = (key) => stats.imss[key] + stats.issste[key] + stats.ssn[key] + stats.priv[key] + stats.otros[key];
-
   const tImss = Object.values(stats.imss).reduce((a,b)=>a+b,0);
-
   const tIssste = Object.values(stats.issste).reduce((a,b)=>a+b,0);
-
   const tSsn = Object.values(stats.ssn).reduce((a,b)=>a+b,0);
-
   const tPriv = Object.values(stats.priv).reduce((a,b)=>a+b,0);
-
   const tOtros = Object.values(stats.otros).reduce((a,b)=>a+b,0);
-
   const granTotal = tImss + tIssste + tSsn + tPriv + tOtros;
-
-
 
   const blueCellStyle = { fillColor: [189, 215, 238], fontStyle: 'bold', halign: 'center' };
 
-
-
   doc.setFontSize(12);
-
   doc.setFont('helvetica', 'bold');
-
   doc.text("REPORTE LLENADO POR LA UNIDAD DE ORIENTACIÓN", 148.5, 15, { align: 'center' });
-
   doc.text(`CONCENTRADO DE ASUNTOS RECIBIDOS ${periodoTexto}`, 148.5, 22, { align: 'center' });
 
-
-
   autoTable(doc, {
-
     startY: 30,
-
     head: [['ASUNTO', 'IMSS', 'ISSSTE', 'SSN', 'PRIV.', 'OTROS', 'TOTAL']],
-
     body: [
-
       ['ORIENTACIONES', stats.imss.orientaciones, stats.issste.orientaciones, stats.ssn.orientaciones, stats.priv.orientaciones, stats.otros.orientaciones, sumRow('orientaciones')],
-
       ['ASESORÍAS',     stats.imss.asesorias,     stats.issste.asesorias,     stats.ssn.asesorias,     stats.priv.asesorias,     stats.otros.asesorias,     sumRow('asesorias')],
-
       ['GESTIONES',     stats.imss.gestiones,     stats.issste.gestiones,     stats.ssn.gestiones,     stats.priv.gestiones,     stats.otros.gestiones,     sumRow('gestiones')],
-
       ['QUEJAS',        stats.imss.quejas,        stats.issste.quejas,        stats.ssn.quejas,        stats.priv.quejas,        stats.otros.quejas,        sumRow('quejas')],
-
       ['DICTÁMENES',    stats.imss.dictamenes,    stats.issste.dictamenes,    stats.ssn.dictamenes,    stats.priv.dictamenes,    stats.otros.dictamenes,    sumRow('dictamenes')],
-
       [{ content: 'TOTAL', styles: blueCellStyle }, { content: tImss, styles: blueCellStyle }, { content: tIssste, styles: blueCellStyle }, { content: tSsn, styles: blueCellStyle }, { content: tPriv, styles: blueCellStyle }, { content: tOtros, styles: blueCellStyle }, { content: granTotal, styles: blueCellStyle }]
-
     ],
-
     theme: 'plain',
-
     headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'bold', lineWidth: 0.1, lineColor: 0, halign: 'center' },
-
     styles: { lineColor: [0, 0, 0], lineWidth: 0.1, halign: 'center', fontSize: 9, cellPadding: 1.5 },
-
     columnStyles: { 0: { halign: 'left', fontStyle: 'bold', cellWidth: 40 } }
-
   });
-
-
 
   let finalY = doc.lastAutoTable.finalY + 10;
-
   doc.setFontSize(10);
-
   doc.setFont('helvetica', 'normal');
-
   doc.text(`Total, de Hombres: ${totalHombres}`, 148.5, finalY, { align: 'center' });
-
   doc.text(`Total, de Mujeres: ${totalMujeres}`, 148.5, finalY + 5, { align: 'center' });
-
   doc.text(`Total, de Asuntos Foráneos: ${totalForaneos}`, 148.5, finalY + 10, { align: 'center' });
 
-
-
   finalY += 25;
-
   doc.setFont('helvetica', 'bold');
-
   doc.text(`MOTIVOS DE INCONFORMIDAD RECIBIDOS ${periodoTexto}`, 148.5, finalY, { align: 'center' });
-
   doc.setFont('helvetica', 'normal');
-
   doc.text("(Gestiones, Quejas y Dictámenes)", 148.5, finalY + 5, { align: 'center' });
 
-
-
   autoTable(doc, {
-
     startY: finalY + 10,
-
     head: [['Asunto', 'Institución\nMédica y\njurídica', 'Especialidad', 'Motivo', 'Edad', 'Sexo', 'DX.', 'Fecha de\nRecepción']],
-
     body: filasDetalle,
-
     theme: 'plain',
-
     headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'bold', lineWidth: 0.1, lineColor: 0, halign: 'center', valign: 'middle' },
-
     styles: { lineColor: [0, 0, 0], lineWidth: 0.1, fontSize: 8, cellPadding: 1.5, valign: 'middle' },
-
     columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 45 }, 2: { cellWidth: 30 }, 3: { cellWidth: 60 }, 4: { cellWidth: 15 }, 5: { cellWidth: 15 }, 6: { cellWidth: 40 }, 7: { cellWidth: 25 } },
-
     margin: { top: 15, bottom: 15, left: 10, right: 10 }
-
   });
 
-
-
-  doc.save(`Reporte_Mensual_${periodoTexto.replace(/ /g, '_')}.pdf`);
-
+  if (accion === 'previsualizar') {
+    window.open(doc.output('bloburl'), '_blank');
+  } else {
+    doc.save(`Reporte_Mensual_${periodoTexto.replace(/ /g, '_')}.pdf`);
+  }
 };
-
 
 // ===========================================================================
 // 2. GENERACIÓN DE ACTAS DE ATENCIÓN (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFActa = async (exp) => {
-  // 1. PREPARACIÓN Y NORMALIZACIÓN DE DATOS (Mantenemos tu lógica intacta aquí)
+export const generarPDFActa = async (exp, accion = 'descargar') => {
   const rep = exp.representante || {};
   const expP = {
     ...exp,
@@ -524,21 +389,22 @@ export const generarPDFActa = async (exp) => {
   const nombreArchivo = `Acta_${tipoAsunto.replace(/ /g, '_')}_${exp.id || 'Exp'}.pdf`;
 
   try {
-    // 2. GENERACIÓN DEL PDF CON REACT
-    // Pasamos los datos ya normalizados como "prop" al componente
     const docElement = <DocumentoActa expP={expP} tipoAsunto={tipoAsunto} />;
     
-    // 3. CONVERSIÓN A BLOB Y DESCARGA
     const blob = await pdf(docElement).toBlob();
     const url = URL.createObjectURL(blob);
     
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     
   } catch (error) {
     console.error("Error al generar el PDF del Acta:", error);
@@ -549,12 +415,11 @@ export const generarPDFActa = async (exp) => {
 // ===========================================================================
 // ACTA DE QUEJA
 // ===========================================================================
-export const generarPDFActaQueja = async (exp) => {
+export const generarPDFActaQueja = async (exp, accion = 'descargar') => {
   const toUpper = (val) => val ? String(val).toUpperCase() : '';
   const qData = exp.datos_docs || {};
   const rep = exp.representante || {};
   
-  // Normalización de datos (tu lógica original, pero sin cálculos de PDF)
   const datosProcesados = {
     ...exp,
     qData,
@@ -564,7 +429,6 @@ export const generarPDFActaQueja = async (exp) => {
     fechaConclusionFormal: toUpper(formatearFechaJuridica(qData.fecha_hora_conclusion)),
     edadNormalizadaUsuario: normalizarEdadONacimiento(exp.edad_o_nacimiento),
     
-    // Si no existen listas, pasamos las por defecto
     listaPretensiones: Array.isArray(qData.pretensiones_listadas) && qData.pretensiones_listadas.length > 0
       ? qData.pretensiones_listadas 
       : ['NO SE ESPECIFICARON PRETENSIONES.'],
@@ -579,16 +443,19 @@ export const generarPDFActaQueja = async (exp) => {
   try {
     const docElement = <DocumentoActaQueja data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
-    // Descarga
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de Queja:", error);
   }
@@ -597,7 +464,7 @@ export const generarPDFActaQueja = async (exp) => {
 // ===========================================================================
 // OFICIO DE AUDIENCIA INFORMATIVA
 // ===========================================================================
-export const generarPDFAudienciaInformativa = async (exp) => {
+export const generarPDFAudienciaInformativa = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   const domicilio = qData.domicilio || {};
 
@@ -610,7 +477,6 @@ export const generarPDFAudienciaInformativa = async (exp) => {
 
   const domNumInt = domicilio.numero_interior ? ` INT. ${domicilio.numero_interior}` : '';
 
-  // Empaquetamos todos los datos limpios
   const datosProcesados = {
     fechaDocumento: obtenerFechaCorta(new Date()),
     fechaQueja: obtenerFechaCorta(exp.fecha_recepcion ? new Date(exp.fecha_recepcion) : new Date()),
@@ -633,16 +499,19 @@ export const generarPDFAudienciaInformativa = async (exp) => {
   try {
     const docElement = <DocumentoAudiencia data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
-    // Descarga
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de Audiencia:", error);
   }
@@ -651,7 +520,7 @@ export const generarPDFAudienciaInformativa = async (exp) => {
 // ===========================================================================
 // 3. GENERACIÓN DE CARNETS DE SEGUIMIENTO (DISEÑO FORMAL OPTIMIZADO)
 // ===========================================================================
-export const generarPDFCarnet = async (exp, notaSeguimientoSeleccionada) => {
+export const generarPDFCarnet = async (exp, notaSeguimientoSeleccionada, accion = 'descargar') => {
   const tipoAsunto = (exp.tipo || exp.tipo_asunto || 'seguimiento').toUpperCase();
   const tituloDocumento = `CARNET DE SEGUIMIENTO DE ${tipoAsunto}`;
   const esQueja = tipoAsunto.includes('QUEJA');
@@ -662,10 +531,8 @@ export const generarPDFCarnet = async (exp, notaSeguimientoSeleccionada) => {
     notas_seguimiento: notaSeguimientoSeleccionada || exp.notas_seguimiento 
   };
 
-  // Recopilación de datos de la tabla
   const filasTabla = [];
   CONFIG_CAMPOS_CARNET.forEach(campo => {
-    // Asumo que buscarValorCampo está importado en tu archivo
     const valor = buscarValorCampo(copiaExpediente, campo.keys);
     if (valor) {
       filasTabla.push({ label: campo.label, value: valor });
@@ -677,7 +544,6 @@ export const generarPDFCarnet = async (exp, notaSeguimientoSeleccionada) => {
     filasTabla,
     esQueja,
     tipoFooter,
-    // Asumiendo que ETIQUETA_FIRMA_USUARIO está en este scope, o puedes pasar el string directo
     etiquetaFirmaUsuario: typeof ETIQUETA_FIRMA_USUARIO !== 'undefined' ? ETIQUETA_FIRMA_USUARIO : 'USUARIO'
   };
 
@@ -686,38 +552,37 @@ export const generarPDFCarnet = async (exp, notaSeguimientoSeleccionada) => {
   try {
     const docElement = <DocumentoCarnet data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
-    // Descarga automática
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de Carnet:", error);
   }
 };
 
-
 // ===========================================================================
 // 4. GENERACIÓN DE AUTO DE RECEPCIÓN DE CONTESTACIÓN (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFRecepcionContestacion = async (exp) => {
+export const generarPDFRecepcionContestacion = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   
-  // Procesamos las fechas
   const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
   const fechaAud = exp.fecha_hora_audiencia ? new Date(exp.fecha_hora_audiencia) : new Date();
 
-  // Procesamos los datos
   const datosProcesados = {
     expediente: exp.servicio || 'S/N',
     fechaDocumentoCorta: obtenerFechaCorta(fechaDoc),
     medicoNombre: qData.medico_nombre || '___',
-    // Mantenemos mayúsculas y minúsculas normales para la redacción
     titularConciliacion: exp.titular_conciliacion || 'América Ivonne Gameros Ortiz',
     auxiliarConciliacion: exp.auxiliar_conciliacion || 'Rosa Gloria Aguilar Sartiaguín',
     textoAnexos: exp.anexos_contestacion || '-----------',
@@ -729,15 +594,19 @@ export const generarPDFRecepcionContestacion = async (exp) => {
   try {
     const docElement = <DocumentoRecepcionContestacion data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de Recepción:", error);
   }
@@ -746,18 +615,15 @@ export const generarPDFRecepcionContestacion = async (exp) => {
 // ===========================================================================
 // 5. GENERACIÓN DE AUTO DE NO SUJECIÓN (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFNoSujecion = async (exp) => {
+export const generarPDFNoSujecion = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   
-  // Procesamiento de Género
   const esFemenino = exp.sexo === 'Femenino';
   const tituloSenor = esFemenino ? 'la señora' : 'el señor';
   const sustantivoUsuario = esFemenino ? 'Usuaria' : 'Usuario';
 
-  // Procesamiento de Fecha
   const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
 
-  // Diccionario de datos limpios
   const datosProcesados = {
     expediente: exp.servicio || 'S/N',
     medicoNombre: qData.medico_nombre || '___',
@@ -779,15 +645,19 @@ export const generarPDFNoSujecion = async (exp) => {
   try {
     const docElement = <DocumentoNoSujecion data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de No Sujeción:", error);
   }
@@ -796,16 +666,14 @@ export const generarPDFNoSujecion = async (exp) => {
 // ===========================================================================
 // 6. GENERACIÓN DE DECLARACIÓN DE VOLUNTAD (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFDeclaracionVoluntad = async (exp) => {
+export const generarPDFDeclaracionVoluntad = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   
-  // Procesamiento Género del USUARIO
   const esFemeninoUsuario = exp.sexo === 'Femenino';
   const articuloUsuario = esFemeninoUsuario ? 'la' : 'el';
   const sustantivoUsuario = esFemeninoUsuario ? 'Usuaria' : 'Usuario';
   const pacienteArticulo = esFemeninoUsuario ? 'la paciente' : 'el paciente';
 
-  // Procesamiento Género del MÉDICO (Inteligente por prefijo)
   const nombreMed = qData.medico_nombre || '___';
   const esFemeninoMedico = nombreMed.toUpperCase().includes('DRA.') || nombreMed.toUpperCase().includes('DOCTORA');
   const articuloMedico = esFemeninoMedico ? 'la' : 'el';
@@ -813,13 +681,11 @@ export const generarPDFDeclaracionVoluntad = async (exp) => {
 
   const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
 
-  // Diccionario
   const datosProcesados = {
     expediente: exp.servicio || 'S/N',
     medicoNombre: nombreMed,
     nombreUsuario: qData.nombre_usuario || '___',
     
-    // Representante Legal
     repNombre: qData.representanteMed_nombre || '___',
     repDomicilio: qData.representanteMed_domicilio || '___',
     repColonia: qData.representanteMed_colonia || '___',
@@ -827,7 +693,6 @@ export const generarPDFDeclaracionVoluntad = async (exp) => {
     repTelefono: qData.representanteMed_telefono || '___',
     repCedula: qData.representanteMed_cedula || '___',
     
-    // Gramática Dinámica
     articuloUsuario,
     sustantivoUsuario,
     pacienteArticulo,
@@ -842,53 +707,51 @@ export const generarPDFDeclaracionVoluntad = async (exp) => {
   try {
     const docElement = <DocumentoDeclaracionVoluntad data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de Declaración:", error);
   }
 };
 
-
 // ===========================================================================
 // 7. GENERACIÓN DE AUDIENCIA DE CONCILIACIÓN (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFAudienciaConciliacion = async (exp) => {
+export const generarPDFAudienciaConciliacion = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   
-  // Procesamiento Género del USUARIO
   const esFemeninoUsuario = exp.sexo === 'Femenino';
   const tituloUsuario = esFemeninoUsuario ? 'SRA.' : 'SR.';
   const elLaUsuario = esFemeninoUsuario ? 'LA SRA.' : 'EL SR.';
   const sustantivoUsuario = esFemeninoUsuario ? 'USUARIA' : 'USUARIO';
 
-  // Procesamiento Género del MÉDICO (Inteligente por prefijo)
   const nombreMed = qData.medico_nombre || '___';
   const medUpper = nombreMed.toUpperCase();
   const esFemeninoMedico = medUpper.includes('DRA.') || medUpper.includes('DOCTORA') || medUpper.includes('ENF.') || medUpper.includes('LICDA.');
   const elLaMedico = esFemeninoMedico ? 'LA' : 'EL';
   const prestadorSustantivo = esFemeninoMedico ? 'PRESTADORA' : 'PRESTADOR';
 
-  // Fechas y Horas
   const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
-  const horaString = exp.hora_documento || '12:00'; // Formato HH:MM
-  const horaFinCalculada = `${horaString.split(':')[0]}:50`; // Se suma un aprox para el cierre
+  const horaString = exp.hora_documento || '12:00'; 
+  const horaFinCalculada = `${horaString.split(':')[0]}:50`; 
 
-  // Ordinales para cláusulas (Soporta hasta 10 cláusulas)
   const ordinales = ['PRIMERA', 'SEGUNDA', 'TERCERA', 'CUARTA', 'QUINTA', 'SEXTA', 'SÉPTIMA', 'OCTAVA', 'NOVENA', 'DÉCIMA'];
   const clausulasMapeadas = (qData.clausulas_listadas || []).map((texto, index) => ({
     titulo: ordinales[index] || `CLÁUSULA ${index + 1}`,
     texto: texto
   }));
 
-  // Diccionario
   const datosProcesados = {
     expediente: exp.servicio || 'S/N',
     medicoNombre: nombreMed,
@@ -896,7 +759,6 @@ export const generarPDFAudienciaConciliacion = async (exp) => {
     nombreTestigo: qData.nombre_testigo || '___',
     clausulas: clausulasMapeadas,
     
-    // Gramática Dinámica
     tituloUsuario,
     elLaUsuario,
     sustantivoUsuario,
@@ -913,15 +775,19 @@ export const generarPDFAudienciaConciliacion = async (exp) => {
   try {
     const docElement = <DocumentoAudienciaConciliacion data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de Audiencia:", error);
   }
@@ -930,17 +796,15 @@ export const generarPDFAudienciaConciliacion = async (exp) => {
 // ===========================================================================
 // 8. GENERACIÓN DE ACUERDO DE SEÑALAMIENTO (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFAcuerdoSenalamiento = async (exp) => {
+export const generarPDFAcuerdoSenalamiento = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   
   const fechaDoc = exp.fecha_documento ? new Date(exp.fecha_documento) : new Date();
   
-  // Diccionario
   const datosProcesados = {
     expediente: exp.servicio || 'S/N',
     noOficio: qData.prestador_noOficio || '___',
     
-    // Destinatario
     usuarioNombre: qData.nombre_usuario || '___',
     usuarioDomicilio: qData.usuario_domicilio || '___',
     usuarioColonia: qData.usuario_colonia || '___',
@@ -948,10 +812,9 @@ export const generarPDFAcuerdoSenalamiento = async (exp) => {
     
     medicoNombre: qData.medico_nombre || '___',
     
-    // Fechas dinámicas 
     fechaCorta: obtenerFechaCorta(fechaDoc),
     fechaJuridica: obtenerFechaJuridicaEscrita(exp.fecha_documento),
-    fechaContestacionStr: obtenerFechaConAnio(exp.fecha_contestacion), // <-- VARIABLE NUEVA
+    fechaContestacionStr: obtenerFechaConAnio(exp.fecha_contestacion),
     fechaCitatorioStr: obtenerFechaCitatorio(exp.fecha_citatorio)
   };
 
@@ -960,15 +823,19 @@ export const generarPDFAcuerdoSenalamiento = async (exp) => {
   try {
     const docElement = <DocumentoAcuerdoSenalamiento data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF de Acuerdo y Señalamiento:", error);
   }
@@ -977,21 +844,18 @@ export const generarPDFAcuerdoSenalamiento = async (exp) => {
 // ===========================================================================
 // 9. GENERACIÓN DE AUDIENCIA NO CONCILIADA (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFAudienciaNoConciliada = async (exp) => {
+export const generarPDFAudienciaNoConciliada = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   
-  // Procesamiento Género del USUARIO
   const esFemeninoUsuario = exp.sexo === 'Femenino';
   const tituloUsuario = esFemeninoUsuario ? 'Sra.' : 'Sr.';
   const articuloUsuario = esFemeninoUsuario ? 'la' : 'el';
   const sustantivoUsuario = esFemeninoUsuario ? 'usuaria' : 'usuario';
 
-  // Procesamiento Género del MÉDICO
   const nombreMed = qData.medico_nombre || '___';
   const esFemeninoMedico = nombreMed.toUpperCase().includes('DRA.') || nombreMed.toUpperCase().includes('DOCTORA') || nombreMed.toUpperCase().includes('ENF.');
   const articuloMedico = esFemeninoMedico ? 'La' : 'El';
 
-  // Extraer Horas HH:MM
   const getHoraString = (dateStr) => {
     if(!dateStr) return "___:___";
     const d = new Date(dateStr);
@@ -1008,7 +872,6 @@ export const generarPDFAudienciaNoConciliada = async (exp) => {
     usuarioManifestacion: qData.usuario_manifestacion || '________________________',
     medicoManifestacion: qData.medico_manifestacion || '________________________',
     
-    // Gramática Dinámica
     tituloUsuario,
     articuloUsuario,
     sustantivoUsuario,
@@ -1024,15 +887,19 @@ export const generarPDFAudienciaNoConciliada = async (exp) => {
   try {
     const docElement = <DocumentoAudienciaNoConciliada data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF No Conciliada:", error);
   }
@@ -1041,25 +908,22 @@ export const generarPDFAudienciaNoConciliada = async (exp) => {
 // ===========================================================================
 // 10. GENERACIÓN DE DIFERIMIENTO DE AUDIENCIA (DISEÑO FORMAL)
 // ===========================================================================
-export const generarPDFDiferimientoAudiencia = async (exp) => {
+export const generarPDFDiferimientoAudiencia = async (exp, accion = 'descargar') => {
   const qData = exp.datos_docs || {};
   
-  // Procesamiento Género del USUARIO
   const esFemeninoUsuario = exp.sexo === 'Femenino';
   const tituloUsuario = esFemeninoUsuario ? 'Sra.' : 'Sr.';
-  const articuloUsuario = esFemeninoUsuario ? 'La' : 'El'; // Capitalizado para inicio de oración
-  const articuloUsuarioMin = esFemeninoUsuario ? 'la' : 'el'; // Minúscula
+  const articuloUsuario = esFemeninoUsuario ? 'La' : 'El'; 
+  const articuloUsuarioMin = esFemeninoUsuario ? 'la' : 'el'; 
   const sustantivoUsuario = esFemeninoUsuario ? 'Usuaria' : 'Usuario';
   const sustantivoUsuarioMin = esFemeninoUsuario ? 'usuaria' : 'usuario';
 
-  // Procesamiento Género del MÉDICO
   const nombreMed = qData.medico_nombre || '___';
   const upperMed = nombreMed.toUpperCase();
   const esFemeninoMedico = upperMed.includes('DRA.') || upperMed.includes('DOCTORA') || upperMed.includes('ENF.');
   const articuloMedico = esFemeninoMedico ? 'la' : 'el';
   const articuloMedicoCap = esFemeninoMedico ? 'La' : 'El';
 
-  // Extraer Horas HH:MM
   const getHoraString = (dateStr) => {
     if(!dateStr) return "___:___";
     const d = new Date(dateStr);
@@ -1075,7 +939,6 @@ export const generarPDFDiferimientoAudiencia = async (exp) => {
     
     usuarioManifestacion: qData.usuario_manifestacion || '________________________',
     
-    // Gramática Dinámica
     tituloUsuario,
     articuloUsuario,
     articuloUsuarioMin,
@@ -1095,15 +958,19 @@ export const generarPDFDiferimientoAudiencia = async (exp) => {
   try {
     const docElement = <DocumentoDiferimientoAudiencia data={datosProcesados} />;
     const blob = await pdf(docElement).toBlob();
-    
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    
+    if (accion === 'previsualizar') {
+      window.open(url, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error("Error al generar PDF Diferimiento:", error);
   }

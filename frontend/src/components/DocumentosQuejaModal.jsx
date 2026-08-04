@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, Plus, Trash2, Info, Clock, User, UserCheck, Scale, FileCheck } from 'lucide-react';
+import { X, Save, FileText, Plus, Trash2, Info, Clock, User, UserCheck, Scale, FileCheck, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AtendidosService } from '../services/atendidosService';
 import { generarPDFActaQueja } from '../utils/pdfGenerator'; 
@@ -90,6 +90,26 @@ const DocumentosQuejaModal = ({ isOpen, onClose, item }) => {
     } catch (error) {
       console.error("Error guardando o generando PDF:", error);
       toast.error('Error al guardar o generar el PDF. Verifica tu conexión.', { id: toastId });
+    } finally {
+      setGenerando(false);
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    setGenerando(true);
+    const toastId = toast.loading('Generando vista previa...');
+    try {
+      // Guardamos para que la vista previa tenga la info actualizada
+      await AtendidosService.updateDatosDocs(item.id, formData);
+      const expActualizado = { ...item, datos_docs: formData };
+      
+      // Llamamos a la función indicando 'previsualizar'
+      generarPDFActaQueja(expActualizado, 'previsualizar'); 
+      
+      toast.success('Vista previa abierta', { id: toastId });
+    } catch (error) {
+      console.error("Error generando vista previa:", error);
+      toast.error('Error al generar la vista previa.', { id: toastId });
     } finally {
       setGenerando(false);
     }
@@ -277,6 +297,16 @@ const DocumentosQuejaModal = ({ isOpen, onClose, item }) => {
           </button>
           
           <div className="flex items-center gap-3">
+
+            <button 
+              onClick={handlePreviewPDF}
+              disabled={loading || generando}
+              className="px-5 py-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-70"
+            >
+              <Eye size={16} />
+              Vista Previa
+            </button>
+            
             <button 
               onClick={handleSave}
               disabled={loading || generando}

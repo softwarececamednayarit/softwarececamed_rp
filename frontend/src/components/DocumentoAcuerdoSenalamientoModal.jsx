@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, Calendar, User, MapPin, Hash, Stethoscope } from 'lucide-react';
+import { X, Save, FileText, Calendar, User, MapPin, Hash, Stethoscope, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AtendidosService } from '../services/atendidosService';
 import { generarPDFAcuerdoSenalamiento } from '../utils/pdfGenerator'; 
@@ -87,6 +87,23 @@ const DocumentoAcuerdoSenalamientoModal = ({ isOpen, onClose, item }) => {
       toast.error('Error al generar el PDF.', { id: toastId });
     } finally {
       setGenerando(false);
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    const toastId = toast.loading('Previsualizando PDF...');
+    try {
+      const expActualizado = { 
+        ...item, 
+        datos_docs: { ...existingData, ...formData },
+        ...localData 
+      };
+      
+      generarPDFAcuerdoSenalamiento(expActualizado, "previsualizar");
+      toast.success('PDF previsualizado exitosamente', { id: toastId });
+    } catch (error) {
+      console.error("Error previsualizando PDF:", error);
+      toast.error('Error al previsualizar el PDF.', { id: toastId });
     }
   };
 
@@ -190,6 +207,15 @@ const DocumentoAcuerdoSenalamientoModal = ({ isOpen, onClose, item }) => {
           </button>
           
           <div className="flex items-center gap-3">
+            <button
+              onClick={handlePreviewPDF}
+              disabled={loading || generando}
+              className="px-5 py-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-70"
+            >
+              <Eye size={16} />
+              Vista Previa
+            </button>
+
             <button 
               onClick={handleSave}
               disabled={loading || generando}

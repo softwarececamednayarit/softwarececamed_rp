@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, User, Calendar, Stethoscope, Clock, MessageCircle } from 'lucide-react';
+import { X, Save, FileText, User, Calendar, Stethoscope, Clock, MessageCircle, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AtendidosService } from '../services/atendidosService';
 import { generarPDFDiferimientoAudiencia } from '../utils/pdfGenerator'; 
@@ -98,6 +98,26 @@ const DocumentoDiferimientoAudienciaModal = ({ isOpen, onClose, item }) => {
     }
   };
 
+  const handlePreviewPDF = async () => {
+    setGenerando(true);
+    const toastId = toast.loading('Generando vista previa...');
+    try {
+      await AtendidosService.updateDatosDocs(item.id, formData);
+      const expActualizado = {
+        ...item,
+        datos_docs: { ...existingData, ...formData },
+        ...localData
+      };
+      generarPDFDiferimientoAudiencia(expActualizado, "previsualizar");
+      toast.success('Vista previa generada', { id: toastId });
+    } catch (error) {
+      console.error("Error generando vista previa:", error);
+      toast.error('Error al generar la vista previa.', { id: toastId });
+    } finally {
+      setGenerando(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-center p-4 sm:p-6 backdrop-blur-sm bg-slate-900/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-200">
@@ -186,6 +206,15 @@ const DocumentoDiferimientoAudienciaModal = ({ isOpen, onClose, item }) => {
           </button>
           
           <div className="flex items-center gap-3">
+            <button 
+              onClick={handlePreviewPDF}
+              disabled={loading || generando}
+              className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-70"
+            >
+              <Eye size={16} />
+              {generando ? 'Generando...' : 'Vista Previa'}
+            </button>
+
             <button 
               onClick={handleSave}
               disabled={loading || generando}

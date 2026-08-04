@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, FileX, User, Calendar, Stethoscope, MapPin, Phone, CreditCard } from 'lucide-react';
+import { X, Save, FileText, FileX, User, Calendar, Stethoscope, MapPin, Phone, CreditCard, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AtendidosService } from '../services/atendidosService';
 import { generarPDFNoSujecion } from '../utils/pdfGenerator'; 
@@ -80,6 +80,30 @@ const DocumentoNoSujecionModal = ({ isOpen, onClose, item }) => {
     } catch (error) {
       console.error("Error generando PDF:", error);
       toast.error('Error al generar el PDF.', { id: toastId });
+    } finally {
+      setGenerando(false);
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    setGenerando(true);
+    const toastId = toast.loading('Generando vista previa...');
+    
+    try {
+      await AtendidosService.updateDatosDocs(item.id, formData);
+
+      const expActualizado = { 
+        ...item, 
+        datos_docs: { ...existingData, ...formData },
+        ...localData 
+      };
+      
+      generarPDFNoSujecion(expActualizado, 'previsualizar');
+      
+      toast.success('Vista previa abierta', { id: toastId });
+    } catch (error) {
+      console.error("Error generando vista previa:", error);
+      toast.error('Error al generar la vista previa.', { id: toastId });
     } finally {
       setGenerando(false);
     }
@@ -183,6 +207,15 @@ const DocumentoNoSujecionModal = ({ isOpen, onClose, item }) => {
           </button>
           
           <div className="flex items-center gap-3">
+            <button 
+              onClick={handlePreviewPDF}
+              disabled={loading || generando}
+              className="px-5 py-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-70"
+            >
+              <Eye size={16} />
+              Vista Previa
+            </button>
+            
             <button 
               onClick={handleSave}
               disabled={loading || generando}

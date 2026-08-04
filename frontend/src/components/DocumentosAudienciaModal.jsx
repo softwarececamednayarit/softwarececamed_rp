@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, MapPin, Info, Clock, User, Calendar, Stethoscope } from 'lucide-react';
+import { X, Save, FileText, MapPin, Info, Clock, User, Calendar, Stethoscope, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AtendidosService } from '../services/atendidosService';
 // Importamos la nueva función generadora de PDF (Ajusta la ruta según tu estructura)
@@ -110,12 +110,35 @@ const DocumentosAudienciaModal = ({ isOpen, onClose, item }) => {
         ...localData // Mandamos la fecha_documento, fecha_queja y titular efímeros
       };
       
-      generarPDFAudienciaInformativa(expActualizado);
+      generarPDFAudienciaInformativa(expActualizado, "previsualizar");
       
       toast.success('Oficio generado exitosamente', { id: toastId });
     } catch (error) {
       console.error("Error generando PDF:", error);
       toast.error('Error al generar el PDF.', { id: toastId });
+    } finally {
+      setGenerando(false);
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    setGenerando(true);
+    const toastId = toast.loading('Generando vista previa del PDF...');
+    try {
+      // Preparamos el objeto completo para la función PDF
+      const expActualizado = {
+        ...item,
+        datos_docs: formData,
+        ...localData
+      };
+
+      // Llamamos a la función de generación de PDF con el modo de vista previa
+      generarPDFAudienciaInformativa(expActualizado, 'previsualizar');
+
+      toast.success('Vista previa abierta', { id: toastId });
+    } catch (error) {
+      console.error("Error generando vista previa:", error);
+      toast.error('Error al generar la vista previa.', { id: toastId });
     } finally {
       setGenerando(false);
     }
@@ -260,6 +283,15 @@ const DocumentosAudienciaModal = ({ isOpen, onClose, item }) => {
           </button>
           
           <div className="flex items-center gap-3">
+            <button 
+              onClick={handlePreviewPDF}
+              disabled={loading || generando}
+              className="px-5 py-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-70"
+            >
+              <Eye size={16} />
+              Vista Previa
+            </button>
+
             <button 
               onClick={handleSave}
               disabled={loading || generando}
