@@ -659,23 +659,37 @@ export const GestionTable = ({ onViewDetails }) => {
                       {/* 2. CONTACTO */}
                       {isEditing ? (
                           <td className="p-2 align-top space-y-2 bg-white">
-                             <div className="flex gap-2">
-                               <label className="flex items-center gap-1 text-[10px] cursor-pointer">
-                                 <input type="checkbox" name="foraneo" checked={editForm.foraneo} onChange={handleChange} className="rounded text-indigo-600"/> Foráneo
-                               </label>
-                               <label className="flex items-center gap-1 text-[10px] cursor-pointer">
-                                 <input type="checkbox" name="via_telefonica" checked={editForm.via_telefonica} onChange={handleChange} className="rounded text-indigo-600"/> Tel.
-                               </label>
-                             </div>
-                             <input name="representante" value={editForm.representante || ''} onChange={handleChange} className="w-full p-1.5 border border-indigo-200 rounded text-xs" placeholder="Representante" />
+                            <div className="flex gap-2">
+                              <label className="flex items-center gap-1 text-[10px] cursor-pointer">
+                                <input type="checkbox" name="foraneo" checked={editForm.foraneo} onChange={handleChange} className="rounded text-indigo-600"/> Foráneo
+                              </label>
+                              <label className="flex items-center gap-1 text-[10px] cursor-pointer">
+                                <input type="checkbox" name="via_telefonica" checked={editForm.via_telefonica} onChange={handleChange} className="rounded text-indigo-600"/> Tel.
+                              </label>
+                            </div>
+                            
+                            {/* FIX 1: Evitar que el input truene si el estado guarda un objeto */}
+                            <input 
+                              name="representante" 
+                              value={typeof editForm.representante === 'object' ? (editForm.representante?.nombre_completo || '') : (editForm.representante || '')} 
+                              onChange={handleChange} 
+                              className="w-full p-1.5 border border-indigo-200 rounded text-xs" 
+                              placeholder="Representante" 
+                            />
                           </td>
                       ) : (
                           <td className="p-4 align-top">
-                             <div className="flex gap-2 mb-1">
+                            <div className="flex gap-2 mb-1">
                                 {row.foraneo && <span className="bg-purple-100 text-purple-700 px-1.5 rounded text-[9px] font-bold">Foráneo</span>}
                                 {row.via_telefonica && <span className="bg-blue-100 text-blue-700 px-1.5 rounded text-[9px] font-bold">Tel</span>}
-                             </div>
-                             {row.representante && <div className="text-[10px] text-slate-500">Rep: {row.representante}</div>}
+                            </div>
+                            
+                            {/* FIX 2: EL CAUSANTE DEL ERROR #31. Extraemos el string "nombre_completo" */}
+                            {row.representante && (
+                                <div className="text-[10px] text-slate-500">
+                                  Rep: {typeof row.representante === 'object' ? row.representante.nombre_completo : row.representante}
+                                </div>
+                            )}
                           </td>
                       )}
 
