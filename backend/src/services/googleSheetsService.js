@@ -36,12 +36,14 @@ const SPREADSHEET_CLASICO_ID = process.env.GOOGLE_SHEET_CLASICO_ID;
 // Helpers de formato
 const formatoTitulo = (texto) => {
   if (!texto) return '';
-  return texto.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  // Convertimos a string primero para evitar que números u objetos rompan el servidor
+  return String(texto).toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 };
 
 const formatoOracion = (texto) => {
   if (!texto) return '';
-  let res = texto.toLowerCase();
+  // Convertimos a string primero
+  let res = String(texto).toLowerCase();
   res = res.charAt(0).toUpperCase() + res.slice(1);
   return res.replace(/(\. \w)/g, (match) => match.toUpperCase());
 };
